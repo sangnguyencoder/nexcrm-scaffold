@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 33% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 215 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 217 91% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 31% 91%;
+    --ring: 217 91% 55%;
+  }
+
+  .dark {
+    --background: 220 23% 5%;
+    --foreground: 210 40% 96%;
+    --card: 220 18% 8%;
+    --card-foreground: 210 40% 96%;
+    --popover: 220 18% 8%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 96%;
+    --muted: 223 15% 15%;
+    --muted-foreground: 218 13% 59%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 210 40% 96%;
+    --border: 225 13% 19%;
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.06), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.05), transparent 22%);
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    @apply outline-none;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}

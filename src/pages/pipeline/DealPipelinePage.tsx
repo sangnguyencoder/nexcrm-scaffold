@@ -1,0 +1,851 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  BriefcaseBusiness,
+  CalendarDays,
+  CheckCircle2,
+  CircleDot,
+  Plus,
+  Search,
+  Target,
+  Trash2,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { z } from "zod";
+
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
+import { PageLoader } from "@/components/shared/page-loader";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
+import { Sheet } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { useCustomersQuery, useDealsQuery, useTasksQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
+import {
+  cn,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatDealStage,
+  formatTaskStatus,
+  getDealStageColor,
+  getPriorityColor,
+} from "@/lib/utils";
+import { dealService } from "@/services/dealService";
+import { taskService } from "@/services/taskService";
+import type { Deal, DealStage, Task } from "@/types";
+
+const stageColumns: Array<{ label: string; value: DealStage; borderClass: string }> = [
+  { label: "Lead", value: "lead", borderClass: "border-slate-500" },
+  { label: "Đã xác thực", value: "qualified", borderClass: "border-blue-500" },
+  { label: "Đề xuất", value: "proposal", borderClass: "border-amber-500" },
+  { label: "Đàm phán", value: "negotiation", borderClass: "border-orange-500" },
+  { label: "Thành công", value: "won", borderClass: "border-emerald-500" },
+  { label: "Thất bại", value: "lost", borderClass: "border-rose-500" },
+];
+
+const dealSchema = z.object({
+  title: z.string().min(3, "Tên cơ hội tối thiểu 3 ký tự"),
+  customer_id: z.string().min(1, "Vui lòng chọn khách hàng"),
+  owner_id: z.string().min(1, "Vui lòng chọn người phụ trách"),
+  stage: z.enum(["lead", "qualified", "proposal", "negotiation", "won", "lost"]),
+  value: z.number().min(0, "Giá trị phải lớn hơn hoặc bằng 0"),
+  probability: z.number().min(0).max(100),
+  expected_close_at: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const taskSchema = z.object({
+  title: z.string().min(3, "Tên nhiệm vụ tối thiểu 3 ký tự"),
+  description: z.string().optional(),
+  assigned_to: z.string().min(1, "Vui lòng chọn người phụ trách"),
+  priority: z.enum(["low", "medium", "high"]),
+  due_at: z.string().optional(),
+});
+
+type DealFormValues = z.infer<typeof dealSchema>;
+type TaskFormValues = z.infer<typeof taskSchema>;
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-2 text-sm">
+      <span className="font-medium">{label}</span>
+      {children}
+      {error ? <span className="text-xs text-rose-500">{error}</span> : null}
+    </label>
+  );
+}
+
+function DealFormModal({
+  open,
+  onOpenChange,
+  initialDeal,
+  prefillCustomerId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialDeal?: Deal | null;
+  prefillCustomerId?: string;
+}) {
+  const queryClient = useQueryClient();
+  const { data: customers = [] } = useCustomersQuery();
+  const { data: users = [] } = useUsersQuery();
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const isEdit = Boolean(initialDeal);
+  const form = useForm<DealFormValues>({
+    resolver: zodResolver(dealSchema),
+    defaultValues: {
+      title: "",
+      customer_id: prefillCustomerId ?? "",
+      owner_id: "",
+      stage: "lead",
+      value: 0,
+      probability: 20,
+      expected_close_at: "",
+      description: "",
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+
+    form.reset({
+      title: initialDeal?.title ?? "",
+      customer_id: initialDeal?.customer_id ?? prefillCustomerId ?? "",
+      owner_id: initialDeal?.owner_id ?? users[0]?.id ?? "",
+      stage: initialDeal?.stage ?? "lead",
+      value: initialDeal?.value ?? 0,
+      probability: initialDeal?.probability ?? 20,
+      expected_close_at: initialDeal?.expected_close_at?.slice(0, 10) ?? "",
+      description: initialDeal?.description ?? "",
+    });
+  }, [form, initialDeal, open, prefillCustomerId, users]);
+
+  const mutation = useMutation({
+    mutationFn: async (values: DealFormValues) => {
+      const payload = {
+        ...values,
+        expected_close_at: values.expected_close_at
+          ? new Date(`${values.expected_close_at}T09:00:00`).toISOString()
+          : null,
+        description: values.description || "",
+      };
+
+      if (isEdit && initialDeal) {
+        return dealService.update(initialDeal.id, payload);
+      }
+
+      return dealService.create(payload);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      toast.success(isEdit ? "Đã cập nhật cơ hội" : "Đã tạo cơ hội mới");
+      form.reset();
+      onOpenChange(false);
+    },
+  });
+
+  const filteredCustomers = customers.filter((customer) =>
+    customer.full_name.toLowerCase().includes(customerSearch.toLowerCase()),
+  );
+
+  const attemptClose = () => {
+    if (form.formState.isDirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    onOpenChange(false);
+  };
+
+  return (
+    <>
+      <Modal
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            attemptClose();
+            return;
+          }
+          onOpenChange(nextOpen);
+        }}
+        title={isEdit ? "Cập nhật cơ hội" : "Tạo cơ hội mới"}
+        description="Theo dõi pipeline bán hàng theo từng giai đoạn xử lý."
+      >
+        <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+          <Field label="Tên cơ hội" error={form.formState.errors.title?.message}>
+            <Input {...form.register("title")} placeholder="Ví dụ: Gia hạn gói CRM 12 tháng" />
+          </Field>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Tìm khách hàng" error={form.formState.errors.customer_id?.message}>
+              <Input
+                value={customerSearch}
+                onChange={(event) => setCustomerSearch(event.target.value)}
+                placeholder="Tìm theo tên khách hàng"
+              />
+              <Select {...form.register("customer_id")}>
+                <option value="">Chọn khách hàng</option>
+                {filteredCustomers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.full_name} · {customer.customer_code}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Phụ trách" error={form.formState.errors.owner_id?.message}>
+              <Select {...form.register("owner_id")}>
+                <option value="">Chọn người phụ trách</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.full_name} · {user.department}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Giai đoạn">
+              <Select {...form.register("stage")}>
+                {stageColumns.map((stage) => (
+                  <option key={stage.value} value={stage.value}>
+                    {stage.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Giá trị cơ hội">
+              <Input type="number" min={0} {...form.register("value", { valueAsNumber: true })} />
+            </Field>
+
+            <Field label="Xác suất chốt (%)">
+              <Input type="number" min={0} max={100} {...form.register("probability", { valueAsNumber: true })} />
+            </Field>
+
+            <Field label="Ngày dự kiến chốt">
+              <Input type="date" {...form.register("expected_close_at")} />
+            </Field>
+          </div>
+
+          <Field label="Mô tả">
+            <Textarea {...form.register("description")} placeholder="Tóm tắt nhu cầu, ngân sách hoặc next step" />
+          </Field>
+
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={attemptClose}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo cơ hội"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={showCloseConfirm}
+        onOpenChange={setShowCloseConfirm}
+        title="Bạn có thay đổi chưa lưu"
+        description="Bạn có thay đổi chưa lưu. Thoát không?"
+        confirmLabel="Thoát"
+        cancelLabel="Ở lại"
+        confirmVariant="default"
+        onConfirm={() => {
+          form.reset();
+          onOpenChange(false);
+        }}
+      />
+    </>
+  );
+}
+
+function TaskForm({ dealId }: { dealId: string }) {
+  const queryClient = useQueryClient();
+  const { data: users = [] } = useUsersQuery();
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assigned_to: "",
+      priority: "medium",
+      due_at: "",
+    },
+  });
+
+  useEffect(() => {
+    const current = form.getValues();
+    form.reset({
+      ...current,
+      assigned_to: current.assigned_to || users[0]?.id || "",
+    });
+  }, [form, users]);
+
+  const createTask = useMutation({
+    mutationFn: (values: TaskFormValues) =>
+      taskService.create({
+        title: values.title,
+        description: values.description || "",
+        entity_type: "deal",
+        entity_id: dealId,
+        assigned_to: values.assigned_to,
+        priority: values.priority,
+        due_at: values.due_at ? new Date(`${values.due_at}T09:00:00`).toISOString() : null,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      toast.success("Đã tạo nhiệm vụ follow-up");
+      form.reset({
+        title: "",
+        description: "",
+        assigned_to: users[0]?.id ?? "",
+        priority: "medium",
+        due_at: "",
+      });
+    },
+  });
+
+  return (
+    <form className="space-y-3 rounded-2xl border border-border p-4" onSubmit={form.handleSubmit((values) => createTask.mutate(values))}>
+      <div className="font-medium">Tạo nhiệm vụ mới</div>
+      <Field label="Tiêu đề" error={form.formState.errors.title?.message}>
+        <Input {...form.register("title")} placeholder="Ví dụ: Gọi xác nhận nhu cầu" />
+      </Field>
+      <Field label="Mô tả">
+        <Textarea {...form.register("description")} placeholder="Ghi chú ngắn cho người phụ trách" />
+      </Field>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Field label="Phụ trách" error={form.formState.errors.assigned_to?.message}>
+          <Select {...form.register("assigned_to")}>
+            <option value="">Chọn người phụ trách</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Ưu tiên">
+          <Select {...form.register("priority")}>
+            <option value="low">Thấp</option>
+            <option value="medium">Trung bình</option>
+            <option value="high">Cao</option>
+          </Select>
+        </Field>
+        <Field label="Deadline">
+          <Input type="date" {...form.register("due_at")} />
+        </Field>
+      </div>
+      <div className="flex justify-end">
+        <Button type="submit" disabled={createTask.isPending}>
+          {createTask.isPending ? "Đang tạo..." : "Thêm nhiệm vụ"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-2 p-5">
+        <div className="text-sm text-muted-foreground">{label}</div>
+        <div className="font-display text-2xl font-bold">{value}</div>
+        <div className="text-xs text-muted-foreground">{helper}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function DealPipelinePage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: deals = [], isLoading } = useDealsQuery();
+  const { data: customers = [] } = useCustomersQuery();
+  const { data: users = [] } = useUsersQuery();
+  const { data: tasks = [] } = useTasksQuery({ entityType: "deal" });
+  const [search, setSearch] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
+  const [deleteDealTarget, setDeleteDealTarget] = useState<Deal | null>(null);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<Task | null>(null);
+
+  const requestedCreate = searchParams.get("create") === "1";
+  const prefillCustomerId = searchParams.get("customerId") ?? "";
+
+  useEffect(() => {
+    if (requestedCreate) {
+      setEditingDeal(null);
+      setFormOpen(true);
+    }
+  }, [requestedCreate]);
+
+  const clearPrefillParams = () => {
+    if (!requestedCreate && !prefillCustomerId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    next.delete("customerId");
+    setSearchParams(next, { replace: true });
+  };
+
+  const customerMap = useMemo(
+    () =>
+      customers.reduce<Record<string, (typeof customers)[number]>>((acc, customer) => {
+        acc[customer.id] = customer;
+        return acc;
+      }, {}),
+    [customers],
+  );
+
+  const userMap = useMemo(
+    () =>
+      users.reduce<Record<string, (typeof users)[number]>>((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {}),
+    [users],
+  );
+
+  const filteredDeals = useMemo(
+    () =>
+      deals.filter((deal) => {
+        if (ownerFilter !== "all" && deal.owner_id !== ownerFilter) return false;
+        if (!search.trim()) return true;
+
+        const customerName = customerMap[deal.customer_id]?.full_name ?? "";
+        return `${deal.title} ${customerName}`.toLowerCase().includes(search.toLowerCase());
+      }),
+    [customerMap, deals, ownerFilter, search],
+  );
+
+  const selectedDeal =
+    filteredDeals.find((deal) => deal.id === selectedDealId) ??
+    deals.find((deal) => deal.id === selectedDealId) ??
+    null;
+
+  const selectedDealTasks = useMemo(
+    () => tasks.filter((task) => task.entity_type === "deal" && task.entity_id === selectedDeal?.id),
+    [selectedDeal?.id, tasks],
+  );
+
+  const summary = useMemo(() => {
+    const totalValue = filteredDeals.reduce((sum, deal) => sum + deal.value, 0);
+    const wonValue = filteredDeals.filter((deal) => deal.stage === "won").reduce((sum, deal) => sum + deal.value, 0);
+    const openTasks = tasks.filter((task) => task.status !== "done").length;
+    return {
+      totalValue,
+      wonValue,
+      dealsCount: filteredDeals.length,
+      openTasks,
+    };
+  }, [filteredDeals, tasks]);
+
+  const updateStage = useMutation({
+    mutationFn: ({ id, stage }: { id: string; stage: DealStage }) => dealService.updateStage(id, stage),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      toast.success(`Đã chuyển cơ hội sang ${formatDealStage(variables.stage)}`);
+    },
+  });
+
+  const deleteDeal = useMutation({
+    mutationFn: (id: string) => dealService.delete(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"] }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      setSelectedDealId(null);
+      toast.success("Đã xóa cơ hội");
+    },
+  });
+
+  const completeTask = useMutation({
+    mutationFn: (id: string) => taskService.complete(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      toast.success("Đã đánh dấu hoàn thành nhiệm vụ");
+    },
+  });
+
+  const deleteTask = useMutation({
+    mutationFn: (id: string) => taskService.delete(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]);
+      toast.success("Đã xóa nhiệm vụ");
+    },
+  });
+
+  if (isLoading) {
+    return <PageLoader panels={2} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Pipeline Kinh Doanh"
+        subtitle="Quản lý lead, cơ hội bán hàng, follow-up và trạng thái chốt deal."
+        actions={
+          <Button
+            onClick={() => {
+              setEditingDeal(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="size-4" />
+            Tạo Cơ Hội
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <SummaryCard label="Tổng giá trị pipeline" value={formatCurrency(summary.totalValue)} helper={`${summary.dealsCount} cơ hội đang theo dõi`} />
+        <SummaryCard label="Giá trị đã chốt" value={formatCurrency(summary.wonValue)} helper="Các cơ hội ở trạng thái Thành công" />
+        <SummaryCard label="Lead / Deal" value={String(summary.dealsCount)} helper="Số cơ hội theo bộ lọc hiện tại" />
+        <SummaryCard label="Nhiệm vụ mở" value={String(summary.openTasks)} helper="Follow-up chưa hoàn thành" />
+      </div>
+
+      <Card>
+        <CardContent className="grid gap-3 p-5 md:grid-cols-[minmax(0,1fr),240px,auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Tìm theo tên cơ hội hoặc khách hàng" />
+          </div>
+          <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
+            <option value="all">Tất cả phụ trách</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSearch("");
+              setOwnerFilter("all");
+            }}
+          >
+            Xóa bộ lọc
+          </Button>
+        </CardContent>
+      </Card>
+
+      {filteredDeals.length ? (
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[1440px] grid-cols-6 gap-4">
+            {stageColumns.map((column) => {
+              const columnDeals = filteredDeals.filter((deal) => deal.stage === column.value);
+              return (
+                <Card
+                  key={column.value}
+                  className={`border-t-4 ${column.borderClass}`}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (!draggedDealId) return;
+                    updateStage.mutate({ id: draggedDealId, stage: column.value });
+                    setDraggedDealId(null);
+                  }}
+                >
+                  <CardContent className="space-y-4 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="font-display text-sm font-semibold">{column.label}</div>
+                      <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{columnDeals.length}</div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {columnDeals.map((deal) => {
+                        const customer = customerMap[deal.customer_id];
+                        const owner = userMap[deal.owner_id];
+                        const relatedTasks = tasks.filter((task) => task.entity_id === deal.id && task.entity_type === "deal");
+
+                        return (
+                          <button
+                            key={deal.id}
+                            type="button"
+                            draggable
+                            onDragStart={() => setDraggedDealId(deal.id)}
+                            onClick={() => setSelectedDealId(deal.id)}
+                            className="w-full rounded-2xl border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-primary/5"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-2">
+                                <div className="line-clamp-2 font-medium">{deal.title}</div>
+                                <div className="text-sm text-muted-foreground">{customer?.full_name ?? "Khách hàng không xác định"}</div>
+                              </div>
+                              <StatusBadge label={`${deal.probability}%`} className={getDealStageColor(deal.stage)} dotClassName="bg-current" />
+                            </div>
+
+                            <div className="mt-4 flex items-center justify-between text-sm">
+                              <div className="font-semibold">{formatCurrency(deal.value)}</div>
+                              <div className="text-muted-foreground">{owner?.full_name ?? "--"}</div>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{deal.expected_close_at ? formatDate(deal.expected_close_at) : "Chưa có ngày chốt"}</span>
+                              <span>{relatedTasks.filter((task) => task.status !== "done").length} việc mở</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon={Target}
+          title="Chưa có cơ hội nào"
+          description="Tạo cơ hội bán hàng mới để bắt đầu quản lý pipeline."
+          actionLabel="Tạo Cơ Hội"
+          onAction={() => {
+            setEditingDeal(null);
+            setFormOpen(true);
+          }}
+        />
+      )}
+
+      <DealFormModal
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) {
+            setEditingDeal(null);
+            clearPrefillParams();
+          }
+        }}
+        initialDeal={editingDeal}
+        prefillCustomerId={prefillCustomerId}
+      />
+
+      <Sheet
+        open={Boolean(selectedDeal)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDealId(null);
+        }}
+        title={selectedDeal?.title ?? "Chi tiết cơ hội"}
+        description={selectedDeal ? "Theo dõi thông tin chốt deal và các nhiệm vụ follow-up." : undefined}
+      >
+        {selectedDeal ? (
+          <div className="space-y-5">
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="font-display text-xl font-bold">{selectedDeal.title}</div>
+                    <StatusBadge label={formatDealStage(selectedDeal.stage)} className={getDealStageColor(selectedDeal.stage)} dotClassName="bg-current" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setEditingDeal(selectedDeal);
+                        setFormOpen(true);
+                      }}
+                    >
+                      Cập nhật
+                    </Button>
+                    <Button variant="destructive" onClick={() => setDeleteDealTarget(selectedDeal)}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-muted/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Giá trị cơ hội</span>
+                    <span className="font-display text-2xl font-bold">{formatCurrency(selectedDeal.value)}</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-muted-foreground">Xác suất</div>
+                      <div className="font-semibold">{selectedDeal.probability}%</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Ngày chốt dự kiến</div>
+                      <div className="font-semibold">{selectedDeal.expected_close_at ? formatDate(selectedDeal.expected_close_at) : "--"}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <BriefcaseBusiness className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <div className="text-muted-foreground">Khách hàng</div>
+                      <button type="button" className="font-medium hover:text-primary" onClick={() => navigate(`/customers/${selectedDeal.customer_id}`)}>
+                        {customerMap[selectedDeal.customer_id]?.full_name ?? "--"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CircleDot className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <div className="text-muted-foreground">Người phụ trách</div>
+                      <div className="font-medium">{userMap[selectedDeal.owner_id]?.full_name ?? "--"}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CalendarDays className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <div className="text-muted-foreground">Tạo lúc</div>
+                      <div className="font-medium">{formatDateTime(selectedDeal.created_at)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedDeal.description ? (
+                  <Card>
+                    <CardContent className="p-4 text-sm text-muted-foreground">{selectedDeal.description}</CardContent>
+                  </Card>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-display text-lg font-semibold">Nhiệm vụ follow-up</div>
+                <div className="text-sm text-muted-foreground">{selectedDealTasks.length} nhiệm vụ</div>
+              </div>
+
+              <TaskForm dealId={selectedDeal.id} />
+
+              {selectedDealTasks.length ? (
+                <div className="space-y-3">
+                  {selectedDealTasks.map((task) => (
+                    <Card key={task.id}>
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="font-medium">{task.title}</div>
+                            <div className="text-sm text-muted-foreground">{task.description || "Không có ghi chú thêm"}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <StatusBadge
+                              label={formatTaskStatus(task.status)}
+                              className={cn(
+                                "ring-border",
+                                task.status === "done"
+                                  ? "bg-emerald-500/15 text-emerald-600"
+                                  : task.status === "overdue"
+                                    ? "bg-rose-500/15 text-rose-600"
+                                    : "bg-muted text-foreground",
+                              )}
+                              dotClassName="bg-current"
+                            />
+                            <StatusBadge label={task.priority} className={getPriorityColor(task.priority)} dotClassName="bg-current" />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+                          <div>
+                            {userMap[task.assigned_to]?.full_name ?? "--"} · {task.due_at ? `Hạn ${formatDate(task.due_at)}` : "Chưa có deadline"}
+                          </div>
+                          <div className="flex gap-2">
+                            {task.status !== "done" ? (
+                              <Button variant="secondary" onClick={() => completeTask.mutate(task.id)}>
+                                <CheckCircle2 className="size-4" />
+                                Hoàn thành
+                              </Button>
+                            ) : null}
+                            <Button variant="ghost" onClick={() => setDeleteTaskTarget(task)}>
+                              <Trash2 className="size-4 text-rose-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="Chưa có nhiệm vụ follow-up"
+                  description="Tạo nhiệm vụ để giao việc cho sales hoặc CSKH theo cơ hội này."
+                />
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Sheet>
+
+      <ConfirmDialog
+        open={Boolean(deleteDealTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDealTarget(null);
+        }}
+        title={`Xóa cơ hội ${deleteDealTarget?.title ?? ""}?`}
+        description="Cơ hội sẽ bị xóa khỏi pipeline. Các follow-up liên quan cần được kiểm tra lại."
+        confirmLabel="Xóa cơ hội"
+        onConfirm={() => {
+          if (deleteDealTarget) {
+            deleteDeal.mutate(deleteDealTarget.id);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTaskTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTaskTarget(null);
+        }}
+        title={`Xóa nhiệm vụ ${deleteTaskTarget?.title ?? ""}?`}
+        description="Nhiệm vụ follow-up này sẽ bị xóa khỏi hệ thống."
+        confirmLabel="Xóa nhiệm vụ"
+        onConfirm={() => {
+          if (deleteTaskTarget) {
+            deleteTask.mutate(deleteTaskTarget.id);
+          }
+        }}
+      />
+    </div>
+  );
+}
