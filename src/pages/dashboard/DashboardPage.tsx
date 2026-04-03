@@ -15,38 +15,45 @@ import {
   Tooltip,
   XAxis,
 } from "recharts";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCustomersQuery, useDashboardStats, useTicketsQuery } from "@/hooks/useNexcrmQueries";
+import { CustomerAvatar } from "@/components/shared/customer-avatar";
+import { useDashboardStats } from "@/hooks/useNexcrmQueries";
 import { formatCurrency, timeAgo } from "@/lib/utils";
+import { getAppErrorMessage } from "@/services/shared";
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [range, setRange] = useState<"today" | "7days" | "30days">("7days");
-  const { data: stats, isLoading } = useDashboardStats(range);
-  const { data: customers = [] } = useCustomersQuery();
-  const { data: tickets = [] } = useTicketsQuery();
+  const statsQuery = useDashboardStats(range);
+  const stats = statsQuery.data;
 
-  const topCustomers = useMemo(
-    () => [...customers].sort((a, b) => b.total_spent - a.total_spent).slice(0, 5),
-    [customers],
-  );
-  const urgentTickets = useMemo(
-    () =>
-      tickets
-        .filter((ticket) => ["urgent", "high"].includes(ticket.priority))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 5),
-    [tickets],
-  );
+  if (statsQuery.isLoading) {
+    return <PageLoader panels={3} />;
+  }
 
-  if (isLoading || !stats) {
+  if (statsQuery.error) {
+    return (
+      <PageErrorState
+        title="Không thể tải dashboard"
+        description={getAppErrorMessage(
+          statsQuery.error,
+          "Dữ liệu tổng quan chưa tải được. Vui lòng thử lại để đồng bộ doanh thu, khách hàng và ticket.",
+        )}
+        onRetry={() => void statsQuery.refetch()}
+      />
+    );
+  }
+
+  if (!stats) {
     return <PageLoader panels={3} />;
   }
 
@@ -193,8 +200,13 @@ export function DashboardPage() {
             <CardTitle>Top 5 khách hàng</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {topCustomers.map((customer) => (
-              <div key={customer.id} className="flex items-center justify-between rounded-2xl bg-muted/40 p-3">
+            {stats.top_customers.map((customer) => (
+              <button
+                key={customer.id}
+                type="button"
+                onClick={() => navigate(`/customers/${customer.id}`)}
+                className="flex w-full items-center justify-between rounded-2xl bg-muted/40 p-3 text-left transition hover:bg-primary/5"
+              >
                 <div className="flex items-center gap-3">
                   <CustomerAvatar name={customer.full_name} type={customer.customer_type} />
                   <div>
@@ -210,7 +222,7 @@ export function DashboardPage() {
                   />
                   <div className="mt-2 font-semibold">{formatCurrency(customer.total_spent)}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
@@ -220,8 +232,13 @@ export function DashboardPage() {
             <CardTitle>Ticket khẩn cấp</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {urgentTickets.map((ticket) => (
-              <div key={ticket.id} className="rounded-2xl border border-border p-4">
+            {stats.urgent_tickets.map((ticket) => (
+              <button
+                key={ticket.id}
+                type="button"
+                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                className="w-full rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:bg-primary/5"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-medium">{ticket.title}</div>
                   <Badge className="bg-rose-500/15 text-rose-500 ring-rose-500/20">
@@ -229,10 +246,10 @@ export function DashboardPage() {
                   </Badge>
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
-                  {customers.find((customer) => customer.id === ticket.customer_id)?.full_name ?? "--"}
+                  {ticket.customer_name || "--"}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">{timeAgo(ticket.created_at)}</div>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>

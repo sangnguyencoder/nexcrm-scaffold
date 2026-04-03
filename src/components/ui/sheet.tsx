@@ -42,7 +42,10 @@ export function Sheet({
                 </Dialog.Description>
               ) : null}
             </div>
-            <Dialog.Close className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground">
+            <Dialog.Close
+              aria-label="Đóng ngăn chi tiết"
+              className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
               <X className="size-4" />
             </Dialog.Close>
           </div>

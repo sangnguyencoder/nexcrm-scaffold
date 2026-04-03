@@ -264,6 +264,23 @@ export interface DashboardDistributionPoint {
   color: string;
 }
 
+export interface DashboardCustomerSummary {
+  id: string;
+  full_name: string;
+  customer_code: string;
+  customer_type: CustomerType;
+  total_spent: number;
+}
+
+export interface DashboardTicketSummary {
+  id: string;
+  title: string;
+  priority: TicketPriority;
+  customer_id: string;
+  customer_name: string;
+  created_at: string;
+}
+
 export interface DashboardStats {
   total_customers: number;
   new_customers_month: number;
@@ -273,18 +290,28 @@ export interface DashboardStats {
   resolved_tickets_month: number;
   revenue_chart: DashboardRevenuePoint[];
   customer_type_distribution: DashboardDistributionPoint[];
+  top_customers: DashboardCustomerSummary[];
+  urgent_tickets: DashboardTicketSummary[];
 }
 
 export interface AutomationRule {
   id: string;
   name: string;
+  description: string;
   trigger: string;
+  trigger_type: "birthday" | "inactive_days" | "after_purchase" | "new_customer";
+  trigger_days: number | null;
   action: string;
+  action_summary: string;
+  action_type: "send_email" | "send_sms";
   channel: Exclude<CampaignChannel, "both">;
   content: string;
+  variables: string[];
   is_active: boolean;
   sent_count: number;
   created_at: string;
+  updated_at?: string;
+  last_run_at: string | null;
 }
 
 export interface CustomerNote {

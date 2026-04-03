@@ -52,6 +52,7 @@ import {
   timeAgo,
 } from "@/lib/utils";
 import { customerService } from "@/services/customerService";
+import { getAppErrorMessage } from "@/services/shared";
 import { taskService } from "@/services/taskService";
 
 const noteSchema = z.object({
@@ -75,11 +76,17 @@ export function CustomerDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: customer, isLoading } = useCustomerDetailQuery(id);
-  const { data: transactions = [] } = useTransactionsQuery();
-  const { data: tickets = [] } = useTicketsQuery();
+  const { data: transactions = [] } = useTransactionsQuery(
+    id ? { customerId: id } : undefined,
+    Boolean(id),
+  );
+  const { data: tickets = [] } = useTicketsQuery(
+    id ? { customerId: id } : undefined,
+    Boolean(id),
+  );
   const { data: deals = [] } = useDealsQuery(id ? { customerId: id } : undefined);
   const { data: tasks = [] } = useTasksQuery(id ? { entityType: "customer", entityId: id } : undefined);
-  const { data: notes = [] } = useNotesQuery();
+  const { data: notes = [] } = useNotesQuery(id, Boolean(id));
   const { data: users = [] } = useUsersQuery();
   const [activeTab, setActiveTab] = useState("history");
   const [reassignSearch, setReassignSearch] = useState("");
@@ -108,15 +115,21 @@ export function CustomerDetailPage() {
       ]);
       toast.success("Đã cập nhật hồ sơ khách hàng");
     },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể cập nhật hồ sơ khách hàng."));
+    },
   });
 
   const addNote = useMutation({
     mutationFn: (values: NoteValues) =>
       customerService.addNote(id ?? "", values.content, values.note_type),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.notes });
+      await queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       noteForm.reset();
       toast.success("Đã thêm ghi chú mới");
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể thêm ghi chú."));
     },
   });
 
@@ -153,20 +166,14 @@ export function CustomerDetailPage() {
       });
       toast.success("Đã thêm nhiệm vụ follow-up");
     },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể tạo nhiệm vụ follow-up."));
+    },
   });
 
-  const customerTransactions = useMemo(
-    () => transactions.filter((item) => item.customer_id === customer?.id),
-    [customer?.id, transactions],
-  );
-  const customerTickets = useMemo(
-    () => tickets.filter((item) => item.customer_id === customer?.id),
-    [customer?.id, tickets],
-  );
-  const customerNotes = useMemo(
-    () => notes.filter((item) => item.customer_id === customer?.id),
-    [customer?.id, notes],
-  );
+  const customerTransactions = useMemo(() => transactions, [transactions]);
+  const customerTickets = useMemo(() => tickets, [tickets]);
+  const customerNotes = useMemo(() => notes, [notes]);
   const customerDeals = useMemo(
     () => deals.filter((item) => item.customer_id === customer?.id),
     [customer?.id, deals],

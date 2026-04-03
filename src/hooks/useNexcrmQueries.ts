@@ -9,12 +9,15 @@ import { dashboardService } from "@/services/dashboardService";
 import { dealService } from "@/services/dealService";
 import { notificationService } from "@/services/notificationService";
 import { profileService } from "@/services/profileService";
+import { reportService, type ReportRequest } from "@/services/reportService";
 import { settingsService } from "@/services/settingsService";
 import type {
   CampaignFilters,
+  CustomerNoteFilters,
   CustomerFilters,
   DealFilters,
   OutboundMessageFilters,
+  TicketCommentFilters,
   TicketFilters,
   TaskFilters,
   TransactionFilters,
@@ -41,21 +44,27 @@ export const queryKeys = {
   automation: ["automation-rules"] as const,
   settings: ["settings"] as const,
   audit: ["audit"] as const,
-  notes: ["customer-notes"] as const,
-  comments: ["ticket-comments"] as const,
+  notes: (filters?: CustomerNoteFilters) => ["customer-notes", filters ?? {}] as const,
+  comments: (filters?: TicketCommentFilters) => ["ticket-comments", filters ?? {}] as const,
+  reports: (request: ReportRequest) => ["reports", request] as const,
 };
 
-export function useDashboardStats(range: "today" | "7days" | "30days" = "7days") {
+export function useDashboardStats(
+  range: "today" | "7days" | "30days" = "7days",
+  enabled = true,
+) {
   return useQuery({
     queryKey: queryKeys.dashboard(range),
     queryFn: () => dashboardService.getStats(range),
+    enabled,
   });
 }
 
-export function useCustomersQuery(filters?: CustomerFilters) {
+export function useCustomersQuery(filters?: CustomerFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.customers(filters),
     queryFn: () => customerService.getList(filters),
+    enabled,
   });
 }
 
@@ -67,17 +76,19 @@ export function useCustomerDetailQuery(id?: string) {
   });
 }
 
-export function useTransactionsQuery(filters?: TransactionFilters) {
+export function useTransactionsQuery(filters?: TransactionFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.transactions(filters),
     queryFn: () => transactionService.getList(filters),
+    enabled,
   });
 }
 
-export function useTicketsQuery(filters?: TicketFilters) {
+export function useTicketsQuery(filters?: TicketFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.tickets(filters),
     queryFn: () => ticketService.getList(filters),
+    enabled,
   });
 }
 
@@ -89,31 +100,35 @@ export function useTicketDetailQuery(id?: string) {
   });
 }
 
-export function useCampaignsQuery(filters?: CampaignFilters) {
+export function useCampaignsQuery(filters?: CampaignFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.campaigns(filters),
     queryFn: () => campaignService.getList(filters),
+    enabled,
   });
 }
 
-export function useOutboundMessagesQuery(filters?: OutboundMessageFilters) {
+export function useOutboundMessagesQuery(filters?: OutboundMessageFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.outboundMessages(filters),
     queryFn: () => communicationService.getOutboundMessages(filters),
+    enabled,
   });
 }
 
-export function useDealsQuery(filters?: DealFilters) {
+export function useDealsQuery(filters?: DealFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.deals(filters),
     queryFn: () => dealService.getList(filters),
+    enabled,
   });
 }
 
-export function useTasksQuery(filters?: TaskFilters) {
+export function useTasksQuery(filters?: TaskFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.tasks(filters),
     queryFn: () => taskService.getList(filters),
+    enabled,
   });
 }
 
@@ -132,10 +147,11 @@ export function useUsersQuery() {
   });
 }
 
-export function useAutomationQuery() {
+export function useAutomationQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.automation,
     queryFn: automationService.getAll,
+    enabled,
   });
 }
 
@@ -153,17 +169,27 @@ export function useAuditQuery() {
   });
 }
 
-export function useNotesQuery() {
+export function useReportSnapshot(request: ReportRequest, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.notes,
-    queryFn: customerService.getNotes,
+    queryKey: queryKeys.reports(request),
+    queryFn: () => reportService.getSnapshot(request),
+    enabled,
   });
 }
 
-export function useCommentsQuery() {
+export function useNotesQuery(customerId?: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.comments,
-    queryFn: ticketService.getComments,
+    queryKey: queryKeys.notes(customerId ? { customerId } : undefined),
+    queryFn: () => customerService.getNotes(customerId),
+    enabled,
+  });
+}
+
+export function useCommentsQuery(ticketId?: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.comments(ticketId ? { ticketId } : undefined),
+    queryFn: () => ticketService.getComments(ticketId),
+    enabled,
   });
 }
 
@@ -187,8 +213,8 @@ export function useInvalidateQueries() {
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles }),
       queryClient.invalidateQueries({ queryKey: queryKeys.automation }),
       queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.notes }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.comments }),
+      queryClient.invalidateQueries({ queryKey: ["customer-notes"] }),
+      queryClient.invalidateQueries({ queryKey: ["ticket-comments"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
     ]);

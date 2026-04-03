@@ -553,9 +553,10 @@ export const demoApi = {
   automation: {
     list: async () => delay(getDb().automationRules),
     add: async (
-      payload: Omit<AutomationRule, "id" | "is_active" | "sent_count" | "created_at" | "action"> & {
-        action: string;
-      },
+      payload: Omit<
+        AutomationRule,
+        "id" | "is_active" | "sent_count" | "created_at" | "updated_at" | "last_run_at"
+      >,
     ) =>
       delay(
         updateDb((db) => {
@@ -565,6 +566,8 @@ export const demoApi = {
             is_active: true,
             sent_count: 0,
             created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_run_at: null,
           };
           db.automationRules.unshift(rule);
           return rule;

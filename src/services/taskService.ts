@@ -8,6 +8,7 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toTask,
   withLatency,
 } from "@/services/shared";
@@ -109,27 +110,31 @@ export const taskService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "task",
-          entityId: data.id,
-          newData: {
-            message: `Tạo nhiệm vụ ${payload.title}`,
-            entity_type: payload.entity_type,
-            entity_id: payload.entity_id,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("task.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "task",
+            entityId: data.id,
+            newData: {
+              message: `Tạo nhiệm vụ ${payload.title}`,
+              entity_type: payload.entity_type,
+              entity_id: payload.entity_id,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         if (data.assigned_to) {
-          await notificationService.createUnique({
-            user_id: data.assigned_to,
-            title: `Nhiệm vụ mới: ${data.title}`,
-            message: payload.description ?? "Bạn vừa được giao một nhiệm vụ follow-up mới.",
-            type: "info",
-            entity_type: "task",
-            entity_id: data.id,
-          });
+          void runBestEffort("task.create.notification", () =>
+            notificationService.createUnique({
+              user_id: data.assigned_to,
+              title: `Nhiệm vụ mới: ${data.title}`,
+              message: payload.description ?? "Bạn vừa được giao một nhiệm vụ follow-up mới.",
+              type: "info",
+              entity_type: "task",
+              entity_id: data.id,
+            }),
+          );
         }
 
         return toTask(data as TaskRow);
@@ -172,27 +177,31 @@ export const taskService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "task",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật nhiệm vụ ${data.title}`,
-            status: data.status,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("task.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "task",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật nhiệm vụ ${data.title}`,
+              status: data.status,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         if (data.assigned_to && data.status === "overdue") {
-          await notificationService.createUnique({
-            user_id: data.assigned_to,
-            title: `Nhiệm vụ quá hạn: ${data.title}`,
-            message: "Deadline đã tới hạn, cần cập nhật ngay.",
-            type: "warning",
-            entity_type: "task",
-            entity_id: data.id,
-          });
+          void runBestEffort("task.update.notification", () =>
+            notificationService.createUnique({
+              user_id: data.assigned_to,
+              title: `Nhiệm vụ quá hạn: ${data.title}`,
+              message: "Deadline đã tới hạn, cần cập nhật ngay.",
+              type: "warning",
+              entity_type: "task",
+              entity_id: data.id,
+            }),
+          );
         }
 
         return toTask(data as TaskRow);
@@ -219,14 +228,16 @@ export const taskService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "delete",
-          entityType: "task",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: { message: `Xóa nhiệm vụ ${previous.title}` },
-          userId: currentUserId,
-        });
+        void runBestEffort("task.delete.audit", () =>
+          createAuditLog({
+            action: "delete",
+            entityType: "task",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: { message: `Xóa nhiệm vụ ${previous.title}` },
+            userId: currentUserId,
+          }),
+        );
       })(),
     );
   },

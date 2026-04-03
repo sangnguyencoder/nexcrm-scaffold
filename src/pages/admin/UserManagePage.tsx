@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useUsersQuery, queryKeys } from "@/hooks/useNexcrmQueries";
 import { formatRole, getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
 import { profileService } from "@/services/profileService";
+import { getAppErrorMessage } from "@/services/shared";
 import type { User } from "@/types";
 
 const addUserSchema = z.object({
@@ -48,7 +49,13 @@ function UserModal({
   const isEdit = Boolean(initialUser);
   const form = useForm<AddUserValues>({
     resolver: zodResolver(addUserSchema.superRefine((value, ctx) => {
-      if (!isEdit && users.some((user) => user.email.toLowerCase() === value.email.toLowerCase())) {
+      const duplicatedUser = users.find(
+        (user) =>
+          user.email.toLowerCase() === value.email.toLowerCase() &&
+          (!isEdit || user.id !== initialUser?.id),
+      );
+
+      if (duplicatedUser) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["email"],
@@ -93,6 +100,9 @@ function UserModal({
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
       toast.success(isEdit ? "Đã cập nhật thành viên" : "Đã thêm thành viên mới");
       onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, isEdit ? "Không thể cập nhật thành viên." : "Không thể thêm thành viên."));
     },
   });
 
@@ -172,6 +182,9 @@ export function UserManagePage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
       toast.success("Đã cập nhật trạng thái thành viên");
     },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể cập nhật trạng thái thành viên."));
+    },
   });
 
   const updateRole = useMutation({
@@ -180,6 +193,9 @@ export function UserManagePage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
       toast.success("Đã cập nhật vai trò");
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể cập nhật vai trò."));
     },
   });
 
@@ -192,6 +208,9 @@ export function UserManagePage() {
           ? "Thành viên đã được vô hiệu hóa vì còn dữ liệu liên quan"
           : "Đã xóa thành viên",
       );
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể xóa thành viên."));
     },
   });
 

@@ -43,6 +43,7 @@ import {
 } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { ticketService } from "@/services/ticketService";
+import { getAppErrorMessage } from "@/services/shared";
 import type { TicketStatus } from "@/types";
 
 const ticketSchema = z.object({
@@ -113,6 +114,9 @@ function TicketFormModal({
       toast.success("Đã tạo ticket mới");
       form.reset();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể tạo ticket."));
     },
   });
 
@@ -302,6 +306,9 @@ export function TicketListPage() {
       await queryClient.invalidateQueries({ queryKey: ["ticket"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success(`Đã chuyển sang ${formatTicketStatus(variables.status)}`);
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể cập nhật trạng thái ticket."));
     },
   });
 

@@ -13,12 +13,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import { z } from "zod";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,7 @@ import {
   toSlug,
 } from "@/lib/utils";
 import { customerService } from "@/services/customerService";
+import { getAppErrorMessage } from "@/services/shared";
 import type { Customer } from "@/types";
 
 const customerSchema = z.object({
@@ -116,6 +117,10 @@ function mapImportedSource(value: string): Customer["source"] {
   return "direct";
 }
 
+async function loadSpreadsheetModule() {
+  return import("xlsx");
+}
+
 function CustomerFormModal({
   open,
   onOpenChange,
@@ -181,6 +186,9 @@ function CustomerFormModal({
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success(isEdit ? "Đã cập nhật khách hàng" : "Đã thêm khách hàng mới");
       onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, isEdit ? "Không thể cập nhật khách hàng." : "Không thể tạo khách hàng."));
     },
   });
 
@@ -305,8 +313,10 @@ function Field({
 export function CustomerListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: customers = [], isLoading } = useCustomersQuery();
-  const { data: users = [] } = useUsersQuery();
+  const customersQuery = useCustomersQuery();
+  const usersQuery = useUsersQuery();
+  const customers = customersQuery.data ?? [];
+  const users = usersQuery.data ?? [];
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -391,6 +401,9 @@ export function CustomerListPage() {
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Đã chuyển khách hàng sang trạng thái không hoạt động");
     },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể xóa mềm khách hàng."));
+    },
   });
 
   const bulkDeleteMutation = useMutation({
@@ -400,6 +413,9 @@ export function CustomerListPage() {
       setSelectedIds([]);
       toast.success("Đã cập nhật trạng thái không hoạt động cho danh sách đã chọn");
     },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể cập nhật danh sách đã chọn."));
+    },
   });
 
   const bulkChangeTypeMutation = useMutation({
@@ -408,6 +424,9 @@ export function CustomerListPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Đã cập nhật phân loại khách hàng");
+    },
+    onError: (error) => {
+      toast.error(getAppErrorMessage(error, "Không thể đổi phân loại khách hàng."));
     },
   });
 
@@ -423,7 +442,7 @@ export function CustomerListPage() {
     setSortDirection("asc");
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const rows = filteredCustomers.map((customer) => ({
       customer_code: customer.customer_code,
       full_name: customer.full_name,
@@ -439,6 +458,7 @@ export function CustomerListPage() {
       created_at: formatDate(customer.created_at),
     }));
 
+    const XLSX = await loadSpreadsheetModule();
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "KhachHang");
@@ -454,6 +474,7 @@ export function CustomerListPage() {
 
     try {
       const buffer = await file.arrayBuffer();
+      const XLSX = await loadSpreadsheetModule();
       const workbook = XLSX.read(buffer, { type: "array" });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: "" });
@@ -512,8 +533,23 @@ export function CustomerListPage() {
     }
   };
 
-  if (isLoading) {
+  if (customersQuery.isLoading) {
     return <PageLoader panels={2} />;
+  }
+
+  if (customersQuery.error || usersQuery.error) {
+    return (
+      <PageErrorState
+        title="Không thể tải danh sách khách hàng"
+        description={getAppErrorMessage(
+          customersQuery.error ?? usersQuery.error,
+          "Danh sách khách hàng hoặc người phụ trách chưa tải được. Vui lòng thử lại.",
+        )}
+        onRetry={() => {
+          void Promise.all([customersQuery.refetch(), usersQuery.refetch()]);
+        }}
+      />
+    );
   }
 
   return (
@@ -529,7 +565,7 @@ export function CustomerListPage() {
             <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
               Nhập Excel
             </Button>
-            <Button variant="secondary" onClick={handleExport}>
+            <Button variant="secondary" onClick={() => void handleExport()}>
               Xuất Excel
             </Button>
             <Button onClick={() => {
@@ -723,12 +759,13 @@ export function CustomerListPage() {
                       className="flex justify-end gap-2 opacity-0 transition group-hover:opacity-100"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <Button size="icon" variant="ghost" onClick={() => navigate(`/customers/${customer.id}`)}>
+                      <Button size="icon" variant="ghost" aria-label={`Xem hồ sơ ${customer.full_name}`} onClick={() => navigate(`/customers/${customer.id}`)}>
                         <Eye className="size-4" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`Chỉnh sửa ${customer.full_name}`}
                         onClick={() => {
                           setEditingCustomer(customer);
                           setFormOpen(true);
@@ -736,7 +773,7 @@ export function CustomerListPage() {
                       >
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(customer)}>
+                      <Button size="icon" variant="ghost" aria-label={`Xóa mềm ${customer.full_name}`} onClick={() => setDeleteTarget(customer)}>
                         <Trash2 className="size-4 text-rose-500" />
                       </Button>
                     </div>

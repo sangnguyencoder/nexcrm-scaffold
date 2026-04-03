@@ -11,6 +11,7 @@ import {
   getCachedProfileEmail,
   getCurrentAuthUser,
   type ProfileRow,
+  runBestEffort,
   toUser,
   withLatency,
 } from "@/services/shared";
@@ -215,16 +216,18 @@ export const profileService = {
         }
 
         cacheProfileEmail(authUser.id, authUser.email || payload.email);
-        await createAuditLog({
-          action: "create",
-          entityType: "user",
-          entityId: authUser.id,
-          newData: {
-            message: `Tạo thành viên ${payload.full_name}`,
-            role: payload.role,
-          },
-          userId: currentUser?.id ?? null,
-        });
+        void runBestEffort("profile.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "user",
+            entityId: authUser.id,
+            newData: {
+              message: `Tạo thành viên ${payload.full_name}`,
+              role: payload.role,
+            },
+            userId: currentUser?.id ?? null,
+          }),
+        );
 
         return toUser(data, authUser.email || payload.email);
       })(),
@@ -254,19 +257,21 @@ export const profileService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "user",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật thành viên ${data.full_name}`,
-            role: data.role,
-            department: data.department,
-            email: authUser?.email ?? payload.email ?? getCachedProfileEmail(id, ""),
-          },
-          userId: currentUser?.id ?? null,
-        });
+        void runBestEffort("profile.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "user",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật thành viên ${data.full_name}`,
+              role: data.role,
+              department: data.department,
+              email: authUser?.email ?? payload.email ?? getCachedProfileEmail(id, ""),
+            },
+            userId: currentUser?.id ?? null,
+          }),
+        );
 
         return toUser(data, authUser?.email ?? payload.email ?? getCachedProfileEmail(id, ""));
       })(),
@@ -293,17 +298,19 @@ export const profileService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "user",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật trạng thái thành viên ${data.full_name}`,
-            is_active: data.is_active,
-          },
-          userId: currentUser?.id ?? null,
-        });
+        void runBestEffort("profile.toggleActive.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "user",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật trạng thái thành viên ${data.full_name}`,
+              is_active: data.is_active,
+            },
+            userId: currentUser?.id ?? null,
+          }),
+        );
 
         return toUser(data, getCachedProfileEmail(id, ""));
       })(),
@@ -337,31 +344,35 @@ export const profileService = {
             throw error;
           }
 
-          await createAuditLog({
-            action: "update",
-            entityType: "user",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Vô hiệu hóa thành viên ${previous.full_name} vì còn liên kết dữ liệu`,
-              is_active: false,
-            },
-            userId: currentUser?.id ?? null,
-          });
+          void runBestEffort("profile.delete.soft.audit", () =>
+            createAuditLog({
+              action: "update",
+              entityType: "user",
+              entityId: id,
+              oldData: previous as unknown as Record<string, unknown>,
+              newData: {
+                message: `Vô hiệu hóa thành viên ${previous.full_name} vì còn liên kết dữ liệu`,
+                is_active: false,
+              },
+              userId: currentUser?.id ?? null,
+            }),
+          );
 
           return { softDeleted: true, user: toUser(data, getCachedProfileEmail(id, "")) };
         }
 
-        await createAuditLog({
-          action: "delete",
-          entityType: "user",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Xóa thành viên ${previous.full_name}`,
-          },
-          userId: currentUser?.id ?? null,
-        });
+        void runBestEffort("profile.delete.audit", () =>
+          createAuditLog({
+            action: "delete",
+            entityType: "user",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Xóa thành viên ${previous.full_name}`,
+            },
+            userId: currentUser?.id ?? null,
+          }),
+        );
 
         return { softDeleted: false, user: toUser(previous, getCachedProfileEmail(id, "")) };
       })(),

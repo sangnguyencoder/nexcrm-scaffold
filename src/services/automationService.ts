@@ -6,29 +6,30 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toAutomationRule,
   withLatency,
 } from "@/services/shared";
 
 type AutomationCreateInput = {
   name: string;
-  trigger: string;
+  description?: string;
+  trigger_type: "birthday" | "inactive_days" | "after_purchase" | "new_customer";
+  trigger_days?: number | null;
   channel: "email" | "sms";
+  summary?: string;
   content: string;
 };
 
-function inferTriggerType(trigger: string) {
-  if (trigger.toLowerCase().includes("sinh nhật")) {
-    return { trigger_type: "birthday", trigger_config: {} };
-  }
-  if (trigger.toLowerCase().includes("không mua")) {
-    return { trigger_type: "inactive_days", trigger_config: { days: 30 } };
-  }
-  if (trigger.toLowerCase().includes("mua hàng")) {
-    return { trigger_type: "after_purchase", trigger_config: { days: 7 } };
+function buildTriggerConfig(payload: AutomationCreateInput) {
+  if (payload.trigger_type === "inactive_days" || payload.trigger_type === "after_purchase") {
+    return {
+      trigger_type: payload.trigger_type,
+      trigger_config: { days: payload.trigger_days ?? 30 },
+    };
   }
 
-  return { trigger_type: "new_customer", trigger_config: {} };
+  return { trigger_type: payload.trigger_type, trigger_config: {} };
 }
 
 async function fetchRuleRow(id: string) {
@@ -69,12 +70,12 @@ export const automationService = {
       (async () => {
         ensureSupabaseConfigured();
         const currentUserId = await getCurrentProfileId();
-        const triggerInfo = inferTriggerType(payload.trigger);
+        const triggerInfo = buildTriggerConfig(payload);
         const { data, error } = await supabase
           .from("automation_rules")
           .insert({
             name: payload.name,
-            description: payload.trigger,
+            description: payload.description || null,
             is_active: true,
             trigger_type: triggerInfo.trigger_type,
             trigger_config: triggerInfo.trigger_config,
@@ -82,7 +83,8 @@ export const automationService = {
             action_config: {
               content: payload.content,
               summary:
-                payload.channel === "sms" ? "tự động qua SMS" : "tự động qua Email",
+                payload.summary?.trim() ||
+                (payload.channel === "sms" ? "tự động qua SMS" : "tự động qua Email"),
               sent_count: 0,
             },
             created_by: currentUserId,
@@ -94,15 +96,17 @@ export const automationService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "automation_rule",
-          entityId: data.id,
-          newData: {
-            message: `Tạo quy tắc tự động ${payload.name}`,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("automation.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "automation_rule",
+            entityId: data.id,
+            newData: {
+              message: `Tạo quy tắc tự động ${payload.name}`,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toAutomationRule(data);
       })(),
@@ -129,16 +133,18 @@ export const automationService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "automation_rule",
-          entityId: id,
-          newData: {
-            message: `Cập nhật trạng thái quy tắc ${previous.name}`,
-            is_active: data.is_active,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("automation.toggle.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "automation_rule",
+            entityId: id,
+            newData: {
+              message: `Cập nhật trạng thái quy tắc ${previous.name}`,
+              is_active: data.is_active,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toAutomationRule(data);
       })(),

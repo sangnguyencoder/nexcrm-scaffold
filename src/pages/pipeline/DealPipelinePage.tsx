@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BriefcaseBusiness,
   CalendarDays,
@@ -20,8 +20,10 @@ import { z } from "zod";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -139,7 +141,8 @@ function DealFormModal({
     });
   }, [form, initialDeal, open, prefillCustomerId, users]);
 
-  const mutation = useMutation({
+  const mutation = useAppMutation({
+    errorMessage: isEdit ? "Không thể cập nhật cơ hội." : "Không thể tạo cơ hội mới.",
     mutationFn: async (values: DealFormValues) => {
       const payload = {
         ...values,
@@ -302,7 +305,8 @@ function TaskForm({ dealId }: { dealId: string }) {
     });
   }, [form, users]);
 
-  const createTask = useMutation({
+  const createTask = useAppMutation({
+    errorMessage: "Không thể tạo nhiệm vụ follow-up.",
     mutationFn: (values: TaskFormValues) =>
       taskService.create({
         title: values.title,
@@ -393,10 +397,14 @@ export function DealPipelinePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: deals = [], isLoading } = useDealsQuery();
-  const { data: customers = [] } = useCustomersQuery();
-  const { data: users = [] } = useUsersQuery();
-  const { data: tasks = [] } = useTasksQuery({ entityType: "deal" });
+  const dealsQuery = useDealsQuery();
+  const customersQuery = useCustomersQuery();
+  const usersQuery = useUsersQuery();
+  const tasksQuery = useTasksQuery({ entityType: "deal" });
+  const deals = dealsQuery.data ?? [];
+  const customers = customersQuery.data ?? [];
+  const users = usersQuery.data ?? [];
+  const tasks = tasksQuery.data ?? [];
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -476,7 +484,8 @@ export function DealPipelinePage() {
     };
   }, [filteredDeals, tasks]);
 
-  const updateStage = useMutation({
+  const updateStage = useAppMutation({
+    errorMessage: "Không thể cập nhật giai đoạn cơ hội.",
     mutationFn: ({ id, stage }: { id: string; stage: DealStage }) => dealService.updateStage(id, stage),
     onSuccess: async (_, variables) => {
       await Promise.all([
@@ -487,7 +496,8 @@ export function DealPipelinePage() {
     },
   });
 
-  const deleteDeal = useMutation({
+  const deleteDeal = useAppMutation({
+    errorMessage: "Không thể xóa cơ hội.",
     mutationFn: (id: string) => dealService.delete(id),
     onSuccess: async () => {
       await Promise.all([
@@ -500,7 +510,8 @@ export function DealPipelinePage() {
     },
   });
 
-  const completeTask = useMutation({
+  const completeTask = useAppMutation({
+    errorMessage: "Không thể cập nhật nhiệm vụ.",
     mutationFn: (id: string) => taskService.complete(id),
     onSuccess: async () => {
       await Promise.all([
@@ -511,7 +522,8 @@ export function DealPipelinePage() {
     },
   });
 
-  const deleteTask = useMutation({
+  const deleteTask = useAppMutation({
+    errorMessage: "Không thể xóa nhiệm vụ.",
     mutationFn: (id: string) => taskService.delete(id),
     onSuccess: async () => {
       await Promise.all([
@@ -522,8 +534,25 @@ export function DealPipelinePage() {
     },
   });
 
-  if (isLoading) {
+  if (dealsQuery.isLoading) {
     return <PageLoader panels={2} />;
+  }
+
+  if (dealsQuery.error || customersQuery.error || usersQuery.error || tasksQuery.error) {
+    return (
+      <PageErrorState
+        title="Không thể tải pipeline kinh doanh"
+        description="Danh sách deal, khách hàng hoặc nhiệm vụ follow-up chưa tải được. Vui lòng thử lại để đồng bộ dữ liệu mới nhất."
+        onRetry={() => {
+          void Promise.all([
+            dealsQuery.refetch(),
+            customersQuery.refetch(),
+            usersQuery.refetch(),
+            tasksQuery.refetch(),
+          ]);
+        }}
+      />
+    );
   }
 
   return (

@@ -8,6 +8,7 @@ import {
   ensureSupabaseConfigured,
   getCurrentProfileId,
   normalizeTransactionItems,
+  runBestEffort,
   toTransaction,
   withLatency,
 } from "@/services/shared";
@@ -54,6 +55,10 @@ export const transactionService = {
         let query = supabase.from("transactions").select("*").order("created_at", {
           ascending: false,
         });
+
+        if (filters.customerId) {
+          query = query.eq("customer_id", filters.customerId);
+        }
 
         if (filters.paymentMethod && filters.paymentMethod !== "all") {
           query = query.eq("payment_method", filters.paymentMethod);
@@ -134,18 +139,20 @@ export const transactionService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "transaction",
-          entityId: data.id,
-          newData: {
-            message: `Tạo giao dịch ${invoiceCode}`,
-            invoice_code: invoiceCode,
-            total_amount: totalAmount,
-            customer_id: payload.customer_id,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("transaction.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "transaction",
+            entityId: data.id,
+            newData: {
+              message: `Tạo giao dịch ${invoiceCode}`,
+              invoice_code: invoiceCode,
+              total_amount: totalAmount,
+              customer_id: payload.customer_id,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toTransaction(data);
       })(),

@@ -1,25 +1,29 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Copy, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { useSettingsQuery, queryKeys } from "@/hooks/useNexcrmQueries";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
-import { getDefaultLogoUrl } from "@/lib/utils";
+import { getDefaultLogoUrl, isValidAssetUrl } from "@/lib/utils";
 import { seedService } from "@/services/seedService";
+import { getAppErrorMessage } from "@/services/shared";
 import { settingsService } from "@/services/settingsService";
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
-  const { data: settings, isLoading, error } = useSettingsQuery();
+  const { data: settings, isLoading, error, refetch, isFetching } = useSettingsQuery();
   const [companyName, setCompanyName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [emailProvider, setEmailProvider] = useState(settings?.integrations.email_provider);
@@ -34,15 +38,28 @@ export function SettingsPage() {
     }
   }, [settings]);
 
-  const saveSettings = useMutation({
+  const normalizedLogoUrl = logoUrl.trim();
+  const logoUrlValid = !normalizedLogoUrl || isValidAssetUrl(normalizedLogoUrl);
+  const previewLogoUrl = normalizedLogoUrl || settings?.logo_url || getDefaultLogoUrl();
+
+  const saveSettings = useAppMutation({
+    errorMessage: "Không thể lưu cài đặt hệ thống.",
     mutationFn: () => {
       if (!settings) {
         throw new Error("Không tải được cấu hình hiện tại để lưu thay đổi.");
       }
 
+      if (!companyName.trim()) {
+        throw new Error("Vui lòng nhập tên công ty trước khi lưu.");
+      }
+
+      if (normalizedLogoUrl && !isValidAssetUrl(normalizedLogoUrl)) {
+        throw new Error("Logo URL không hợp lệ. Dùng URL http(s) hoặc đường dẫn local bắt đầu bằng '/'.");
+      }
+
       return settingsService.update({
-        company_name: companyName,
-        logo_url: logoUrl.trim() || null,
+        company_name: companyName.trim(),
+        logo_url: normalizedLogoUrl || null,
         integrations: {
           ...settings.integrations,
           email_provider: emailProvider ?? settings.integrations.email_provider,
@@ -56,7 +73,8 @@ export function SettingsPage() {
     },
   });
 
-  const toggleNotification = useMutation({
+  const toggleNotification = useAppMutation({
+    errorMessage: "Không thể cập nhật cài đặt thông báo.",
     mutationFn: ({ key, enabled }: { key: string; enabled: boolean }) =>
       settingsService.toggleNotification(key, enabled),
     onSuccess: async () => {
@@ -65,7 +83,8 @@ export function SettingsPage() {
     },
   });
 
-  const seedDemoData = useMutation({
+  const seedDemoData = useAppMutation({
+    errorMessage: "Không thể tạo dữ liệu demo.",
     mutationFn: async () => {
       toast.info("Đang tạo dữ liệu demo...");
       return seedService.createDemoData();
@@ -93,13 +112,15 @@ export function SettingsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Cài Đặt" subtitle="Cấu hình tổ chức, thông báo và tích hợp hệ thống." />
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            {error instanceof Error
-              ? error.message
-              : "Không tải được cài đặt hệ thống. Kiểm tra migration app_settings và kết nối Supabase."}
-          </CardContent>
-        </Card>
+        <PageErrorState
+          title="Không tải được cấu hình hệ thống"
+          description={getAppErrorMessage(
+            error,
+            "Kiểm tra migration `app_settings`, kết nối Supabase, hoặc thử tải lại sau ít phút.",
+          )}
+          retryLabel={isFetching ? "Đang tải lại..." : "Tải lại"}
+          onRetry={() => void refetch()}
+        />
       </div>
     );
   }
@@ -132,17 +153,22 @@ export function SettingsPage() {
                 <span className="text-xs text-muted-foreground">
                   Có thể dùng URL Supabase Storage hoặc asset local như `/branding/demo-company-logo.svg`
                 </span>
+                {!logoUrlValid ? (
+                  <span className="text-xs text-rose-500">
+                    Logo URL phải là đường dẫn local bắt đầu bằng `/` hoặc URL `http(s)`.
+                  </span>
+                ) : null}
               </label>
               <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-                {(logoUrl || settings.logo_url || getDefaultLogoUrl()) ? (
-                  <img
-                    src={logoUrl || settings.logo_url || getDefaultLogoUrl()}
+                {previewLogoUrl ? (
+                  <BrandLogo
+                    src={previewLogoUrl}
                     alt={companyName || settings.company_name}
-                    className="mx-auto mb-4 h-20 w-auto rounded-2xl border border-border bg-background p-3"
+                    fallbackLabel={companyName || settings.company_name}
+                    className="mx-auto mb-4 h-20 w-20 border border-border bg-background p-3"
+                    imageClassName="object-contain"
                   />
-                ) : (
-                  <Upload className="mx-auto mb-3 size-8 text-muted-foreground" />
-                )}
+                ) : <Upload className="mx-auto mb-3 size-8 text-muted-foreground" />}
                 <div className="font-medium">Preview logo công ty</div>
                 <div className="text-sm text-muted-foreground">
                   Ưu tiên file SVG hoặc PNG nền trong suốt
@@ -209,7 +235,7 @@ export function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>Last sync: 2024-01-21 09:30</span>
-                    <Button variant="ghost" size="icon" onClick={() => toast.success("Đã copy webhook URL")}>
+                    <Button variant="ghost" size="icon" aria-label="Sao chép webhook URL" onClick={() => toast.success("Đã copy webhook URL")}>
                       <Copy className="size-4" />
                     </Button>
                   </div>

@@ -7,6 +7,7 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toCampaign,
   withLatency,
 } from "@/services/shared";
@@ -105,16 +106,18 @@ export const campaignService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "campaign",
-          entityId: data.id,
-          newData: {
-            message: `Tạo chiến dịch ${payload.name}`,
-            status,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("campaign.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "campaign",
+            entityId: data.id,
+            newData: {
+              message: `Tạo chiến dịch ${payload.name}`,
+              status,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toCampaign(data);
       })(),
@@ -190,16 +193,18 @@ export const campaignService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "campaign",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật chiến dịch ${data.name}`,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("campaign.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "campaign",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật chiến dịch ${data.name}`,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toCampaign(data);
       })(),
@@ -248,16 +253,18 @@ export const campaignService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "delete",
-          entityType: "campaign",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Xóa chiến dịch ${previous.name}`,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("campaign.delete.audit", () =>
+          createAuditLog({
+            action: "delete",
+            entityType: "campaign",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Xóa chiến dịch ${previous.name}`,
+            },
+            userId: currentUserId,
+          }),
+        );
       })(),
     );
   },

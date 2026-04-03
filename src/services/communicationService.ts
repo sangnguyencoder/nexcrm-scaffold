@@ -12,6 +12,7 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toCampaign,
   toOutboundMessage,
   withLatency,
@@ -313,7 +314,7 @@ async function notifyIfEnabled(key: string, payload: Parameters<typeof notificat
   const settings = await settingsService.get();
   const enabled = settings.notification_settings.find((item) => item.key === key)?.enabled;
   if (!enabled) return null;
-  return notificationService.createUnique(payload);
+  return runBestEffort(`notification.${key}`, () => notificationService.createUnique(payload));
 }
 
 export const communicationService = {
@@ -389,17 +390,19 @@ export const communicationService = {
 
         const updatedCampaign = await updateCampaignMetrics(campaignId);
 
-        await createAuditLog({
-          action: "update",
-          entityType: "campaign_dispatch",
-          entityId: campaignId,
-          newData: {
-            message: `Gửi chiến dịch ${campaign.name}`,
-            sent_count: updatedCampaign.sent_count,
-            failed_count: updatedCampaign.failed_count ?? 0,
-          },
-          userId: actorId,
-        });
+        void runBestEffort("campaign.dispatch.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "campaign_dispatch",
+            entityId: campaignId,
+            newData: {
+              message: `Gửi chiến dịch ${campaign.name}`,
+              sent_count: updatedCampaign.sent_count,
+              failed_count: updatedCampaign.failed_count ?? 0,
+            },
+            userId: actorId,
+          }),
+        );
 
         if (actorId) {
           await notifyIfEnabled("campaign_done", {
@@ -488,17 +491,19 @@ export const communicationService = {
 
         if (error) throw error;
 
-        await createAuditLog({
-          action: "update",
-          entityType: "automation_run",
-          entityId: ruleId,
-          newData: {
-            message: `Chạy quy tắc tự động ${rule.name}`,
-            sent_count: nextSentCount,
-            matched_customers: messages.length,
-          },
-          userId: actorId,
-        });
+        void runBestEffort("automation.run.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "automation_run",
+            entityId: ruleId,
+            newData: {
+              message: `Chạy quy tắc tự động ${rule.name}`,
+              sent_count: nextSentCount,
+              matched_customers: messages.length,
+            },
+            userId: actorId,
+          }),
+        );
 
         if (actorId) {
           await notifyIfEnabled("campaign_done", {

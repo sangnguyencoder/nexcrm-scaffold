@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useForm } from "react-hook-form";
 import { ArrowLeftRight, Banknote, CreditCard, Plus, QrCode } from "lucide-react";
 import type { ReactNode } from "react";
@@ -11,8 +11,10 @@ import { z } from "zod";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -113,7 +115,8 @@ function AddTransactionModal({
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = taxableAmount + taxAmount;
 
-  const createTransaction = useMutation({
+  const createTransaction = useAppMutation({
+    errorMessage: "Không thể tạo giao dịch mới.",
     mutationFn: (values: TransactionValues) =>
       transactionService.create({
         customer_id: values.customer_id,
@@ -300,8 +303,10 @@ function Field({
 
 export function TransactionListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: transactions = [], isLoading } = useTransactionsQuery();
-  const { data: customers = [] } = useCustomersQuery();
+  const transactionsQuery = useTransactionsQuery();
+  const customersQuery = useCustomersQuery();
+  const transactions = transactionsQuery.data ?? [];
+  const customers = customersQuery.data ?? [];
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("all");
@@ -372,8 +377,20 @@ export function TransactionListPage() {
     return { revenue, orders, average, completionRate };
   }, [filteredTransactions]);
 
-  if (isLoading) {
+  if (transactionsQuery.isLoading) {
     return <PageLoader panels={2} />;
+  }
+
+  if (transactionsQuery.error || customersQuery.error) {
+    return (
+      <PageErrorState
+        title="Không thể tải giao dịch"
+        description="Danh sách giao dịch hoặc dữ liệu khách hàng chưa tải được. Vui lòng thử lại để tiếp tục thao tác."
+        onRetry={() => {
+          void Promise.all([transactionsQuery.refetch(), customersQuery.refetch()]);
+        }}
+      />
+    );
   }
 
   return (

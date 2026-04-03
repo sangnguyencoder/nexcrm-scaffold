@@ -29,9 +29,9 @@ export function GlobalSearch({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const { data: customers = [] } = useCustomersQuery();
-  const { data: tickets = [] } = useTicketsQuery();
-  const { data: campaigns = [] } = useCampaignsQuery();
+  const { data: customers = [] } = useCustomersQuery(undefined, open);
+  const { data: tickets = [] } = useTicketsQuery(undefined, open);
+  const { data: campaigns = [] } = useCampaignsQuery(undefined, open);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

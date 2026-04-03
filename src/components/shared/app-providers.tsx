@@ -26,8 +26,13 @@ export function AppProviders({ children }: Props) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            staleTime: 120_000,
+            gcTime: 600_000,
+            retry: 0,
             refetchOnWindowFocus: false,
+          },
+          mutations: {
+            retry: 0,
           },
         },
       }),
@@ -38,7 +43,7 @@ export function AppProviders({ children }: Props) {
       <QueryClientProvider client={queryClient}>
         <AuthBootstrap />
         {children}
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" richColors duration={6000} />
       </QueryClientProvider>
     </ThemeProvider>
   );

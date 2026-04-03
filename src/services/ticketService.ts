@@ -10,6 +10,7 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toTicket,
   toTicketComment,
   toTicketSystemComment,
@@ -61,6 +62,10 @@ export const ticketService = {
           .from("support_tickets")
           .select("*")
           .order("created_at", { ascending: false });
+
+        if (filters.customerId) {
+          query = query.eq("customer_id", filters.customerId);
+        }
 
         if (filters.priority && filters.priority !== "all") {
           query = query.eq("priority", filters.priority);
@@ -125,27 +130,31 @@ export const ticketService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "ticket",
-          entityId: data.id,
-          newData: {
-            message: `Tạo ticket ${data.ticket_code ?? payload.title}`,
-            title: payload.title,
-            status: payload.status ?? "open",
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("ticket.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "ticket",
+            entityId: data.id,
+            newData: {
+              message: `Tạo ticket ${data.ticket_code ?? payload.title}`,
+              title: payload.title,
+              status: payload.status ?? "open",
+            },
+            userId: currentUserId,
+          }),
+        );
 
         if (data.assigned_to) {
-          await notificationService.createUnique({
-            user_id: data.assigned_to,
-            title: `Ticket mới: ${data.title}`,
-            message: `Bạn vừa được giao ${data.ticket_code ?? payload.title}.`,
-            type: "info",
-            entity_type: "ticket",
-            entity_id: data.id,
-          });
+          void runBestEffort("ticket.create.notification", () =>
+            notificationService.createUnique({
+              user_id: data.assigned_to,
+              title: `Ticket mới: ${data.title}`,
+              message: `Bạn vừa được giao ${data.ticket_code ?? payload.title}.`,
+              type: "info",
+              entity_type: "ticket",
+              entity_id: data.id,
+            }),
+          );
         }
 
         return toTicket(data);
@@ -177,17 +186,19 @@ export const ticketService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "ticket",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật ticket ${data.ticket_code ?? data.title}`,
-            ...payload,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("ticket.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "ticket",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật ticket ${data.ticket_code ?? data.title}`,
+              ...payload,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toTicket(data);
       })(),
@@ -218,32 +229,36 @@ export const ticketService = {
       throw error;
     }
 
-    await createAuditLog({
-      action: "update",
-      entityType: "ticket_status",
-      entityId: id,
-      oldData: {
-        ticket_id: id,
-        from_status: previous.status,
-      },
-      newData: {
-        ticket_id: id,
-        from_status: previous.status,
-        to_status: status,
-        message: `Trạng thái đổi từ ${previous.status} sang ${status}`,
-      },
-      userId: currentUserId,
-    });
+    void runBestEffort("ticket.updateStatus.audit", () =>
+      createAuditLog({
+        action: "update",
+        entityType: "ticket_status",
+        entityId: id,
+        oldData: {
+          ticket_id: id,
+          from_status: previous.status,
+        },
+        newData: {
+          ticket_id: id,
+          from_status: previous.status,
+          to_status: status,
+          message: `Trạng thái đổi từ ${previous.status} sang ${status}`,
+        },
+        userId: currentUserId,
+      }),
+    );
 
     if (data.assigned_to) {
-      await notificationService.createUnique({
-        user_id: data.assigned_to,
-        title: `Ticket cập nhật: ${data.title}`,
-        message: `Trạng thái đã đổi sang ${status}.`,
-        type: status === "resolved" || status === "closed" ? "success" : "info",
-        entity_type: "ticket",
-        entity_id: id,
-      });
+      void runBestEffort("ticket.updateStatus.notification", () =>
+        notificationService.createUnique({
+          user_id: data.assigned_to,
+          title: `Ticket cập nhật: ${data.title}`,
+          message: `Trạng thái đã đổi sang ${status}.`,
+          type: status === "resolved" || status === "closed" ? "success" : "info",
+          entity_type: "ticket",
+          entity_id: id,
+        }),
+      );
     }
 
     return toTicket(data);
@@ -273,37 +288,44 @@ export const ticketService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "ticket_comment",
-          entityId: ticketId,
-          newData: {
-            message: isInternal ? "Thêm ghi chú nội bộ cho ticket" : "Thêm phản hồi ticket",
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("ticket.addComment.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "ticket_comment",
+            entityId: ticketId,
+            newData: {
+              message: isInternal ? "Thêm ghi chú nội bộ cho ticket" : "Thêm phản hồi ticket",
+            },
+            userId: currentUserId,
+          }),
+        );
 
         return toTicketComment(data);
       })(),
     );
   },
 
-  getComments() {
+  getComments(ticketId?: string) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
+        let commentsQuery = supabase
+          .from("ticket_comments")
+          .select("*")
+          .order("created_at", { ascending: true });
+        let auditsQuery = supabase
+          .from("audit_logs")
+          .select("*")
+          .eq("entity_type", "ticket_status")
+          .order("created_at", { ascending: true });
+
+        if (ticketId) {
+          commentsQuery = commentsQuery.eq("ticket_id", ticketId);
+          auditsQuery = auditsQuery.eq("entity_id", ticketId);
+        }
+
         const [{ data: comments, error: commentsError }, { data: audits, error: auditsError }] =
-          await Promise.all([
-            supabase
-              .from("ticket_comments")
-              .select("*")
-              .order("created_at", { ascending: true }),
-            supabase
-              .from("audit_logs")
-              .select("*")
-              .eq("entity_type", "ticket_status")
-              .order("created_at", { ascending: true }),
-          ]);
+          await Promise.all([commentsQuery, auditsQuery]);
 
         if (commentsError) {
           throw commentsError;

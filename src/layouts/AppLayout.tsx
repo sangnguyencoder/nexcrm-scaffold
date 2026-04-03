@@ -20,6 +20,7 @@ import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { GlobalSearch } from "@/components/shared/global-search";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
@@ -142,10 +143,15 @@ export function AppLayout() {
             type="button"
             onClick={() => navigate("/dashboard")}
             className="flex items-center gap-3 overflow-hidden"
+            aria-label="Đi tới dashboard"
           >
-            <div className="flex size-10 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-lg font-bold text-primary">
-              <img src={logoUrl} alt={companyName} className="size-full object-cover" />
-            </div>
+            <BrandLogo
+              src={logoUrl}
+              alt={companyName}
+              fallbackLabel={companyName}
+              className="size-10 border border-primary/10 bg-primary/5"
+              imageClassName="object-cover"
+            />
             {!sidebarCollapsed ? (
               <div>
                 <div className="font-display text-lg font-bold">NexCRM</div>
@@ -153,7 +159,7 @@ export function AppLayout() {
               </div>
             ) : null}
           </button>
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Thu gọn hoặc mở rộng thanh bên">
             {sidebarCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
           </Button>
         </div>
@@ -212,6 +218,7 @@ export function AppLayout() {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Đăng xuất"
                 onClick={async () => {
                   await logout();
                   navigate("/login");
@@ -253,6 +260,7 @@ export function AppLayout() {
                 variant="ghost"
                 size="icon"
                 className="relative"
+                aria-label="Mở thông báo"
                 onClick={() => setNotificationOpen(!notificationOpen)}
               >
                 <Bell className="size-4" />
@@ -267,6 +275,7 @@ export function AppLayout() {
                   type="button"
                   onClick={() => setUserMenuOpen((value) => !value)}
                   className="flex items-center gap-2 rounded-2xl border border-border px-3 py-2"
+                  aria-label="Mở menu tài khoản"
                 >
                   <Avatar
                     name={user?.full_name ?? "NexCRM"}

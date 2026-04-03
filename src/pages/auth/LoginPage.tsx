@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { Input } from "@/components/ui/input";
 import { getDefaultLogoUrl } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -36,10 +37,12 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardContent className="space-y-6 p-8">
           <div className="space-y-2 text-center">
-            <img
+            <BrandLogo
               src={getDefaultLogoUrl()}
               alt="NexCRM Demo"
-              className="mx-auto h-16 w-auto rounded-2xl border border-border bg-card p-2"
+              className="mx-auto h-16 w-16 border border-border bg-card p-2"
+              imageClassName="object-contain"
+              fallbackLabel="NexCRM Demo"
             />
             <div className="font-display text-4xl font-bold text-primary">NexCRM</div>
             <div className="text-sm text-muted-foreground">

@@ -226,3 +226,29 @@ export function getDefaultAvatarUrl(role?: UserRole | null) {
 export function getDefaultLogoUrl() {
   return "/branding/demo-company-logo.svg";
 }
+
+export function isValidAssetUrl(value?: string | null) {
+  if (!value) {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (trimmed.startsWith("/")) {
+    return true;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function resolveLogoUrl(value?: string | null) {
+  return isValidAssetUrl(value) ? value!.trim() : getDefaultLogoUrl();
+}

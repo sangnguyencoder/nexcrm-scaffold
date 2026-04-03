@@ -8,6 +8,7 @@ import {
   ensureSupabaseConfigured,
   getCachedSettings,
   getCurrentProfileId,
+  runBestEffort,
   setCachedSettings,
   toAppSettings,
   withLatency,
@@ -133,15 +134,17 @@ export const settingsService = {
         try {
           const saved = toAppSettings(await persistSettings(merged));
           setCachedSettings(saved);
-          await createAuditLog({
-            action: "update",
-            entityType: "app_settings",
-            entityId: SETTINGS_ROW_ID,
-            newData: {
-              message: "Cập nhật cài đặt hệ thống",
-              company_name: saved.company_name,
-            },
-          });
+          void runBestEffort("settings.update.audit", () =>
+            createAuditLog({
+              action: "update",
+              entityType: "app_settings",
+              entityId: SETTINGS_ROW_ID,
+              newData: {
+                message: "Cập nhật cài đặt hệ thống",
+                company_name: saved.company_name,
+              },
+            }),
+          );
           return saved;
         } catch (error) {
           if (!isMissingTableError(error)) {
@@ -170,16 +173,18 @@ export const settingsService = {
         try {
           const saved = toAppSettings(await persistSettings(next));
           setCachedSettings(saved);
-          await createAuditLog({
-            action: "update",
-            entityType: "app_settings",
-            entityId: SETTINGS_ROW_ID,
-            newData: {
-              message: "Cập nhật cài đặt thông báo",
-              notification_key: key,
-              enabled,
-            },
-          });
+          void runBestEffort("settings.toggleNotification.audit", () =>
+            createAuditLog({
+              action: "update",
+              entityType: "app_settings",
+              entityId: SETTINGS_ROW_ID,
+              newData: {
+                message: "Cập nhật cài đặt thông báo",
+                notification_key: key,
+                enabled,
+              },
+            }),
+          );
           return saved;
         } catch (error) {
           if (!isMissingTableError(error)) {

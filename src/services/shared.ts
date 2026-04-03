@@ -255,6 +255,7 @@ export type CustomerFilters = {
 };
 
 export type TransactionFilters = {
+  customerId?: string;
   dateFrom?: string;
   dateTo?: string;
   paymentMethod?: string;
@@ -263,6 +264,7 @@ export type TransactionFilters = {
 };
 
 export type TicketFilters = {
+  customerId?: string;
   priority?: string;
   assignedTo?: string;
   category?: string;
@@ -291,6 +293,14 @@ export type TaskFilters = {
   entityId?: string;
   assignedTo?: string;
   status?: TaskStatus | "all";
+};
+
+export type CustomerNoteFilters = {
+  customerId?: string;
+};
+
+export type TicketCommentFilters = {
+  ticketId?: string;
 };
 
 const PROFILE_EMAIL_CACHE_KEY = "nexcrm_profile_email_cache";
@@ -376,6 +386,87 @@ export function ensureSupabaseConfigured() {
       "Thiếu cấu hình Supabase. Hãy thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY vào .env.local.",
     );
   }
+}
+
+export function getAppErrorMessage(error: unknown, fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.") {
+  if (!error) {
+    return fallback;
+  }
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String(error.message ?? "")
+        : String(error);
+  const details =
+    typeof error === "object" && error !== null && "details" in error
+      ? String(error.details ?? "")
+      : "";
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code ?? "")
+      : "";
+
+  const normalized = `${message} ${details} ${code}`.toLowerCase();
+
+  if (
+    normalized.includes("duplicate") ||
+    normalized.includes("already exists") ||
+    normalized.includes("already registered") ||
+    normalized.includes("23505")
+  ) {
+    if (normalized.includes("phone") || normalized.includes("số điện thoại")) {
+      return "Số điện thoại đã tồn tại trong hệ thống.";
+    }
+
+    if (normalized.includes("email")) {
+      return "Email đã tồn tại trong hệ thống.";
+    }
+
+    return "Dữ liệu đã tồn tại trong hệ thống.";
+  }
+
+  if (normalized.includes("network") || normalized.includes("fetch") || normalized.includes("failed to fetch")) {
+    return "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.";
+  }
+
+  if (normalized.includes("jwt") || normalized.includes("permission") || normalized.includes("not authorized")) {
+    return "Bạn không có quyền thực hiện thao tác này.";
+  }
+
+  return message || fallback;
+}
+
+export async function runBestEffort<T>(
+  label: string,
+  action: () => Promise<T>,
+): Promise<T | null> {
+  try {
+    return await action();
+  } catch (error) {
+    console.warn(`[best-effort] ${label}`, error);
+    return null;
+  }
+}
+
+export function isMissingRpcFunctionError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const message = "message" in error ? String(error.message ?? "") : "";
+  const details = "details" in error ? String(error.details ?? "") : "";
+  const code = "code" in error ? String(error.code ?? "") : "";
+  const hint = "hint" in error ? String(error.hint ?? "") : "";
+  const haystack = `${message} ${details} ${hint} ${code}`.toLowerCase();
+
+  return (
+    haystack.includes("could not find the function") ||
+    haystack.includes("does not exist") ||
+    haystack.includes("42883") ||
+    haystack.includes("pgrst202")
+  );
 }
 
 export async function withLatency<T>(promise: Promise<T>, minMs = 500) {
@@ -687,16 +778,30 @@ function describeAction(actionType: string, config?: Record<string, unknown> | n
 }
 
 export function toAutomationRule(row: AutomationRuleRow): AutomationRule {
+  const actionConfig = row.action_config ?? {};
+  const triggerDays = Number(row.trigger_config?.days ?? 0);
+
   return {
     id: row.id,
     name: row.name,
+    description: row.description ?? "",
     trigger: describeTrigger(row.trigger_type, row.trigger_config),
     action: describeAction(row.action_type, row.action_config),
+    trigger_type: row.trigger_type as AutomationRule["trigger_type"],
+    trigger_days:
+      row.trigger_type === "inactive_days" || row.trigger_type === "after_purchase"
+        ? triggerDays || null
+        : null,
+    action_summary: String(actionConfig.summary ?? ""),
+    action_type: row.action_type as AutomationRule["action_type"],
     channel: row.action_type === "send_sms" ? "sms" : "email",
-    content: String(row.action_config?.content ?? ""),
+    content: String(actionConfig.content ?? ""),
+    variables: ["{ten_khach_hang}", "{ma_khach_hang}", "{tong_chi_tieu}", "{lan_mua_cuoi}"],
     is_active: row.is_active ?? true,
-    sent_count: Number(row.action_config?.sent_count ?? 0),
+    sent_count: Number(actionConfig.sent_count ?? 0),
     created_at: row.created_at,
+    updated_at: row.updated_at,
+    last_run_at: typeof actionConfig.last_run_at === "string" ? actionConfig.last_run_at : null,
   };
 }
 

@@ -8,6 +8,7 @@ import {
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
+  runBestEffort,
   toDeal,
   withLatency,
 } from "@/services/shared";
@@ -107,27 +108,31 @@ export const dealService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "create",
-          entityType: "deal",
-          entityId: data.id,
-          newData: {
-            message: `Tạo cơ hội ${payload.title}`,
-            stage: payload.stage ?? "lead",
-            value: payload.value ?? 0,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("deal.create.audit", () =>
+          createAuditLog({
+            action: "create",
+            entityType: "deal",
+            entityId: data.id,
+            newData: {
+              message: `Tạo cơ hội ${payload.title}`,
+              stage: payload.stage ?? "lead",
+              value: payload.value ?? 0,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         if (data.owner_id) {
-          await notificationService.createUnique({
-            user_id: data.owner_id,
-            title: `Cơ hội mới: ${data.title}`,
-            message: `Bạn vừa được giao cơ hội mới ở giai đoạn ${data.stage}.`,
-            type: "info",
-            entity_type: "deal",
-            entity_id: data.id,
-          });
+          void runBestEffort("deal.create.notification", () =>
+            notificationService.createUnique({
+              user_id: data.owner_id,
+              title: `Cơ hội mới: ${data.title}`,
+              message: `Bạn vừa được giao cơ hội mới ở giai đoạn ${data.stage}.`,
+              type: "info",
+              entity_type: "deal",
+              entity_id: data.id,
+            }),
+          );
         }
 
         return toDeal(data as DealRow);
@@ -165,28 +170,32 @@ export const dealService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "update",
-          entityType: "deal",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: {
-            message: `Cập nhật cơ hội ${data.title}`,
-            stage: data.stage,
-            value: data.value,
-          },
-          userId: currentUserId,
-        });
+        void runBestEffort("deal.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "deal",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật cơ hội ${data.title}`,
+              stage: data.stage,
+              value: data.value,
+            },
+            userId: currentUserId,
+          }),
+        );
 
         if (data.owner_id && previous.stage !== data.stage) {
-          await notificationService.createUnique({
-            user_id: data.owner_id,
-            title: `Pipeline cập nhật: ${data.title}`,
-            message: `Cơ hội đã chuyển sang giai đoạn ${data.stage}.`,
-            type: data.stage === "won" ? "success" : data.stage === "lost" ? "warning" : "info",
-            entity_type: "deal",
-            entity_id: id,
-          });
+          void runBestEffort("deal.update.notification", () =>
+            notificationService.createUnique({
+              user_id: data.owner_id,
+              title: `Pipeline cập nhật: ${data.title}`,
+              message: `Cơ hội đã chuyển sang giai đoạn ${data.stage}.`,
+              type: data.stage === "won" ? "success" : data.stage === "lost" ? "warning" : "info",
+              entity_type: "deal",
+              entity_id: id,
+            }),
+          );
         }
 
         return toDeal(data as DealRow);
@@ -219,14 +228,16 @@ export const dealService = {
           throw error;
         }
 
-        await createAuditLog({
-          action: "delete",
-          entityType: "deal",
-          entityId: id,
-          oldData: previous as unknown as Record<string, unknown>,
-          newData: { message: `Xóa cơ hội ${previous.title}` },
-          userId: currentUserId,
-        });
+        void runBestEffort("deal.delete.audit", () =>
+          createAuditLog({
+            action: "delete",
+            entityType: "deal",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: { message: `Xóa cơ hội ${previous.title}` },
+            userId: currentUserId,
+          }),
+        );
       })(),
     );
   },
