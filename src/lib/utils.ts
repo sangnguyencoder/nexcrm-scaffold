@@ -3,35 +3,140 @@ import { twMerge } from "tailwind-merge";
 
 import type { CustomerType, DealStage, TaskStatus, TicketPriority, UserRole } from "@/types";
 
+const currencyFormatter = new Intl.NumberFormat("vi-VN");
+const percentFormatter = new Intl.NumberFormat("vi-VN", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("vi", { numeric: "auto" });
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatCurrency(amount: number): string {
-  return `${new Intl.NumberFormat("vi-VN").format(amount)} ₫`;
+  return `${currencyFormatter.format(amount)} ₫`;
+}
+
+type CompactFormatOptions = {
+  locale?: "vi" | "en";
+  maximumFractionDigits?: number;
+};
+
+function formatCompactUnit(
+  value: number,
+  divisor: number,
+  suffix: string,
+  locale: "vi" | "en",
+  maximumFractionDigits: number,
+) {
+  const scaledValue = value / divisor;
+  const fractionDigits =
+    Math.abs(scaledValue) >= 100
+      ? 0
+      : Math.abs(scaledValue) >= 10
+        ? Math.min(maximumFractionDigits, 1)
+        : maximumFractionDigits;
+  const formatter = new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US", {
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: 0,
+  });
+
+  return `${formatter.format(scaledValue)}${locale === "vi" ? " " : ""}${suffix}`;
+}
+
+export function formatNumberCompact(
+  value: number,
+  {
+    locale = "vi",
+    maximumFractionDigits = 1,
+  }: CompactFormatOptions = {},
+): string {
+  const absValue = Math.abs(value);
+
+  if (absValue >= 1_000_000_000) {
+    return formatCompactUnit(
+      value,
+      1_000_000_000,
+      locale === "vi" ? "tỷ" : "B",
+      locale,
+      maximumFractionDigits,
+    );
+  }
+
+  if (absValue >= 1_000_000) {
+    return formatCompactUnit(
+      value,
+      1_000_000,
+      locale === "vi" ? "triệu" : "M",
+      locale,
+      maximumFractionDigits,
+    );
+  }
+
+  if (absValue >= 1_000) {
+    return formatCompactUnit(
+      value,
+      1_000,
+      locale === "vi" ? "nghìn" : "K",
+      locale,
+      maximumFractionDigits,
+    );
+  }
+
+  return new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function formatCompactNumber(value: number): string {
+  return formatNumberCompact(value);
+}
+
+export function formatCurrencyCompact(
+  amount: number,
+  options?: CompactFormatOptions,
+): string {
+  if (Math.abs(amount) < 1_000_000) {
+    return formatCurrency(amount);
+  }
+
+  return `${formatNumberCompact(amount, options)} ₫`;
+}
+
+export function formatPercent(value: number): string {
+  return percentFormatter.format(value);
 }
 
 export function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(date));
+  return dateFormatter.format(new Date(date));
 }
 
 export function formatDateTime(date: string): string {
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  return dateTimeFormatter.format(new Date(date));
+}
+
+export function formatDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function timeAgo(date: string): string {
   const diff = new Date(date).getTime() - Date.now();
-  const rtf = new Intl.RelativeTimeFormat("vi", { numeric: "auto" });
   const divisions = [
     { amount: 60, unit: "second" as const },
     { amount: 60, unit: "minute" as const },
@@ -50,7 +155,7 @@ export function timeAgo(date: string): string {
         return "Vừa xong";
       }
 
-      return rtf.format(Math.round(duration), division.unit);
+      return relativeTimeFormatter.format(Math.round(duration), division.unit);
     }
 
     duration /= division.amount;
@@ -102,6 +207,17 @@ export function getPriorityColor(priority: TicketPriority): string {
     high: "bg-orange-500/15 text-orange-600 ring-orange-500/25 dark:text-orange-300",
     medium: "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
     low: "bg-slate-500/15 text-slate-600 ring-slate-500/25 dark:text-slate-300",
+  };
+
+  return map[priority];
+}
+
+export function formatTicketPriority(priority: TicketPriority): string {
+  const map: Record<TicketPriority, string> = {
+    urgent: "Khẩn cấp",
+    high: "Cao",
+    medium: "Trung bình",
+    low: "Thấp",
   };
 
   return map[priority];
@@ -210,6 +326,15 @@ export function uniqueId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export function sanitizeFileNameSegment(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function getDefaultAvatarUrl(role?: UserRole | null) {
   const map: Record<UserRole, string> = {
     super_admin: "/avatars/default-super-admin.svg",
@@ -251,4 +376,13 @@ export function isValidAssetUrl(value?: string | null) {
 
 export function resolveLogoUrl(value?: string | null) {
   return isValidAssetUrl(value) ? value!.trim() : getDefaultLogoUrl();
+}
+
+export async function copyTextToClipboard(value: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return true;
+  }
+
+  return false;
 }

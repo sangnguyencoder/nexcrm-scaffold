@@ -1,28 +1,33 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Plus, Trash2, UserCog } from "lucide-react";
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { DataTableShell } from "@/components/shared/data-table-shell";
+import { EmptyState } from "@/components/shared/empty-state";
+import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useUsersQuery, queryKeys } from "@/hooks/useNexcrmQueries";
-import { formatRole, getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
+import { getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
 import { profileService } from "@/services/profileService";
-import { getAppErrorMessage } from "@/services/shared";
 import type { User } from "@/types";
 
 const addUserSchema = z.object({
@@ -84,9 +89,11 @@ function UserModal({
     }
   }, [form, initialUser, open]);
 
-  const mutation = useMutation({
+  const mutation = useAppMutation({
+    action: isEdit ? "admin.user.update" : "admin.user.create",
+    errorMessage: isEdit ? "Không thể cập nhật thành viên." : "Không thể thêm thành viên.",
     mutationFn: (values: AddUserValues) => {
-        if (isEdit && initialUser) {
+      if (isEdit && initialUser) {
         return profileService.update(initialUser.id, {
           email: values.email,
           full_name: values.full_name,
@@ -101,9 +108,6 @@ function UserModal({
       toast.success(isEdit ? "Đã cập nhật thành viên" : "Đã thêm thành viên mới");
       onOpenChange(false);
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, isEdit ? "Không thể cập nhật thành viên." : "Không thể thêm thành viên."));
-    },
   });
 
   return (
@@ -111,33 +115,42 @@ function UserModal({
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Chỉnh sửa thành viên" : "Thêm Người Dùng"}
-      description="Quản lý thông tin và quyền truy cập cho thành viên hệ thống."
+      // description="Quản lý thông tin và quyền truy cập cho thành viên hệ thống."
     >
       <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-        <Field label="Email" error={form.formState.errors.email?.message}>
-          <Input {...form.register("email")} autoComplete="email" />
-        </Field>
-        <Field label="Họ và tên" error={form.formState.errors.full_name?.message}>
-          <Input {...form.register("full_name")} />
-        </Field>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Vai trò">
-            <Select {...form.register("role")}>
-              <option value="super_admin">Super Admin</option>
-              <option value="admin">Admin</option>
-              <option value="director">Director</option>
-              <option value="sales">Sales</option>
-              <option value="cskh">CSKH</option>
-              <option value="marketing">Marketing</option>
-            </Select>
-          </Field>
-          <Field label="Phòng ban" error={form.formState.errors.department?.message}>
-            <Input {...form.register("department")} />
-          </Field>
-        </div>
-        <Field label="Mật khẩu" error={form.formState.errors.password?.message}>
-          <Input type="password" autoComplete={isEdit ? "current-password" : "new-password"} {...form.register("password")} />
-        </Field>
+        {mutation.actionError ? (
+          <ActionErrorAlert
+            error={mutation.actionError}
+            onDismiss={mutation.clearActionError}
+            onRetry={mutation.canRetry ? () => void mutation.retryLast() : undefined}
+          />
+        ) : null}
+        <FormSection title="Thông tin truy cập" /* description="Giữ biểu mẫu ngắn, rõ, và đủ cho tác vụ quản trị hằng ngày." */>
+          <FormField label="Email" error={form.formState.errors.email?.message}>
+            <Input {...form.register("email")} autoComplete="email" />
+          </FormField>
+          <FormField label="Họ và tên" error={form.formState.errors.full_name?.message}>
+            <Input {...form.register("full_name")} />
+          </FormField>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField label="Vai trò">
+              <Select {...form.register("role")}>
+                <option value="super_admin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="director">Director</option>
+                <option value="sales">Sales</option>
+                <option value="cskh">CSKH</option>
+                <option value="marketing">Marketing</option>
+              </Select>
+            </FormField>
+            <FormField label="Phòng ban" error={form.formState.errors.department?.message}>
+              <Input {...form.register("department")} />
+            </FormField>
+          </div>
+          <FormField label="Mật khẩu" error={form.formState.errors.password?.message}>
+            <Input type="password" autoComplete={isEdit ? "current-password" : "new-password"} {...form.register("password")} />
+          </FormField>
+        </FormSection>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Hủy
@@ -151,55 +164,40 @@ function UserModal({
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-2 text-sm">
-      <span className="font-medium">{label}</span>
-      {children}
-      {error ? <span className="text-xs text-rose-500">{error}</span> : null}
-    </label>
-  );
-}
-
 export function UserManagePage() {
   const queryClient = useQueryClient();
   const { data: users = [], isLoading } = useUsersQuery();
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<User["role"] | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  const toggleStatus = useMutation({
+  const toggleStatus = useAppMutation({
+    action: "admin.user.toggle-status",
+    errorMessage: "Không thể cập nhật trạng thái thành viên.",
     mutationFn: profileService.toggleActive,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
       toast.success("Đã cập nhật trạng thái thành viên");
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể cập nhật trạng thái thành viên."));
-    },
   });
 
-  const updateRole = useMutation({
+  const updateRole = useAppMutation({
+    action: "admin.user.update-role",
+    errorMessage: "Không thể cập nhật vai trò.",
     mutationFn: ({ id, role }: { id: string; role: User["role"] }) =>
       profileService.update(id, { role }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
       toast.success("Đã cập nhật vai trò");
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể cập nhật vai trò."));
-    },
   });
 
-  const deleteUser = useMutation({
+  const deleteUser = useAppMutation({
+    action: "admin.user.delete",
+    errorMessage: "Không thể xóa thành viên.",
     mutationFn: profileService.delete,
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
@@ -209,20 +207,41 @@ export function UserManagePage() {
           : "Đã xóa thành viên",
       );
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể xóa thành viên."));
-    },
   });
+
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((user) => {
+        if (roleFilter !== "all" && user.role !== roleFilter) {
+          return false;
+        }
+
+        if (statusFilter !== "all" && (statusFilter === "active") !== user.is_active) {
+          return false;
+        }
+
+        if (search.trim()) {
+          const keyword = search.toLowerCase();
+          const haystack = `${user.full_name} ${user.email} ${user.department}`.toLowerCase();
+          if (!haystack.includes(keyword)) {
+            return false;
+          }
+        }
+
+        return true;
+      }),
+    [roleFilter, search, statusFilter, users],
+  );
 
   if (isLoading) {
     return <PageLoader panels={1} />;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Thành Viên"
-        subtitle="Quản lý vai trò, trạng thái và phân quyền cho đội ngũ vận hành."
+        // subtitle="Quản trị quyền truy cập, trạng thái hoạt động và phân bổ vai trò trên một bảng compact."
         actions={
           <>
             <StatusBadge
@@ -243,8 +262,40 @@ export function UserManagePage() {
         }
       />
 
-      <Card>
-        <CardContent className="p-0">
+      <StickyFilterBar>
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tìm theo tên, email hoặc phòng ban"
+          className="min-w-[260px] flex-1"
+        />
+        <Select
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value as User["role"] | "all")}
+          className="w-[170px]"
+        >
+          <option value="all">Tất cả vai trò</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="director">Director</option>
+          <option value="sales">Sales</option>
+          <option value="cskh">CSKH</option>
+          <option value="marketing">Marketing</option>
+        </Select>
+        <Select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as "all" | "active" | "inactive")}
+          className="w-[160px]"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Đã khóa</option>
+        </Select>
+        <Badge className="bg-muted text-muted-foreground ring-border">{filteredUsers.length} hiển thị</Badge>
+      </StickyFilterBar>
+
+      <DataTableShell>
+        {filteredUsers.length ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -256,7 +307,7 @@ export function UserManagePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -267,7 +318,7 @@ export function UserManagePage() {
 
                       <div>
                         <div className="font-medium">{user.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                        <div className="text-xs text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
                   </TableCell>
@@ -289,7 +340,7 @@ export function UserManagePage() {
                   <TableCell>
                     <label className="flex items-center gap-3">
                       <Switch checked={user.is_active} onChange={() => toggleStatus.mutate(user.id)} />
-                      <span>{user.is_active ? "Active" : "Inactive"}</span>
+                      <span className="text-sm">{user.is_active ? "Active" : "Inactive"}</span>
                     </label>
                   </TableCell>
                   <TableCell>
@@ -320,8 +371,17 @@ export function UserManagePage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        ) : (
+          <div className="p-4">
+            <EmptyState
+              icon={UserCog}
+              title="Không có thành viên phù hợp"
+              description="Thử đổi bộ lọc vai trò hoặc trạng thái để xem các tài khoản khác."
+              className="min-h-[200px] border-dashed bg-transparent shadow-none"
+            />
+          </div>
+        )}
+      </DataTableShell>
 
       <UserModal open={modalOpen} onOpenChange={setModalOpen} initialUser={editingUser} />
       <ConfirmDialog

@@ -3,6 +3,7 @@ import type { AppSettings } from "@/types";
 
 import {
   type AppSettingsRow,
+  type ServiceRequestOptions,
   cloneDefaultSettings,
   createAuditLog,
   ensureSupabaseConfigured,
@@ -25,22 +26,21 @@ function isMissingTableError(error: unknown) {
   );
 }
 
-async function upsertDefaultSettingsRow() {
+async function upsertDefaultSettingsRow(options: ServiceRequestOptions = {}) {
   const defaults = cloneDefaultSettings();
 
-  const { data, error } = await supabase
-    .from("app_settings")
-    .upsert(
-      {
-        id: SETTINGS_ROW_ID,
-        company_name: defaults.company_name,
-        logo_url: defaults.logo_url,
-        plan: defaults.plan,
-        notification_settings: defaults.notification_settings,
-        integrations: defaults.integrations,
-      },
-      { onConflict: "id" },
-    )
+  const upsertQuery = supabase.from("app_settings").upsert(
+    {
+      id: SETTINGS_ROW_ID,
+      company_name: defaults.company_name,
+      logo_url: defaults.logo_url,
+      plan: defaults.plan,
+      notification_settings: defaults.notification_settings,
+      integrations: defaults.integrations,
+    },
+    { onConflict: "id" },
+  );
+  const { data, error } = await (options.signal ? upsertQuery.abortSignal(options.signal) : upsertQuery)
     .select("*")
     .single();
 
@@ -51,13 +51,14 @@ async function upsertDefaultSettingsRow() {
   return data as AppSettingsRow;
 }
 
-async function readSettings() {
+async function readSettings(options: ServiceRequestOptions = {}) {
   ensureSupabaseConfigured();
 
-  const { data, error } = await supabase
+  const readQuery = supabase
     .from("app_settings")
     .select("*")
-    .eq("id", SETTINGS_ROW_ID)
+    .eq("id", SETTINGS_ROW_ID);
+  const { data, error } = await (options.signal ? readQuery.abortSignal(options.signal) : readQuery)
     .maybeSingle();
 
   if (error) {
@@ -71,7 +72,7 @@ async function readSettings() {
   }
 
   if (!data) {
-    return upsertDefaultSettingsRow();
+    return upsertDefaultSettingsRow(options);
   }
 
   return data as AppSettingsRow;
@@ -104,16 +105,16 @@ async function persistSettings(next: AppSettings) {
   return data as AppSettingsRow;
 }
 
-async function resolveSettings() {
-  const row = await readSettings();
+async function resolveSettings(options: ServiceRequestOptions = {}) {
+  const row = await readSettings(options);
   const settings = row ? toAppSettings(row) : getCachedSettings();
   setCachedSettings(settings);
   return settings;
 }
 
 export const settingsService = {
-  get() {
-    return withLatency(resolveSettings(), 200);
+  get(options: ServiceRequestOptions = {}) {
+    return withLatency(resolveSettings(options), 200);
   },
 
   update(payload: Partial<AppSettings>) {

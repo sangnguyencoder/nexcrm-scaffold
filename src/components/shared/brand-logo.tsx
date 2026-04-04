@@ -36,7 +36,7 @@ export function BrandLogo({
     return (
       <div
         className={cn(
-          "flex items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-xs font-semibold uppercase tracking-[0.18em] text-primary",
+          "flex items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-xs font-semibold uppercase tracking-[0.18em] text-primary",
           className,
           initialsClassName,
         )}
@@ -48,7 +48,7 @@ export function BrandLogo({
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl", className)}>
+    <div className={cn("overflow-hidden rounded-xl", className)}>
       <img
         src={currentSource}
         alt={alt}

@@ -4,6 +4,7 @@ import type { Customer, CustomerNote } from "@/types";
 import {
   type CustomerFilters,
   type CustomerRow,
+  type ServiceRequestOptions,
   createAuditLog,
   ensureSupabaseConfigured,
   getAppErrorMessage,
@@ -11,6 +12,7 @@ import {
   runBestEffort,
   toCustomer,
   toCustomerNote,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -34,12 +36,14 @@ function buildSearchQuery(search: string) {
   return `full_name.ilike.%${keyword}%,phone.ilike.%${keyword}%,email.ilike.%${keyword}%`;
 }
 
-async function fetchCustomerRow(id: string) {
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("id", id)
-    .single();
+async function fetchCustomerRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase
+      .from("customers")
+      .select("*")
+      .eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -52,20 +56,25 @@ async function ensureUniqueCustomerContact({
   id,
   phone,
   email,
+  signal,
 }: {
   id?: string;
   phone?: string;
   email?: string;
+  signal?: AbortSignal;
 }) {
   const normalizedPhone = phone?.trim();
   const normalizedEmail = email?.trim();
 
   if (normalizedPhone) {
-    let phoneQuery = supabase
-      .from("customers")
-      .select("id")
-      .eq("phone", normalizedPhone)
-      .limit(1);
+    let phoneQuery = withAbortSignal(
+      supabase
+        .from("customers")
+        .select("id")
+        .eq("phone", normalizedPhone)
+        .limit(1),
+      signal,
+    );
 
     if (id) {
       phoneQuery = phoneQuery.neq("id", id);
@@ -83,11 +92,14 @@ async function ensureUniqueCustomerContact({
   }
 
   if (normalizedEmail) {
-    let emailQuery = supabase
-      .from("customers")
-      .select("id")
-      .ilike("email", normalizedEmail)
-      .limit(1);
+    let emailQuery = withAbortSignal(
+      supabase
+        .from("customers")
+        .select("id")
+        .ilike("email", normalizedEmail)
+        .limit(1),
+      signal,
+    );
 
     if (id) {
       emailQuery = emailQuery.neq("id", id);
@@ -106,12 +118,12 @@ async function ensureUniqueCustomerContact({
 }
 
 export const customerService = {
-  getList(filters: CustomerFilters = {}) {
+  getList(filters: CustomerFilters = {}, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
 
-        let query = supabase.from("customers").select("*");
+        let query = withAbortSignal(supabase.from("customers").select("*"), options.signal);
 
         if (filters.search) {
           query = query.or(buildSearchQuery(filters.search));
@@ -138,17 +150,17 @@ export const customerService = {
     );
   },
 
-  getById(id: string) {
+  getById(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const row = await fetchCustomerRow(id);
+        const row = await fetchCustomerRow(id, options);
         return toCustomer(row);
       })(),
     );
   },
 
-  create(payload: CustomerCreateInput) {
+  create(payload: CustomerCreateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -156,11 +168,11 @@ export const customerService = {
         await ensureUniqueCustomerContact({
           phone: payload.phone,
           email: payload.email,
+          signal: options.signal,
         });
 
-        const { data, error } = await supabase
-          .from("customers")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("customers").insert({
             full_name: payload.full_name,
             phone: payload.phone || null,
             email: payload.email || null,
@@ -170,7 +182,9 @@ export const customerService = {
             source: payload.source ?? "direct",
             assigned_to: payload.assigned_to || currentUserId,
             created_by: currentUserId,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 
@@ -203,21 +217,21 @@ export const customerService = {
     );
   },
 
-  update(id: string, payload: CustomerUpdateInput) {
+  update(id: string, payload: CustomerUpdateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchCustomerRow(id);
+        const previous = await fetchCustomerRow(id, options);
         const currentUserId = await getCurrentProfileId();
         await ensureUniqueCustomerContact({
           id,
           phone: payload.phone ?? previous.phone ?? undefined,
           email: payload.email ?? previous.email ?? undefined,
+          signal: options.signal,
         });
 
-        const { data, error } = await supabase
-          .from("customers")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("customers").update({
             full_name: payload.full_name ?? previous.full_name,
             phone: payload.phone ?? previous.phone,
             email: payload.email ?? previous.email,
@@ -227,7 +241,9 @@ export const customerService = {
             source: payload.source ?? previous.source,
             assigned_to: payload.assigned_to ?? previous.assigned_to,
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .eq("id", id)
           .select("*")
           .single();
@@ -256,19 +272,20 @@ export const customerService = {
     );
   },
 
-  softDelete(id: string) {
+  softDelete(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchCustomerRow(id);
+        const previous = await fetchCustomerRow(id, options);
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("customers")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("customers").update({
             is_active: false,
             customer_type: "inactive",
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .eq("id", id)
           .select("*")
           .single();
@@ -293,7 +310,7 @@ export const customerService = {
     );
   },
 
-  softDeleteMany(ids: string[]) {
+  softDeleteMany(ids: string[], options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -302,13 +319,14 @@ export const customerService = {
         }
 
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("customers")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("customers").update({
             is_active: false,
             customer_type: "inactive",
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .in("id", ids)
           .select("*");
 
@@ -334,7 +352,11 @@ export const customerService = {
     );
   },
 
-  bulkChangeType(ids: string[], customerType: Customer["customer_type"]) {
+  bulkChangeType(
+    ids: string[],
+    customerType: Customer["customer_type"],
+    options: ServiceRequestOptions = {},
+  ) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -343,13 +365,14 @@ export const customerService = {
         }
 
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("customers")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("customers").update({
             customer_type: customerType,
             is_active: customerType === "inactive" ? false : true,
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .in("id", ids)
           .select("*");
 
@@ -376,7 +399,13 @@ export const customerService = {
     );
   },
 
-  addNote(customerId: string, content: string, noteType: CustomerNote["note_type"]) {
+  addNote(
+    customerId: string,
+    content: string,
+    noteType: CustomerNote["note_type"],
+    options: ServiceRequestOptions = {},
+  ) {
+    void options;
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -399,15 +428,17 @@ export const customerService = {
     );
   },
 
-  getNotes(customerId?: string) {
+  getNotes(customerId?: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let query = supabase
-          .from("audit_logs")
-          .select("*")
-          .eq("entity_type", "customer_note")
-          .order("created_at", { ascending: false });
+        let query = withAbortSignal(
+          supabase
+            .from("audit_logs")
+            .select("*")
+            .eq("entity_type", "customer_note"),
+          options.signal,
+        ).order("created_at", { ascending: false });
 
         if (customerId) {
           query = query.eq("entity_id", customerId);

@@ -11,8 +11,10 @@ import {
   getCachedProfileEmail,
   getCurrentAuthUser,
   type ProfileRow,
+  type ServiceRequestOptions,
   runBestEffort,
   toUser,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -37,12 +39,14 @@ type ManageProfileUserResponse = {
   user: ManagedAuthUser;
 };
 
-async function fetchProfileRow(id: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .single();
+async function fetchProfileRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -162,14 +166,14 @@ async function syncAuthUser(id: string, payload: ProfileUpdateInput) {
 }
 
 export const profileService = {
-  getAll() {
+  getAll(options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: true });
+        const { data, error } = await withAbortSignal(
+          supabase.from("profiles").select("*"),
+          options.signal,
+        ).order("created_at", { ascending: true });
 
         if (error) {
           throw error;
@@ -182,11 +186,11 @@ export const profileService = {
     );
   },
 
-  getById(id: string) {
+  getById(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const row = await fetchProfileRow(id);
+        const row = await fetchProfileRow(id, options);
         return toUser(row, getCachedProfileEmail(id, ""));
       })(),
     );

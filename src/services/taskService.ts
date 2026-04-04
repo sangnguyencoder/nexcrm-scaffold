@@ -3,6 +3,7 @@ import type { Task } from "@/types";
 
 import { notificationService } from "@/services/notificationService";
 import {
+  type ServiceRequestOptions,
   type TaskFilters,
   type TaskRow,
   createAuditLog,
@@ -10,6 +11,7 @@ import {
   getCurrentProfileId,
   runBestEffort,
   toTask,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -28,8 +30,11 @@ export type TaskUpdateInput = Partial<TaskCreateInput> & {
   completed_at?: string | null;
 };
 
-async function fetchTaskRow(id: string) {
-  const { data, error } = await supabase.from("tasks").select("*").eq("id", id).single();
+async function fetchTaskRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase.from("tasks").select("*").eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -39,11 +44,14 @@ async function fetchTaskRow(id: string) {
 }
 
 export const taskService = {
-  getList(filters: TaskFilters = {}) {
+  getList(filters: TaskFilters = {}, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let query = supabase.from("tasks").select("*").order("created_at", { ascending: false });
+        let query = withAbortSignal(
+          supabase.from("tasks").select("*"),
+          options.signal,
+        ).order("created_at", { ascending: false });
 
         if (filters.entityType) {
           query = query.eq("entity_type", filters.entityType);
@@ -85,14 +93,13 @@ export const taskService = {
     );
   },
 
-  create(payload: TaskCreateInput) {
+  create(payload: TaskCreateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("tasks")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("tasks").insert({
             title: payload.title,
             description: payload.description ?? null,
             entity_type: payload.entity_type,
@@ -102,7 +109,9 @@ export const taskService = {
             priority: payload.priority ?? "medium",
             due_at: payload.due_at ?? null,
             created_by: currentUserId,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 
@@ -142,11 +151,11 @@ export const taskService = {
     );
   },
 
-  update(id: string, payload: TaskUpdateInput) {
+  update(id: string, payload: TaskUpdateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchTaskRow(id);
+        const previous = await fetchTaskRow(id, options);
         const currentUserId = await getCurrentProfileId();
         const nextStatus = payload.status ?? previous.status ?? "todo";
         const completedAt =
@@ -155,9 +164,8 @@ export const taskService = {
             : payload.completed_at === undefined
               ? previous.completed_at
               : payload.completed_at;
-        const { data, error } = await supabase
-          .from("tasks")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("tasks").update({
             title: payload.title ?? previous.title,
             description: payload.description ?? previous.description,
             entity_type: payload.entity_type ?? previous.entity_type,
@@ -168,7 +176,9 @@ export const taskService = {
             due_at: payload.due_at === undefined ? previous.due_at : payload.due_at,
             completed_at: completedAt,
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .eq("id", id)
           .select("*")
           .single();
@@ -209,20 +219,23 @@ export const taskService = {
     );
   },
 
-  complete(id: string) {
+  complete(id: string, options: ServiceRequestOptions = {}) {
     return taskService.update(id, {
       status: "done",
       completed_at: new Date().toISOString(),
-    });
+    }, options);
   },
 
-  delete(id: string) {
+  delete(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchTaskRow(id);
+        const previous = await fetchTaskRow(id, options);
         const currentUserId = await getCurrentProfileId();
-        const { error } = await supabase.from("tasks").delete().eq("id", id);
+        const { error } = await withAbortSignal(
+          supabase.from("tasks").delete(),
+          options.signal,
+        ).eq("id", id);
 
         if (error) {
           throw error;

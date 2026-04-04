@@ -157,19 +157,32 @@ Schema này sẽ tạo:
 - `profiles`
 - `customers`
 - `transactions`
+- `deals`
+- `tasks`
 - `support_tickets`
 - `ticket_comments`
 - `campaigns`
+- `outbound_messages`
 - `notifications`
 - `automation_rules`
+- `app_settings`
 - `audit_logs`
 
 Ngoài ra còn có:
 
-- Trigger sinh `customer_code`
-- Trigger sinh `ticket_code`
+- Trigger sinh `customer_code` và `ticket_code` theo sequence
 - Trigger tự cập nhật thống kê khách hàng từ giao dịch
-- RLS và policy phát triển cơ bản
+- RPC `resolve_login_identifier` cho flow login bằng username/email
+- RPC `get_dashboard_snapshot` cho dashboard
+- Index, RLS và policy của baseline hiện tại
+
+Nếu anh/chị đang nâng cấp trên một project đã có dữ liệu cũ, chạy thêm toàn bộ file trong thư mục:
+
+- [`supabase/migrations`](/D:/Project/Hệ thống CRM quản lý khách hàng/nexcrm-scaffold/supabase/migrations)
+
+Theo thứ tự tên file, đặc biệt gồm migration đồng bộ mới:
+
+- [`20260404_sql_consistency_refresh.sql`](/D:/Project/Hệ thống CRM quản lý khách hàng/nexcrm-scaffold/supabase/migrations/20260404_sql_consistency_refresh.sql)
 
 ### 4.4 Tạo user đầu tiên trong Supabase Auth
 
@@ -186,6 +199,13 @@ Ví dụ:
 
 - Email: `admin@nexcrm.vn`
 - Password: `12345678`
+
+Lưu ý cho flow login mới:
+
+- Có thể đăng nhập bằng `email` đầy đủ
+- Hoặc đăng nhập bằng `username` là phần đứng trước dấu `@` của email, ví dụ `admin`
+- Nếu có 2 tài khoản trùng local-part trước `@`, phải đăng nhập bằng email đầy đủ
+- Google login chỉ hoạt động ổn định khi user trong `auth.users` đã có bản ghi tương ứng trong `profiles`
 
 ### 4.5 Tạo profile tương ứng cho user đó
 
@@ -215,7 +235,31 @@ insert into profiles (
 );
 ```
 
-### 4.6 Khuyến nghị cho môi trường dev
+Nếu anh/chị muốn kiểm tra nhanh local-part nào đang bị trùng để tránh login bằng username bị mơ hồ, chạy:
+
+```sql
+select
+  split_part(lower(email), '@', 1) as login_username,
+  count(*) as total_accounts,
+  array_agg(lower(email) order by lower(email)) as emails
+from auth.users
+group by 1
+having count(*) > 1;
+```
+
+### 4.6 Seed demo gọn để test phiên bản mới
+
+SQL seed gọn hiện nằm ở:
+
+- [`supabase/seeds/large_demo_seed.sql`](/D:/Project/Hệ thống CRM quản lý khách hàng/nexcrm-scaffold/supabase/seeds/large_demo_seed.sql)
+
+Seed này:
+
+- Tạo bộ dữ liệu gọn hơn nhưng vẫn đủ `dashboard`, `pipeline`, `tickets`, `campaign`, `automation`, `notifications`, `audit logs`
+- Có thể chạy lại nhiều lần vì script sẽ dọn các bản ghi demo cũ trước khi tạo mới
+- Yêu cầu project đã có ít nhất 1 profile active
+
+### 4.7 Khuyến nghị cho môi trường dev
 
 Nếu anh/chị muốn đăng nhập ngay mà không cần xác nhận email:
 
@@ -562,12 +606,13 @@ Hệ quả:
 - Email ở màn danh sách user đang dựa vào cache cục bộ phía client
 - Sửa email ở màn user chưa đồng bộ ngược vào `auth.users`
 
-### 8.2 Settings vẫn là local config layer
+### 8.2 Settings có fallback local nếu thiếu migration hoặc thiếu row
 
 Hệ quả:
 
-- Cài đặt tổ chức và toggle thông báo chưa có bảng riêng trong Supabase
-- Đây là lớp cấu hình cục bộ để giữ UI hoạt động
+- Settings hiện đã có bảng `app_settings` trong Supabase
+- Nếu chưa chạy schema/migration mới hoặc thiếu row `default`, app sẽ fallback tạm về local cache
+- Nên đảm bảo schema mới đã được chạy để settings, logo và notification preferences lưu đúng vào DB
 
 ### 8.3 Customer notes và system events ticket đang đi qua `audit_logs`
 
@@ -749,7 +794,8 @@ Với Vite, sửa env trên Vercel xong phải redeploy.
 
 ### Tôi seed demo nhiều lần thì sao?
 
-Hiện tại dữ liệu có thể bị tạo trùng. Đây là hành vi bình thường của seed button hiện tại.
+- Nút `Dữ Liệu Demo` trong Settings vẫn có thể tạo trùng nếu bấm nhiều lần
+- Riêng file SQL [`supabase/seeds/large_demo_seed.sql`](/D:/Project/Hệ thống CRM quản lý khách hàng/nexcrm-scaffold/supabase/seeds/large_demo_seed.sql) đã dọn dữ liệu demo cũ trước khi seed lại, nên có thể dùng để reset bộ dữ liệu test gọn
 
 ### User role nào nên dùng để test toàn bộ hệ thống?
 
@@ -768,6 +814,6 @@ Khuyến nghị:
 
 Nếu anh/chị muốn vận hành ổn định hơn, nên làm tiếp 3 việc:
 
-1. Thêm bảng settings riêng trong Supabase thay cho local config layer
-2. Thêm trigger tự tạo `profiles` sau khi tạo `auth.users`
-3. Thêm cơ chế chống seed trùng dữ liệu demo
+1. Thêm cột `username` hoặc `email` vào `profiles` để bỏ phụ thuộc vào local-part của `auth.users`
+2. Thêm trigger hoặc provisioning flow tự tạo `profiles` sau khi tạo `auth.users` nếu muốn mở rộng Google sign-in/self-service onboarding
+3. Tách `customer notes` và `ticket status events` khỏi `audit_logs` thành bảng domain riêng

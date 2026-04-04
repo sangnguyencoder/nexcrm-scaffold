@@ -1,6 +1,19 @@
 import { supabase } from "@/lib/supabase";
+import { formatDateInputValue } from "@/lib/utils";
 
-import { ensureSupabaseConfigured, normalizeNumber, withLatency } from "@/services/shared";
+import {
+  ensureSupabaseConfigured,
+  normalizeNumber,
+  type ServiceRequestOptions,
+  withAbortSignal,
+  withLatency,
+} from "@/services/shared";
+import {
+  getClientTimeZone,
+  reportLogger,
+  type ReportLogger,
+  withTimeout,
+} from "@/services/reportDiagnostics";
 
 export type ReportTab = "revenue" | "customers" | "tickets" | "marketing";
 export type ReportGroupBy = "day" | "week" | "month";
@@ -70,66 +83,186 @@ export type ReportRequest = {
   groupBy: ReportGroupBy;
 };
 
+type QueryResult<T> = PromiseLike<{ data: T | null; error: unknown | null }>;
+
+type QueryBuilder<T> = {
+  select: (columns: string) => QueryBuilder<T>;
+  eq: (column: string, value: unknown) => QueryBuilder<T>;
+  is: (column: string, value: unknown) => QueryBuilder<T>;
+  gte: (column: string, value: string) => QueryBuilder<T>;
+  lte: (column: string, value: string) => QueryBuilder<T>;
+  abortSignal?: (signal: AbortSignal) => QueryBuilder<T>;
+  order: (column: string, options?: { ascending?: boolean }) => QueryResult<T>;
+};
+
+type ReportClient = {
+  from: <T = unknown>(table: string) => QueryBuilder<T>;
+};
+
+type ReportServiceDependencies = {
+  client: ReportClient;
+  logger?: ReportLogger;
+  timeoutMs?: number;
+  getTimeZone?: () => string;
+  ensureConfigured?: () => void;
+};
+
+type RevenueTransactionRow = {
+  created_at: string;
+  total_amount: number | string | null;
+  status: string | null;
+};
+
+type RevenueDealRow = {
+  created_at: string;
+  stage: string | null;
+  value: number | string | null;
+};
+
+type CustomerReportRow = {
+  created_at: string;
+  customer_type: string | null;
+  source: string | null;
+};
+
+type TicketReportRow = {
+  created_at: string;
+  resolved_at: string | null;
+  category: string | null;
+  assigned_to: string | null;
+  status: string | null;
+};
+
+type TaskReportRow = {
+  created_at: string;
+  due_at: string | null;
+  assigned_to: string | null;
+  status: string | null;
+};
+
+type UserRow = {
+  id: string;
+  full_name: string;
+};
+
+type CampaignRow = {
+  id: string;
+  name: string;
+  channel: string;
+  status: string;
+};
+
+type OutboundMessageRow = {
+  campaign_id: string | null;
+  status: string | null;
+  created_at: string;
+};
+
+const DEFAULT_REPORT_TIMEOUT_MS = 15_000;
+
+function getRangeBounds(from: string, to: string) {
+  const startDate = new Date(`${from}T00:00:00`);
+  const endDate = new Date(`${to}T23:59:59.999`);
+
+  return {
+    start: startDate.getTime(),
+    end: endDate.getTime(),
+    startIso: startDate.toISOString(),
+    endIso: endDate.toISOString(),
+  };
+}
+
 function periodKey(date: string, groupBy: ReportGroupBy) {
   const target = new Date(date);
   if (groupBy === "month") {
     return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}`;
   }
+
   if (groupBy === "week") {
     const first = new Date(target);
     first.setDate(target.getDate() - target.getDay());
-    return `${first.getFullYear()}-W${String(first.getDate()).padStart(2, "0")}`;
+    return `${first.getFullYear()}-W${String(first.getMonth() + 1).padStart(2, "0")}${String(first.getDate()).padStart(2, "0")}`;
   }
-  return target.toISOString().slice(0, 10);
+
+  return formatDateInputValue(target);
 }
 
-function getRangeBounds(from: string, to: string) {
-  const start = new Date(`${from}T00:00:00`).getTime();
-  const end = new Date(`${to}T23:59:59.999`).getTime();
-  return { start, end };
+async function resolveQuery<T>(
+  query: QueryResult<T>,
+  {
+    request,
+    stage,
+    logger,
+    timeoutMs,
+    timeZone,
+  }: {
+    request: ReportRequest;
+    stage: string;
+    logger: ReportLogger;
+    timeoutMs: number;
+    timeZone: string;
+  },
+) {
+  const startedAt = Date.now();
+
+  try {
+    const result = await withTimeout(Promise.resolve(query), timeoutMs, "Tải dữ liệu báo cáo bị timeout");
+    if (result.error) {
+      throw result.error;
+    }
+    return result.data ?? [];
+  } catch (error) {
+    logger.error("report query failed", {
+      operation: "query",
+      stage,
+      tab: request.tab,
+      from: request.from,
+      to: request.to,
+      groupBy: request.groupBy,
+      timeoutMs,
+      timeZone,
+      durationMs: Date.now() - startedAt,
+      error,
+    });
+    throw error;
+  }
 }
 
-function isInRange(date: string | null | undefined, range: { start: number; end: number }) {
-  if (!date) {
-    return false;
-  }
+async function getRevenueSnapshot(
+  client: ReportClient,
+  request: ReportRequest,
+  deps: { logger: ReportLogger; timeoutMs: number; timeZone: string; signal?: AbortSignal },
+): Promise<RevenueReportSnapshot> {
+  const bounds = getRangeBounds(request.from, request.to);
+  const [transactions, deals] = await Promise.all([
+    resolveQuery<RevenueTransactionRow[]>(
+      withAbortSignal(
+        client
+          .from<RevenueTransactionRow[]>("transactions")
+          .select("created_at, total_amount, status")
+          .gte("created_at", bounds.startIso)
+          .lte("created_at", bounds.endIso),
+        deps.signal,
+      ).order("created_at", { ascending: true }),
+      { request, stage: "transactions", ...deps },
+    ),
+    resolveQuery<RevenueDealRow[]>(
+      withAbortSignal(
+        client
+          .from<RevenueDealRow[]>("deals")
+          .select("created_at, stage, value")
+          .gte("created_at", bounds.startIso)
+          .lte("created_at", bounds.endIso),
+        deps.signal,
+      ).order("created_at", { ascending: true }),
+      { request, stage: "deals", ...deps },
+    ),
+  ]);
 
-  const time = new Date(date).getTime();
-  return time >= range.start && time <= range.end;
-}
-
-async function getRevenueSnapshot({
-  from,
-  to,
-  groupBy,
-}: Omit<ReportRequest, "tab">): Promise<RevenueReportSnapshot> {
-  const { data: transactions, error: transactionsError } = await supabase
-    .from("transactions")
-    .select("created_at, total_amount, status")
-    .gte("created_at", `${from}T00:00:00`)
-    .lte("created_at", `${to}T23:59:59.999`)
-    .order("created_at", { ascending: true });
-
-  if (transactionsError) {
-    throw transactionsError;
-  }
-
-  const { data: deals, error: dealsError } = await supabase
-    .from("deals")
-    .select("created_at, stage, value")
-    .gte("created_at", `${from}T00:00:00`)
-    .lte("created_at", `${to}T23:59:59.999`);
-
-  if (dealsError) {
-    throw dealsError;
-  }
-
-  const filteredTransactions = (transactions ?? []).filter(
-    (transaction) => transaction.status === "completed",
-  );
-  const grouped = filteredTransactions.reduce<Record<string, { revenue: number; orders: number }>>(
+  const completedTransactions = transactions.filter((transaction) => transaction.status === "completed");
+  const grouped = completedTransactions.reduce<Record<string, { revenue: number; orders: number }>>(
     (acc, transaction) => {
-      const key = periodKey(transaction.created_at, groupBy);
+      const key = periodKey(transaction.created_at, request.groupBy);
       acc[key] ??= { revenue: 0, orders: 0 };
       acc[key].revenue += normalizeNumber(transaction.total_amount);
       acc[key].orders += 1;
@@ -156,20 +289,20 @@ async function getRevenueSnapshot({
       };
     });
 
-  const revenueTotal = filteredTransactions.reduce(
+  const revenueTotal = completedTransactions.reduce(
     (sum, item) => sum + normalizeNumber(item.total_amount),
     0,
   );
-  const revenueAvg = filteredTransactions.length ? revenueTotal / filteredTransactions.length : 0;
-  const maxOrder = filteredTransactions.reduce(
+  const revenueAvg = completedTransactions.length ? revenueTotal / completedTransactions.length : 0;
+  const maxOrder = completedTransactions.reduce(
     (max, item) => Math.max(max, normalizeNumber(item.total_amount)),
     0,
   );
-  const pipelineValue = (deals ?? [])
+  const pipelineValue = deals
     .filter((deal) => deal.stage !== "lost")
     .reduce((sum, deal) => sum + normalizeNumber(deal.value), 0);
-  const closedDeals = (deals ?? []).filter((deal) => deal.stage === "won" || deal.stage === "lost");
-  const wonDeals = (deals ?? []).filter((deal) => deal.stage === "won");
+  const closedDeals = deals.filter((deal) => deal.stage === "won" || deal.stage === "lost");
+  const wonDeals = deals.filter((deal) => deal.stage === "won");
 
   return {
     tab: "revenue",
@@ -182,30 +315,31 @@ async function getRevenueSnapshot({
   };
 }
 
-async function getCustomersSnapshot({
-  from,
-  to,
-  groupBy,
-}: Omit<ReportRequest, "tab">): Promise<CustomersReportSnapshot> {
-  const { data: customers, error } = await supabase
-    .from("customers")
-    .select("created_at, customer_type, source")
-    .eq("is_active", true)
-    .is("deleted_at", null)
-    .gte("created_at", `${from}T00:00:00`)
-    .lte("created_at", `${to}T23:59:59.999`);
+async function getCustomersSnapshot(
+  client: ReportClient,
+  request: ReportRequest,
+  deps: { logger: ReportLogger; timeoutMs: number; timeZone: string; signal?: AbortSignal },
+): Promise<CustomersReportSnapshot> {
+  const bounds = getRangeBounds(request.from, request.to);
+  const customers = await resolveQuery<CustomerReportRow[]>(
+    withAbortSignal(
+      client
+        .from<CustomerReportRow[]>("customers")
+        .select("created_at, customer_type, source")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .gte("created_at", bounds.startIso)
+        .lte("created_at", bounds.endIso),
+      deps.signal,
+    ).order("created_at", { ascending: true }),
+    { request, stage: "customers", ...deps },
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  const rows = customers ?? [];
-  const grouped = rows.reduce<Record<string, number>>((acc, customer) => {
-    const key = periodKey(customer.created_at, groupBy);
+  const grouped = customers.reduce<Record<string, number>>((acc, customer) => {
+    const key = periodKey(customer.created_at, request.groupBy);
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
-  const totalCustomers = rows.length;
 
   return {
     tab: "customers",
@@ -213,56 +347,63 @@ async function getCustomersSnapshot({
       .sort(([periodA], [periodB]) => periodA.localeCompare(periodB))
       .map(([period, count]) => ({ period, count })),
     sourceBreakdown: [
-      { name: "Trực tiếp", value: rows.filter((item) => item.source === "direct").length, color: "#2563eb" },
-      { name: "Marketing", value: rows.filter((item) => item.source === "marketing").length, color: "#10b981" },
-      { name: "Giới thiệu", value: rows.filter((item) => item.source === "referral").length, color: "#f59e0b" },
-      { name: "POS", value: rows.filter((item) => item.source === "pos").length, color: "#8b92a5" },
-      { name: "Online", value: rows.filter((item) => item.source === "online").length, color: "#ef4444" },
+      { name: "Trực tiếp", value: customers.filter((item) => item.source === "direct").length, color: "#2563eb" },
+      { name: "Marketing", value: customers.filter((item) => item.source === "marketing").length, color: "#10b981" },
+      { name: "Giới thiệu", value: customers.filter((item) => item.source === "referral").length, color: "#f59e0b" },
+      { name: "POS", value: customers.filter((item) => item.source === "pos").length, color: "#8b92a5" },
+      { name: "Online", value: customers.filter((item) => item.source === "online").length, color: "#ef4444" },
     ],
     customerTypeRows: ["vip", "loyal", "potential", "new", "inactive"].map((type) => {
-      const total = rows.filter((customer) => customer.customer_type === type).length;
+      const total = customers.filter((customer) => customer.customer_type === type).length;
       return {
         type,
         total,
-        percent: totalCustomers ? Math.round((total / totalCustomers) * 100) : 0,
+        percent: customers.length ? Math.round((total / customers.length) * 100) : 0,
       };
     }),
   };
 }
 
-async function getTicketsSnapshot({
-  from,
-  to,
-}: Omit<ReportRequest, "tab" | "groupBy"> & { groupBy: ReportGroupBy }): Promise<TicketsReportSnapshot> {
-  const [ticketsResult, tasksResult, usersResult] = await Promise.all([
-    supabase
-      .from("support_tickets")
-      .select("created_at, resolved_at, category, assigned_to, status")
-      .is("deleted_at", null)
-      .gte("created_at", `${from}T00:00:00`)
-      .lte("created_at", `${to}T23:59:59.999`),
-    supabase
-      .from("tasks")
-      .select("created_at, due_at, assigned_to, status")
-      .eq("entity_type", "deal")
-      .gte("created_at", `${from}T00:00:00`)
-      .lte("created_at", `${to}T23:59:59.999`),
-    supabase.from("profiles").select("id, full_name").order("full_name", { ascending: true }),
+async function getTicketsSnapshot(
+  client: ReportClient,
+  request: ReportRequest,
+  deps: { logger: ReportLogger; timeoutMs: number; timeZone: string; signal?: AbortSignal },
+): Promise<TicketsReportSnapshot> {
+  const bounds = getRangeBounds(request.from, request.to);
+  const [tickets, tasks, users] = await Promise.all([
+    resolveQuery<TicketReportRow[]>(
+      withAbortSignal(
+        client
+          .from<TicketReportRow[]>("support_tickets")
+          .select("created_at, resolved_at, category, assigned_to, status")
+          .is("deleted_at", null)
+          .gte("created_at", bounds.startIso)
+          .lte("created_at", bounds.endIso),
+        deps.signal,
+      ).order("created_at", { ascending: true }),
+      { request, stage: "support_tickets", ...deps },
+    ),
+    resolveQuery<TaskReportRow[]>(
+      withAbortSignal(
+        client
+          .from<TaskReportRow[]>("tasks")
+          .select("created_at, due_at, assigned_to, status")
+          .eq("entity_type", "deal")
+          .gte("created_at", bounds.startIso)
+          .lte("created_at", bounds.endIso),
+        deps.signal,
+      ).order("created_at", { ascending: true }),
+      { request, stage: "tasks", ...deps },
+    ),
+    resolveQuery<UserRow[]>(
+      withAbortSignal(
+        client.from<UserRow[]>("profiles").select("id, full_name"),
+        deps.signal,
+      ).order("full_name", { ascending: true }),
+      { request, stage: "profiles", ...deps },
+    ),
   ]);
 
-  if (ticketsResult.error) {
-    throw ticketsResult.error;
-  }
-  if (tasksResult.error) {
-    throw tasksResult.error;
-  }
-  if (usersResult.error) {
-    throw usersResult.error;
-  }
-
-  const tickets = ticketsResult.data ?? [];
-  const tasks = tasksResult.data ?? [];
-  const users = usersResult.data ?? [];
   const resolved = tickets.filter((ticket) => ticket.resolved_at);
   const totalResolutionHours = resolved.reduce((sum, ticket) => {
     const start = new Date(ticket.created_at).getTime();
@@ -306,29 +447,32 @@ async function getTicketsSnapshot({
   };
 }
 
-async function getMarketingSnapshot({
-  from,
-  to,
-}: Omit<ReportRequest, "tab" | "groupBy"> & { groupBy: ReportGroupBy }): Promise<MarketingReportSnapshot> {
-  const [campaignsResult, messagesResult] = await Promise.all([
-    supabase.from("campaigns").select("id, name, channel, status").order("created_at", { ascending: false }),
-    supabase
-      .from("outbound_messages")
-      .select("campaign_id, status, created_at")
-      .gte("created_at", `${from}T00:00:00`)
-      .lte("created_at", `${to}T23:59:59.999`),
+async function getMarketingSnapshot(
+  client: ReportClient,
+  request: ReportRequest,
+  deps: { logger: ReportLogger; timeoutMs: number; timeZone: string; signal?: AbortSignal },
+): Promise<MarketingReportSnapshot> {
+  const bounds = getRangeBounds(request.from, request.to);
+  const [campaigns, messages] = await Promise.all([
+    resolveQuery<CampaignRow[]>(
+      withAbortSignal(
+        client.from<CampaignRow[]>("campaigns").select("id, name, channel, status"),
+        deps.signal,
+      ).order("created_at", { ascending: false }),
+      { request, stage: "campaigns", ...deps },
+    ),
+    resolveQuery<OutboundMessageRow[]>(
+      withAbortSignal(
+        client
+          .from<OutboundMessageRow[]>("outbound_messages")
+          .select("campaign_id, status, created_at")
+          .gte("created_at", bounds.startIso)
+          .lte("created_at", bounds.endIso),
+        deps.signal,
+      ).order("created_at", { ascending: false }),
+      { request, stage: "outbound_messages", ...deps },
+    ),
   ]);
-
-  if (campaignsResult.error) {
-    throw campaignsResult.error;
-  }
-
-  if (messagesResult.error) {
-    throw messagesResult.error;
-  }
-
-  const campaigns = campaignsResult.data ?? [];
-  const messages = messagesResult.data ?? [];
 
   return {
     tab: "marketing",
@@ -367,32 +511,51 @@ async function getMarketingSnapshot({
   };
 }
 
-export const reportService = {
-  getSnapshot(request: ReportRequest) {
-    return withLatency(
-      (async (): Promise<ReportSnapshot> => {
-        ensureSupabaseConfigured();
-        const range = getRangeBounds(request.from, request.to);
+export function createReportService({
+  client,
+  logger = reportLogger,
+  timeoutMs = DEFAULT_REPORT_TIMEOUT_MS,
+  getTimeZone = getClientTimeZone,
+  ensureConfigured = ensureSupabaseConfigured,
+}: ReportServiceDependencies) {
+  return {
+    getSnapshot(request: ReportRequest, options: ServiceRequestOptions = {}) {
+      return withLatency(
+        (async (): Promise<ReportSnapshot> => {
+          ensureConfigured();
+          const bounds = getRangeBounds(request.from, request.to);
 
-        if (Number.isNaN(range.start) || Number.isNaN(range.end) || range.start > range.end) {
-          throw new Error("Khoảng thời gian báo cáo không hợp lệ.");
-        }
+          if (Number.isNaN(bounds.start) || Number.isNaN(bounds.end) || bounds.start > bounds.end) {
+            throw new Error("Khoảng thời gian báo cáo không hợp lệ.");
+          }
 
-        if (request.tab === "revenue") {
-          return getRevenueSnapshot(request);
-        }
+          const deps = {
+            logger,
+            timeoutMs,
+            timeZone: getTimeZone(),
+            signal: options.signal,
+          };
 
-        if (request.tab === "customers") {
-          return getCustomersSnapshot(request);
-        }
+          if (request.tab === "revenue") {
+            return getRevenueSnapshot(client, request, deps);
+          }
 
-        if (request.tab === "tickets") {
-          return getTicketsSnapshot(request);
-        }
+          if (request.tab === "customers") {
+            return getCustomersSnapshot(client, request, deps);
+          }
 
-        return getMarketingSnapshot(request);
-      })(),
-      250,
-    );
-  },
-};
+          if (request.tab === "tickets") {
+            return getTicketsSnapshot(client, request, deps);
+          }
+
+          return getMarketingSnapshot(client, request, deps);
+        })(),
+        250,
+      );
+    },
+  };
+}
+
+export const reportService = createReportService({
+  client: supabase as unknown as ReportClient,
+});

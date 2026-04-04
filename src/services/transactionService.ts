@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { Transaction } from "@/types";
 
 import {
+  type ServiceRequestOptions,
   type TransactionFilters,
   type TransactionRow,
   createAuditLog,
@@ -10,6 +11,7 @@ import {
   normalizeTransactionItems,
   runBestEffort,
   toTransaction,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -33,12 +35,14 @@ function generateInvoiceCode() {
   )}`;
 }
 
-async function fetchTransactionRow(id: string) {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("id", id)
-    .single();
+async function fetchTransactionRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase
+      .from("transactions")
+      .select("*")
+      .eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -48,11 +52,14 @@ async function fetchTransactionRow(id: string) {
 }
 
 export const transactionService = {
-  getList(filters: TransactionFilters = {}) {
+  getList(filters: TransactionFilters = {}, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let query = supabase.from("transactions").select("*").order("created_at", {
+        let query = withAbortSignal(
+          supabase.from("transactions").select("*"),
+          options.signal,
+        ).order("created_at", {
           ascending: false,
         });
 
@@ -87,17 +94,17 @@ export const transactionService = {
     );
   },
 
-  getById(id: string) {
+  getById(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const row = await fetchTransactionRow(id);
+        const row = await fetchTransactionRow(id, options);
         return toTransaction(row);
       })(),
     );
   },
 
-  create(payload: TransactionCreateInput) {
+  create(payload: TransactionCreateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -116,9 +123,8 @@ export const transactionService = {
         const totalAmount = taxableAmount + taxAmount;
         const invoiceCode = payload.invoice_code?.trim() || generateInvoiceCode();
 
-        const { data, error } = await supabase
-          .from("transactions")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("transactions").insert({
             customer_id: payload.customer_id,
             invoice_code: invoiceCode,
             items: normalizedItems,
@@ -131,7 +137,9 @@ export const transactionService = {
             status: payload.status ?? "completed",
             notes: payload.notes || null,
             created_by: currentUserId,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 

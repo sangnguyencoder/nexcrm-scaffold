@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
+import { memo } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type KpiCardProps = {
@@ -13,7 +14,7 @@ type KpiCardProps = {
   accentClassName: string;
 };
 
-export function KpiCard({
+export const KpiCard = memo(function KpiCard({
   title,
   value,
   description,
@@ -22,18 +23,27 @@ export function KpiCard({
   accentClassName,
 }: KpiCardProps) {
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex-row items-start justify-between space-y-0">
-        <div className={cn("rounded-2xl p-3", accentClassName)}>
-          <Icon className="size-5" />
+    <Card className="metric-card">
+      <CardContent className="flex min-h-[156px] flex-col justify-between gap-5 p-5 lg:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="metric-label">{title}</div>
+            <div className="metric-value">{value}</div>
+          </div>
+          <div
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-lg border border-current/10 shadow-xs",
+              accentClassName,
+            )}
+          >
+            <Icon className="size-4" />
+          </div>
         </div>
-        <Badge className="bg-muted text-muted-foreground ring-border">{trend}</Badge>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="text-sm text-muted-foreground">{title}</div>
-        <div className="font-display text-3xl font-bold leading-none">{value}</div>
-        <div className="text-sm text-muted-foreground">{description}</div>
+        <div className="flex items-end justify-between gap-4 border-t border-border/70 pt-4">
+          <div className="text-sm leading-6 text-muted-foreground">{description}</div>
+          <Badge className="shrink-0 bg-muted text-muted-foreground ring-border">{trend}</Badge>
+        </div>
       </CardContent>
     </Card>
   );
-}
+});

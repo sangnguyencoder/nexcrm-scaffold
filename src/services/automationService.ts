@@ -21,6 +21,8 @@ type AutomationCreateInput = {
   content: string;
 };
 
+type AutomationUpdateInput = Partial<AutomationCreateInput>;
+
 function buildTriggerConfig(payload: AutomationCreateInput) {
   if (payload.trigger_type === "inactive_days" || payload.trigger_type === "after_purchase") {
     return {
@@ -113,6 +115,77 @@ export const automationService = {
     );
   },
 
+  update(id: string, payload: AutomationUpdateInput) {
+    return withLatency(
+      (async () => {
+        ensureSupabaseConfigured();
+        const previous = await fetchRuleRow(id);
+        const currentUserId = await getCurrentProfileId();
+        const triggerType = payload.trigger_type ?? previous.trigger_type;
+        const triggerInfo = buildTriggerConfig({
+          name: payload.name ?? previous.name,
+          description: payload.description ?? previous.description ?? "",
+          trigger_type: triggerType,
+          trigger_days:
+            payload.trigger_days ??
+            ((previous.trigger_config as { days?: number } | null)?.days ?? 30),
+          channel: payload.channel ?? (previous.action_type === "send_sms" ? "sms" : "email"),
+          summary:
+            payload.summary ??
+            ((previous.action_config as { summary?: string } | null)?.summary ?? ""),
+          content:
+            payload.content ??
+            ((previous.action_config as { content?: string } | null)?.content ?? ""),
+        });
+        const nextChannel = payload.channel ?? (previous.action_type === "send_sms" ? "sms" : "email");
+        const nextSummary =
+          payload.summary ??
+          ((previous.action_config as { summary?: string } | null)?.summary ?? "");
+        const nextContent =
+          payload.content ??
+          ((previous.action_config as { content?: string } | null)?.content ?? "");
+
+        const { data, error } = await supabase
+          .from("automation_rules")
+          .update({
+            name: payload.name ?? previous.name,
+            description: payload.description ?? previous.description,
+            trigger_type: triggerInfo.trigger_type,
+            trigger_config: triggerInfo.trigger_config,
+            action_type: nextChannel === "sms" ? "send_sms" : "send_email",
+            action_config: {
+              ...(previous.action_config as Record<string, unknown> | null),
+              summary: nextSummary,
+              content: nextContent,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id)
+          .select("*")
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        void runBestEffort("automation.update.audit", () =>
+          createAuditLog({
+            action: "update",
+            entityType: "automation_rule",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Cập nhật quy tắc tự động ${data.name}`,
+            },
+            userId: currentUserId,
+          }),
+        );
+
+        return toAutomationRule(data);
+      })(),
+    );
+  },
+
   toggleActive(id: string, isActive?: boolean) {
     return withLatency(
       (async () => {
@@ -147,6 +220,55 @@ export const automationService = {
         );
 
         return toAutomationRule(data);
+      })(),
+    );
+  },
+
+  duplicate(id: string) {
+    return withLatency(
+      (async () => {
+        ensureSupabaseConfigured();
+        const previous = await fetchRuleRow(id);
+        const actionConfig = (previous.action_config as { summary?: string; content?: string } | null) ?? {};
+
+        return automationService.create({
+          name: `${previous.name} (Copy)`,
+          description: previous.description ?? "",
+          trigger_type: previous.trigger_type,
+          trigger_days:
+            ((previous.trigger_config as { days?: number } | null)?.days ?? 30),
+          channel: previous.action_type === "send_sms" ? "sms" : "email",
+          summary: actionConfig.summary ?? "",
+          content: actionConfig.content ?? "",
+        });
+      })(),
+    );
+  },
+
+  delete(id: string) {
+    return withLatency(
+      (async () => {
+        ensureSupabaseConfigured();
+        const previous = await fetchRuleRow(id);
+        const currentUserId = await getCurrentProfileId();
+        const { error } = await supabase.from("automation_rules").delete().eq("id", id);
+
+        if (error) {
+          throw error;
+        }
+
+        void runBestEffort("automation.delete.audit", () =>
+          createAuditLog({
+            action: "delete",
+            entityType: "automation_rule",
+            entityId: id,
+            oldData: previous as unknown as Record<string, unknown>,
+            newData: {
+              message: `Xóa quy tắc tự động ${previous.name}`,
+            },
+            userId: currentUserId,
+          }),
+        );
       })(),
     );
   },

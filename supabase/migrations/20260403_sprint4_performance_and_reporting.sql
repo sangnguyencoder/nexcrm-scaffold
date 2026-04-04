@@ -10,11 +10,18 @@ select setval(
         from customers
         where customer_code is not null
       ),
-      0
+      1
+    ),
+    1
+  ),
+  coalesce(
+    (
+      select max(nullif(right(customer_code, 4), '')::bigint)
+      from customers
+      where customer_code is not null
     ),
     0
-  ),
-  true
+  ) > 0
 );
 
 create or replace function generate_customer_code() returns trigger as $$
@@ -36,11 +43,18 @@ select setval(
         from support_tickets
         where ticket_code is not null
       ),
-      0
+      1
+    ),
+    1
+  ),
+  coalesce(
+    (
+      select max(nullif(right(ticket_code, 4), '')::bigint)
+      from support_tickets
+      where ticket_code is not null
     ),
     0
-  ),
-  true
+  ) > 0
 );
 
 create or replace function generate_ticket_code() returns trigger as $$

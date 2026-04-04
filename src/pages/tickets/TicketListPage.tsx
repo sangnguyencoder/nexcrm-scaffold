@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutGrid,
   MessageSquare,
   Plus,
+  Search,
   Table2,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -13,13 +14,20 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
+import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { useAppMutation } from "@/hooks/useAppMutation";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import {
@@ -44,6 +52,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { ticketService } from "@/services/ticketService";
 import { getAppErrorMessage } from "@/services/shared";
+import { preloadRoutePath } from "@/routes/route-modules";
 import type { TicketStatus } from "@/types";
 
 const ticketSchema = z.object({
@@ -79,6 +88,7 @@ function TicketFormModal({
   const { data: customers = [] } = useCustomersQuery();
   const { data: users = [] } = useUsersQuery();
   const [customerSearch, setCustomerSearch] = useState("");
+  const deferredCustomerSearch = useDebouncedValue(customerSearch, 150);
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketSchema),
     defaultValues: {
@@ -106,7 +116,9 @@ function TicketFormModal({
     });
   }, [form, open, prefillCustomerId, users]);
 
-  const createTicket = useMutation({
+  const createTicket = useAppMutation({
+    action: "ticket.create",
+    errorMessage: "Không thể tạo ticket.",
     mutationFn: ticketService.create,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tickets"] });
@@ -115,13 +127,10 @@ function TicketFormModal({
       form.reset();
       onOpenChange(false);
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể tạo ticket."));
-    },
   });
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.full_name.toLowerCase().includes(customerSearch.toLowerCase()),
+    customer.full_name.toLowerCase().includes(deferredCustomerSearch.toLowerCase()),
   );
 
   return (
@@ -129,7 +138,7 @@ function TicketFormModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Tạo Ticket"
-      description="Thêm ticket hỗ trợ mới và gán người xử lý ngay từ đầu."
+      // description="Thêm ticket hỗ trợ mới và gán người xử lý ngay từ đầu."
     >
       <form
         className="space-y-4"
@@ -142,6 +151,13 @@ function TicketFormModal({
           }),
         )}
       >
+        {createTicket.actionError ? (
+          <ActionErrorAlert
+            error={createTicket.actionError}
+            onDismiss={createTicket.clearActionError}
+            onRetry={createTicket.canRetry ? () => void createTicket.retryLast() : undefined}
+          />
+        ) : null}
         <div className="space-y-2">
           <div className="text-sm font-medium">Tìm khách hàng</div>
           <input
@@ -243,24 +259,27 @@ export function TicketListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: tickets = [], isLoading } = useTicketsQuery();
-  const { data: users = [] } = useUsersQuery();
-  const { data: customers = [] } = useCustomersQuery();
-  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("table");
+  const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const deferredSearch = useDebouncedValue(search, 180);
+  const ticketsQuery = useTicketsQuery({
+    priority: priorityFilter,
+    assignedTo: assignedFilter,
+    category: categoryFilter,
+  });
+  const { data: tickets = [], isLoading } = ticketsQuery;
+  const { data: users = [] } = useUsersQuery();
+  const { data: customers = [] } = useCustomersQuery();
   const [draggedTicketId, setDraggedTicketId] = useState<string | null>(null);
   const [highlightedTicketId, setHighlightedTicketId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpenLocal, setCreateOpenLocal] = useState(false);
+  const [currentTimestamp] = useState(() => Date.now());
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
-
-  useEffect(() => {
-    if (requestedCreate) {
-      setCreateOpen(true);
-    }
-  }, [requestedCreate]);
+  const createOpen = requestedCreate || createOpenLocal;
 
   const clearPrefillParams = () => {
     if (!requestedCreate && !prefillCustomerId) return;
@@ -290,15 +309,38 @@ export function TicketListPage() {
   const filteredTickets = useMemo(
     () =>
       tickets.filter((ticket) => {
-        if (priorityFilter !== "all" && ticket.priority !== priorityFilter) return false;
-        if (assignedFilter !== "all" && ticket.assigned_to !== assignedFilter) return false;
-        if (categoryFilter !== "all" && ticket.category !== categoryFilter) return false;
-        return true;
+        if (!deferredSearch) {
+          return true;
+        }
+
+        const customerName = customerMap[ticket.customer_id]?.full_name ?? "";
+        const haystack = `${ticket.ticket_code} ${ticket.title} ${customerName}`.toLowerCase();
+        return haystack.includes(deferredSearch.toLowerCase());
       }),
-    [assignedFilter, categoryFilter, priorityFilter, tickets],
+    [customerMap, deferredSearch, tickets],
   );
 
-  const updateStatus = useMutation({
+  const ticketsByStatus = useMemo(
+    () =>
+      filteredTickets.reduce<Record<TicketStatus, typeof filteredTickets>>(
+        (acc, ticket) => {
+          (acc[ticket.status] ??= []).push(ticket);
+          return acc;
+        },
+        {
+          open: [],
+          in_progress: [],
+          pending: [],
+          resolved: [],
+          closed: [],
+        },
+      ),
+    [filteredTickets],
+  );
+
+  const updateStatus = useAppMutation({
+    action: "ticket.update-status",
+    errorMessage: "Không thể cập nhật trạng thái ticket.",
     mutationFn: ({ id, status }: { id: string; status: TicketStatus }) =>
       ticketService.updateStatus(id, status),
     onSuccess: async (_, variables) => {
@@ -306,9 +348,6 @@ export function TicketListPage() {
       await queryClient.invalidateQueries({ queryKey: ["ticket"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success(`Đã chuyển sang ${formatTicketStatus(variables.status)}`);
-    },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể cập nhật trạng thái ticket."));
     },
   });
 
@@ -348,11 +387,24 @@ export function TicketListPage() {
     return <PageLoader panels={2} />;
   }
 
+  if (ticketsQuery.error) {
+    return (
+      <PageErrorState
+        title="Không thể tải danh sách ticket"
+        description={getAppErrorMessage(
+          ticketsQuery.error,
+          "Danh sách ticket chưa tải được. Vui lòng thử lại sau ít phút.",
+        )}
+        onRetry={() => void ticketsQuery.refetch()}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Ticket Hỗ Trợ"
-        subtitle="Theo dõi luồng xử lý và phân bổ ticket chăm sóc khách hàng."
+        // subtitle="Triage theo bảng trước, rồi chuyển sang kanban khi cần kéo thả luồng xử lý."
         actions={
           <>
             <StatusBadge
@@ -364,6 +416,7 @@ export function TicketListPage() {
               <Button
                 variant={viewMode === "kanban" ? "default" : "ghost"}
                 onClick={() => setViewMode("kanban")}
+                size="sm"
               >
                 <LayoutGrid className="size-4" />
                 Kanban
@@ -371,12 +424,13 @@ export function TicketListPage() {
               <Button
                 variant={viewMode === "table" ? "default" : "ghost"}
                 onClick={() => setViewMode("table")}
+                size="sm"
               >
                 <Table2 className="size-4" />
                 Bảng
               </Button>
             </div>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => setCreateOpenLocal(true)}>
               <Plus className="size-4" />
               Tạo Ticket
             </Button>
@@ -384,38 +438,45 @@ export function TicketListPage() {
         }
       />
 
-      <Card>
-        <CardContent className="grid gap-3 p-5 md:grid-cols-3">
-          <Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
-            <option value="all">Tất cả mức ưu tiên</option>
-            <option value="urgent">Khẩn cấp</option>
-            <option value="high">Cao</option>
-            <option value="medium">Trung bình</option>
-            <option value="low">Thấp</option>
-          </Select>
-          <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)}>
-            <option value="all">Tất cả phụ trách</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name}
-              </option>
-            ))}
-          </Select>
-          <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-            <option value="all">Tất cả danh mục</option>
-            <option value="inquiry">Yêu cầu</option>
-            <option value="feedback">Phản hồi</option>
-            <option value="complaint">Khiếu nại</option>
-            <option value="return">Đổi trả</option>
-          </Select>
-        </CardContent>
-      </Card>
+      <StickyFilterBar>
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm theo mã ticket, tiêu đề hoặc khách hàng"
+            className="pl-9"
+          />
+        </div>
+        <Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="w-[170px]">
+          <option value="all">Tất cả mức ưu tiên</option>
+          <option value="urgent">Khẩn cấp</option>
+          <option value="high">Cao</option>
+          <option value="medium">Trung bình</option>
+          <option value="low">Thấp</option>
+        </Select>
+        <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)} className="w-[180px]">
+          <option value="all">Tất cả phụ trách</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.full_name}
+            </option>
+          ))}
+        </Select>
+        <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-[170px]">
+          <option value="all">Tất cả danh mục</option>
+          <option value="inquiry">Yêu cầu</option>
+          <option value="feedback">Phản hồi</option>
+          <option value="complaint">Khiếu nại</option>
+          <option value="return">Đổi trả</option>
+        </Select>
+      </StickyFilterBar>
 
       {viewMode === "kanban" ? (
         <div className="overflow-x-auto">
           <div className="grid min-w-[1200px] grid-cols-5 gap-4">
             {columns.map((column) => {
-              const columnTickets = filteredTickets.filter((ticket) => ticket.status === column.value);
+              const columnTickets = ticketsByStatus[column.value] ?? [];
               return (
                 <Card
                   key={column.value}
@@ -428,10 +489,10 @@ export function TicketListPage() {
                     }
                   }}
                 >
-                  <CardContent className="space-y-4 p-4">
+                  <CardContent className="space-y-3 p-3.5">
                     <div className="flex items-center justify-between">
                       <div className="font-display text-sm font-semibold">{column.label}</div>
-                      <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                      <div className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
                         {columnTickets.length}
                       </div>
                     </div>
@@ -442,8 +503,10 @@ export function TicketListPage() {
                           type="button"
                           draggable
                           onDragStart={() => setDraggedTicketId(ticket.id)}
+                          onMouseEnter={() => preloadRoutePath(`/tickets/${ticket.id}`)}
+                          onFocus={() => preloadRoutePath(`/tickets/${ticket.id}`)}
                           onClick={() => navigate(`/tickets/${ticket.id}`)}
-                          className={`w-full rounded-2xl border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-primary/5 ${
+                          className={`w-full rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5 ${
                             highlightedTicketId === ticket.id ? "ring-2 ring-primary/40" : ""
                           }`}
                         >
@@ -451,11 +514,11 @@ export function TicketListPage() {
                             <span className="font-mono">{ticket.ticket_code}</span>
                             <span>{timeAgo(ticket.created_at)}</span>
                           </div>
-                          <div className="mt-2 line-clamp-2 font-medium">{ticket.title}</div>
-                          <div className="mt-1 text-sm text-muted-foreground">
+                          <div className="mt-2 line-clamp-2 text-sm font-medium">{ticket.title}</div>
+                          <div className="mt-1 truncate text-xs text-muted-foreground">
                             {customerMap[ticket.customer_id]?.full_name ?? "--"}
                           </div>
-                          <div className="mt-4 flex items-center justify-between gap-2">
+                          <div className="mt-3 flex items-center justify-between gap-2">
                             <div className="flex flex-wrap gap-2">
                               <StatusBadge
                                 label={ticket.priority}
@@ -484,48 +547,61 @@ export function TicketListPage() {
           </div>
         </div>
       ) : filteredTickets.length ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Tiêu đề</TableHead>
-              <TableHead>Khách Hàng</TableHead>
-              <TableHead>Ưu Tiên</TableHead>
-              <TableHead>Danh Mục</TableHead>
-              <TableHead>Phụ Trách</TableHead>
-              <TableHead>Trạng Thái</TableHead>
-              <TableHead>Ngày Tạo</TableHead>
-              <TableHead>SLA</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTickets.map((ticket) => (
-              <TableRow key={ticket.id} className="cursor-pointer" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                <TableCell className="font-mono">{ticket.ticket_code}</TableCell>
-                <TableCell>{ticket.title}</TableCell>
-                <TableCell>{customerMap[ticket.customer_id]?.full_name ?? "--"}</TableCell>
-                <TableCell>
-                  <StatusBadge
-                    label={ticket.priority}
-                    className={getPriorityColor(ticket.priority)}
-                    dotClassName="bg-current"
-                  />
-                </TableCell>
-                <TableCell>{ticket.category}</TableCell>
-                <TableCell>{userMap[ticket.assigned_to] ?? "--"}</TableCell>
-                <TableCell>{formatTicketStatus(ticket.status)}</TableCell>
-                <TableCell>{timeAgo(ticket.created_at)}</TableCell>
-                <TableCell>
-                  {new Date(ticket.due_at).getTime() < Date.now() &&
-                  ticket.status !== "resolved" &&
-                  ticket.status !== "closed"
-                    ? "Quá Hạn"
-                    : "On Time"}
-                </TableCell>
+        <DataTableShell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Tiêu đề</TableHead>
+                <TableHead>Khách Hàng</TableHead>
+                <TableHead>Ưu Tiên</TableHead>
+                <TableHead>Danh Mục</TableHead>
+                <TableHead>Phụ Trách</TableHead>
+                <TableHead>Trạng Thái</TableHead>
+                <TableHead>Ngày Tạo</TableHead>
+                <TableHead>SLA</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredTickets.map((ticket) => {
+                const isOverdue =
+                  new Date(ticket.due_at).getTime() < currentTimestamp &&
+                  ticket.status !== "resolved" &&
+                  ticket.status !== "closed";
+
+                return (
+                  <TableRow
+                    key={ticket.id}
+                    className="cursor-pointer"
+                    onMouseEnter={() => preloadRoutePath(`/tickets/${ticket.id}`)}
+                    onFocus={() => preloadRoutePath(`/tickets/${ticket.id}`)}
+                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                  >
+                    <TableCell className="font-mono">{ticket.ticket_code}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[320px] truncate font-medium">{ticket.title}</div>
+                    </TableCell>
+                    <TableCell>{customerMap[ticket.customer_id]?.full_name ?? "--"}</TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        label={ticket.priority}
+                        className={getPriorityColor(ticket.priority)}
+                        dotClassName="bg-current"
+                      />
+                    </TableCell>
+                    <TableCell>{ticket.category}</TableCell>
+                    <TableCell>{userMap[ticket.assigned_to] ?? "--"}</TableCell>
+                    <TableCell>{formatTicketStatus(ticket.status)}</TableCell>
+                    <TableCell>{timeAgo(ticket.created_at)}</TableCell>
+                    <TableCell className={isOverdue ? "text-rose-500" : ""}>
+                      {isOverdue ? "Quá hạn" : "On time"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </DataTableShell>
       ) : (
         <EmptyState
           icon={MessageSquare}
@@ -537,7 +613,7 @@ export function TicketListPage() {
       <TicketFormModal
         open={createOpen}
         onOpenChange={(open) => {
-          setCreateOpen(open);
+          setCreateOpenLocal(open);
           if (!open) {
             clearPrefillParams();
           }

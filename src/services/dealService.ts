@@ -5,11 +5,13 @@ import { notificationService } from "@/services/notificationService";
 import {
   type DealFilters,
   type DealRow,
+  type ServiceRequestOptions,
   createAuditLog,
   ensureSupabaseConfigured,
   getCurrentProfileId,
   runBestEffort,
   toDeal,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -26,12 +28,14 @@ export type DealCreateInput = {
 
 export type DealUpdateInput = Partial<DealCreateInput>;
 
-async function fetchDealRow(id: string) {
-  const { data, error } = await supabase
-    .from("deals")
-    .select("*")
-    .eq("id", id)
-    .single();
+async function fetchDealRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase
+      .from("deals")
+      .select("*")
+      .eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -41,11 +45,14 @@ async function fetchDealRow(id: string) {
 }
 
 export const dealService = {
-  getList(filters: DealFilters = {}) {
+  getList(filters: DealFilters = {}, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let query = supabase.from("deals").select("*").order("created_at", { ascending: false });
+        let query = withAbortSignal(
+          supabase.from("deals").select("*"),
+          options.signal,
+        ).order("created_at", { ascending: false });
 
         if (filters.stage && filters.stage !== "all") {
           query = query.eq("stage", filters.stage);
@@ -74,23 +81,22 @@ export const dealService = {
     );
   },
 
-  getById(id: string) {
+  getById(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        return toDeal(await fetchDealRow(id));
+        return toDeal(await fetchDealRow(id, options));
       })(),
     );
   },
 
-  create(payload: DealCreateInput) {
+  create(payload: DealCreateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("deals")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("deals").insert({
             title: payload.title,
             customer_id: payload.customer_id,
             owner_id: payload.owner_id ?? currentUserId,
@@ -100,7 +106,9 @@ export const dealService = {
             expected_close_at: payload.expected_close_at ?? null,
             description: payload.description ?? null,
             created_by: currentUserId,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 
@@ -140,15 +148,14 @@ export const dealService = {
     );
   },
 
-  update(id: string, payload: DealUpdateInput) {
+  update(id: string, payload: DealUpdateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchDealRow(id);
+        const previous = await fetchDealRow(id, options);
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("deals")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("deals").update({
             title: payload.title ?? previous.title,
             customer_id: payload.customer_id ?? previous.customer_id,
             owner_id: payload.owner_id ?? previous.owner_id,
@@ -161,7 +168,9 @@ export const dealService = {
                 : payload.expected_close_at,
             description: payload.description ?? previous.description,
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .eq("id", id)
           .select("*")
           .single();
@@ -203,7 +212,7 @@ export const dealService = {
     );
   },
 
-  updateStage(id: string, stage: Deal["stage"]) {
+  updateStage(id: string, stage: Deal["stage"], options: ServiceRequestOptions = {}) {
     const probabilityMap: Record<Deal["stage"], number> = {
       lead: 20,
       qualified: 35,
@@ -213,16 +222,19 @@ export const dealService = {
       lost: 0,
     };
 
-    return dealService.update(id, { stage, probability: probabilityMap[stage] });
+    return dealService.update(id, { stage, probability: probabilityMap[stage] }, options);
   },
 
-  delete(id: string) {
+  delete(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const previous = await fetchDealRow(id);
+        const previous = await fetchDealRow(id, options);
         const currentUserId = await getCurrentProfileId();
-        const { error } = await supabase.from("deals").delete().eq("id", id);
+        const { error } = await withAbortSignal(
+          supabase.from("deals").delete(),
+          options.signal,
+        ).eq("id", id);
 
         if (error) {
           throw error;

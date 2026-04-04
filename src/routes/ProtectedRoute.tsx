@@ -7,9 +7,9 @@ export function ProtectedRoute() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const initialized = useAuthStore((state) => state.initialized);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const isInitializing = useAuthStore((state) => state.isInitializing);
 
-  if (!initialized || isLoading) {
+  if (!initialized || isInitializing) {
     return (
       <div className="p-6">
         <PageLoader panels={1} />

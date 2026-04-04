@@ -8,20 +8,20 @@ import {
   Target,
   User,
 } from "lucide-react";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { EmptyState } from "@/components/shared/empty-state";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { useNotificationsQuery, queryKeys } from "@/hooks/useNexcrmQueries";
-import { supabase } from "@/lib/supabase";
 import { cn, timeAgo } from "@/lib/utils";
 import { notificationService } from "@/services/notificationService";
-import type { AppNotification } from "@/types";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AppNotification } from "@/types";
 
 function getLink(entityType: string, entityId: string) {
   if (entityType === "ticket") return `/tickets/${entityId}`;
@@ -44,6 +44,18 @@ function getIcon(type: string, entityType: string) {
   return AlertTriangle;
 }
 
+function getNotificationTone(item: AppNotification) {
+  if (item.type === "success") {
+    return "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-200";
+  }
+
+  if (item.type === "warning" || item.type === "error") {
+    return "bg-rose-500/10 text-rose-700 ring-rose-500/20 dark:text-rose-200";
+  }
+
+  return "bg-primary/10 text-primary ring-primary/20";
+}
+
 export function NotificationCenter() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -52,85 +64,48 @@ export function NotificationCenter() {
   const { data = [] } = useNotificationsQuery(user?.id);
   const unreadCount = data.filter((item) => !item.is_read).length;
 
-  useEffect(() => {
-    if (!user?.id) {
-      return;
-    }
-
-    const channel = supabase
-      .channel(`notifications-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const incoming = payload.new as Record<string, unknown>;
-          const notification: AppNotification = {
-            id: String(incoming.id ?? ""),
-            title: String(incoming.title ?? "Thông báo mới"),
-            message: String(incoming.message ?? ""),
-            type:
-              (incoming.type as AppNotification["type"] | undefined) ?? "info",
-            entity_type:
-              (incoming.entity_type as AppNotification["entity_type"] | undefined) ??
-              "system",
-            entity_id: String(incoming.entity_id ?? ""),
-            is_read: Boolean(incoming.is_read),
-            created_at: String(incoming.created_at ?? new Date().toISOString()),
-          };
-
-          queryClient.setQueryData<AppNotification[]>(
-            queryKeys.notifications(user.id),
-            (current = []) => [notification, ...current.filter((item) => item.id !== notification.id)],
-          );
-          toast.info(notification.title);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const incoming = payload.new as Record<string, unknown>;
-          queryClient.setQueryData<AppNotification[]>(
-            queryKeys.notifications(user.id),
-            (current = []) =>
-              current.map((item) =>
-                item.id === String(incoming.id)
-                  ? {
-                      ...item,
-                      is_read: Boolean(incoming.is_read),
-                    }
-                  : item,
-              ),
-          );
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient, user?.id]);
-
-  const markRead = useMutation({
+  const markRead = useAppMutation({
+    action: "notification.mark-read",
+    errorMessage: "Không thể đánh dấu thông báo đã đọc.",
     mutationFn: notificationService.markRead,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications(user?.id) });
+      const previous = queryClient.getQueryData<AppNotification[]>(queryKeys.notifications(user?.id));
+      queryClient.setQueryData<AppNotification[]>(
+        queryKeys.notifications(user?.id),
+        (current = []) =>
+          current.map((item) => (item.id === id ? { ...item, is_read: true } : item)),
+      );
+      return { previous };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications(user?.id) }),
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.notifications(user?.id), context.previous);
+      }
+    },
   });
 
-  const markAll = useMutation({
+  const markAll = useAppMutation({
+    action: "notification.mark-all-read",
+    errorMessage: "Không thể đánh dấu tất cả thông báo đã đọc.",
     mutationFn: () => notificationService.markAllRead(user?.id ?? ""),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications(user?.id) });
+      const previous = queryClient.getQueryData<AppNotification[]>(queryKeys.notifications(user?.id));
+      queryClient.setQueryData<AppNotification[]>(
+        queryKeys.notifications(user?.id),
+        (current = []) => current.map((item) => ({ ...item, is_read: true })),
+      );
+      return { previous };
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.notifications(user?.id) });
-      toast.success("Đã đánh dấu tất cả thông báo là đã đọc");
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.notifications(user?.id), context.previous);
+      }
     },
   });
 
@@ -138,69 +113,95 @@ export function NotificationCenter() {
     <Sheet
       open={notificationOpen}
       onOpenChange={setNotificationOpen}
-      title="Thông Báo"
-      description={`${unreadCount} thông báo chưa đọc`}
-      className="w-[min(100vw,400px)]"
+      title="Thông báo"
+      description={
+        unreadCount
+          ? `${unreadCount} thông báo chưa đọc cần xử lý.`
+          : "Trung tâm thông báo đã sạch."
+      }
+      className="w-[min(100vw,440px)]"
+      bodyClassName="space-y-4"
     >
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <Button variant="ghost" onClick={() => markAll.mutate()} disabled={!unreadCount}>
-            Đánh dấu tất cả đã đọc
-          </Button>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/25 px-4 py-3">
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-foreground">Inbox vận hành</div>
+          <div className="text-xs text-muted-foreground">
+            Theo dõi sự kiện mới và mở nhanh thực thể liên quan.
+          </div>
         </div>
-        {data.length ? (
-          <div className="space-y-3">
-            {data.map((item) => {
-              const Icon = getIcon(item.type, item.entity_type);
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    markRead.mutate(item.id);
-                    navigate(getLink(item.entity_type, item.entity_id));
-                    setNotificationOpen(false);
-                  }}
-                  className={cn(
-                    "w-full rounded-2xl border border-border p-4 text-left transition hover:bg-muted/40",
-                    !item.is_read && "border-l-4 border-l-primary bg-primary/5",
-                  )}
-                >
-                  <div className="flex gap-3">
-                    <div className="mt-1 rounded-xl bg-muted p-2 text-muted-foreground">
-                      <Icon className="size-4" />
+        <StatusBadge
+          label={`${unreadCount} chưa đọc`}
+          className={unreadCount ? "bg-primary/10 text-primary ring-primary/20" : "bg-muted text-muted-foreground ring-border"}
+          dotClassName={unreadCount ? "bg-primary" : "bg-border"}
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => markAll.mutate()} disabled={!unreadCount}>
+          Đánh dấu tất cả đã đọc
+        </Button>
+      </div>
+
+      {data.length ? (
+        <div className="space-y-2">
+          {data.map((item) => {
+            const Icon = getIcon(item.type, item.entity_type);
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  markRead.mutate(item.id);
+                  navigate(getLink(item.entity_type, item.entity_id));
+                  setNotificationOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                  item.is_read
+                    ? "border-border/70 bg-card hover:bg-muted/35"
+                    : "border-primary/15 bg-primary/5 hover:bg-primary/10",
+                )}
+              >
+                <div className="relative mt-0.5">
+                  <div className="flex size-10 items-center justify-center rounded-xl border border-border/70 bg-muted/35 text-muted-foreground">
+                    <Icon className="size-4" />
+                  </div>
+                  {!item.is_read ? (
+                    <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-primary" />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground">{item.title}</div>
+                      <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.message}</div>
                     </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-semibold">{item.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {timeAgo(item.created_at)}
-                        </div>
-                      </div>
-                      <div className="line-clamp-2 text-sm text-muted-foreground">
-                        {item.message}
-                      </div>
-                      <div className="text-sm font-medium text-primary underline underline-offset-4">
-                        Mở liên kết liên quan
-                      </div>
+                    <div className="shrink-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      {timeAgo(item.created_at)}
                     </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border text-center">
-            <BellOff className="size-12 text-muted-foreground" />
-            <div>
-              <div className="font-display text-xl font-semibold">Không có thông báo mới</div>
-              <div className="text-sm text-muted-foreground">
-                Trung tâm thông báo sẽ hiển thị hoạt động CRM mới nhất.
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <StatusBadge
+                      label={item.entity_type}
+                      className={getNotificationTone(item)}
+                      dotClassName="bg-current"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground">Mở liên kết</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <EmptyState
+          icon={BellOff}
+          title="Không có thông báo mới"
+          description="Thông báo CRM mới nhất sẽ xuất hiện tại đây để đội vận hành xử lý nhanh."
+          className="min-h-[320px] border-dashed bg-transparent shadow-none"
+        />
+      )}
     </Sheet>
   );
 }

@@ -1,3 +1,6 @@
+create extension if not exists pgcrypto;
+create extension if not exists pg_trgm;
+
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
@@ -140,11 +143,25 @@ create table notifications (
   title text not null,
   message text,
   type text default 'info' check (type in ('info','success','warning','error')),
-  entity_type text check (entity_type in ('ticket','customer','campaign','transaction','task','deal','automation')),
+  entity_type text check (entity_type in ('ticket','customer','campaign','transaction','task','deal','automation','system')),
   entity_id uuid,
   is_read boolean default false,
   read_at timestamptz,
   created_at timestamptz default now()
+);
+
+create table automation_rules (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  is_active boolean default true,
+  trigger_type text not null check (trigger_type in ('birthday','inactive_days','after_purchase','new_customer')),
+  trigger_config jsonb default '{}',
+  action_type text not null check (action_type in ('send_email','send_sms')),
+  action_config jsonb default '{}',
+  created_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create table outbound_messages (
@@ -168,20 +185,6 @@ create table outbound_messages (
   updated_at timestamptz default now()
 );
 
-create table automation_rules (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text,
-  is_active boolean default true,
-  trigger_type text not null check (trigger_type in ('birthday','inactive_days','after_purchase','new_customer')),
-  trigger_config jsonb default '{}',
-  action_type text not null check (action_type in ('send_email','send_sms')),
-  action_config jsonb default '{}',
-  created_by uuid references profiles(id),
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
 create table app_settings (
   id text primary key default 'default',
   company_name text not null default 'NexCRM Demo',
@@ -199,7 +202,7 @@ create table app_settings (
     "pos_webhook_url":"https://demo.nexcrm.vn/webhooks/pos-sync",
     "last_sync":"2024-01-21T09:30:00.000Z",
     "pos_status":"active",
-    "email_provider":{"provider":null,"enabled":false,"from_name":"NexCRM","from_email":"","reply_to":""},
+    "email_provider":{"provider":null,"enabled":false,"from_name":"NexCRM","from_email":"hello@demo.nexcrm.vn","reply_to":""},
     "sms_provider":{"provider":null,"enabled":false,"sender_id":"NexCRM","from_number":""}
   }'::jsonb,
   created_by uuid references profiles(id),
@@ -218,47 +221,453 @@ create table audit_logs (
   created_at timestamptz default now()
 );
 
+create sequence if not exists customer_code_seq;
+select setval(
+  'customer_code_seq',
+  greatest(
+    coalesce(
+      (
+        select max((regexp_match(customer_code, '([0-9]{4})$'))[1]::bigint)
+        from customers
+        where customer_code is not null
+      ),
+      1
+    ),
+    1
+  ),
+  coalesce(
+    (
+      select max((regexp_match(customer_code, '([0-9]{4})$'))[1]::bigint)
+      from customers
+      where customer_code is not null
+    ),
+    0
+  ) > 0
+);
+
+create sequence if not exists ticket_code_seq;
+select setval(
+  'ticket_code_seq',
+  greatest(
+    coalesce(
+      (
+        select max((regexp_match(ticket_code, '([0-9]{4})$'))[1]::bigint)
+        from support_tickets
+        where ticket_code is not null
+      ),
+      1
+    ),
+    1
+  ),
+  coalesce(
+    (
+      select max((regexp_match(ticket_code, '([0-9]{4})$'))[1]::bigint)
+      from support_tickets
+      where ticket_code is not null
+    ),
+    0
+  ) > 0
+);
+
+grant usage, select on sequence customer_code_seq to anon, authenticated;
+grant usage, select on sequence ticket_code_seq to anon, authenticated;
+
 create or replace function generate_customer_code() returns trigger as $$
-declare seq int;
 begin
-  select count(*) + 1 into seq from customers;
-  new.customer_code := 'KH-' || to_char(now(), 'YYYY') || '-' || lpad(seq::text, 4, '0');
+  if new.customer_code is null or btrim(new.customer_code) = '' then
+    new.customer_code := 'KH-' || to_char(coalesce(new.created_at, now()), 'YYYY') || '-' || lpad(nextval('customer_code_seq')::text, 4, '0');
+  end if;
   return new;
 end;
 $$ language plpgsql;
 
+drop trigger if exists trg_customer_code on customers;
 create trigger trg_customer_code
 before insert on customers
 for each row execute function generate_customer_code();
 
 create or replace function generate_ticket_code() returns trigger as $$
-declare seq int;
 begin
-  select count(*) + 1 into seq from support_tickets;
-  new.ticket_code := 'TK-' || to_char(now(), 'YYYY') || '-' || lpad(seq::text, 4, '0');
+  if new.ticket_code is null or btrim(new.ticket_code) = '' then
+    new.ticket_code := 'TK-' || to_char(coalesce(new.created_at, now()), 'YYYY') || '-' || lpad(nextval('ticket_code_seq')::text, 4, '0');
+  end if;
   return new;
 end;
 $$ language plpgsql;
 
+drop trigger if exists trg_ticket_code on support_tickets;
 create trigger trg_ticket_code
 before insert on support_tickets
 for each row execute function generate_ticket_code();
 
+create or replace function public.sync_customer_rollup(target_customer_id uuid)
+returns void
+language plpgsql
+as $$
+begin
+  if target_customer_id is null then
+    return;
+  end if;
+
+  update customers
+  set
+    total_spent = (
+      select coalesce(sum(total_amount), 0)
+      from transactions
+      where customer_id = target_customer_id
+        and status = 'completed'
+    ),
+    total_orders = (
+      select count(*)
+      from transactions
+      where customer_id = target_customer_id
+        and status = 'completed'
+    ),
+    last_order_at = (
+      select max(created_at)
+      from transactions
+      where customer_id = target_customer_id
+        and status = 'completed'
+    ),
+    updated_at = now()
+  where id = target_customer_id;
+end;
+$$;
+
 create or replace function update_customer_stats() returns trigger as $$
 begin
-  update customers set
-    total_spent = (select coalesce(sum(total_amount),0) from transactions where customer_id = new.customer_id and status='completed'),
-    total_orders = (select count(*) from transactions where customer_id = new.customer_id and status='completed'),
-    last_order_at = (select max(created_at) from transactions where customer_id = new.customer_id and status='completed'),
-    updated_at = now()
-  where id = new.customer_id;
+  if tg_op = 'DELETE' then
+    perform public.sync_customer_rollup(old.customer_id);
+    return old;
+  end if;
+
+  perform public.sync_customer_rollup(new.customer_id);
+
+  if tg_op = 'UPDATE' and old.customer_id is distinct from new.customer_id then
+    perform public.sync_customer_rollup(old.customer_id);
+  end if;
+
   return new;
 end;
 $$ language plpgsql;
 
+drop trigger if exists trg_customer_stats on transactions;
 create trigger trg_customer_stats
-after insert or update on transactions
+after insert or update or delete on transactions
 for each row execute function update_customer_stats();
+
+create or replace function public.resolve_login_identifier(input_identifier text)
+returns text
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  normalized text := lower(btrim(input_identifier));
+  resolved_email text;
+  alias_count int;
+begin
+  if normalized is null or normalized = '' then
+    return null;
+  end if;
+
+  if position('@' in normalized) > 0 then
+    select lower(email)
+    into resolved_email
+    from auth.users
+    where lower(email) = normalized
+    limit 1;
+
+    return resolved_email;
+  end if;
+
+  select count(*), min(lower(email))
+  into alias_count, resolved_email
+  from auth.users
+  where split_part(lower(email), '@', 1) = normalized;
+
+  if alias_count = 1 then
+    return resolved_email;
+  end if;
+
+  return null;
+end;
+$$;
+
+create or replace function get_dashboard_snapshot(p_range text default '7days')
+returns table (
+  total_customers bigint,
+  new_customers_month bigint,
+  total_revenue_month numeric,
+  total_orders_month bigint,
+  open_tickets bigint,
+  resolved_tickets_month bigint,
+  revenue_chart jsonb,
+  customer_type_distribution jsonb,
+  top_customers jsonb,
+  urgent_tickets jsonb
+)
+language sql
+stable
+as $$
+with bounds as (
+  select
+    case
+      when p_range = 'today' then date_trunc('day', now())
+      when p_range = '30days' then date_trunc('day', now()) - interval '29 days'
+      else date_trunc('day', now()) - interval '6 days'
+    end as range_start,
+    date_trunc('month', now()) as month_start
+),
+customer_base as (
+  select
+    id,
+    full_name,
+    coalesce(customer_code, '') as customer_code,
+    coalesce(customer_type, 'new') as customer_type,
+    coalesce(total_spent, 0) as total_spent,
+    created_at
+  from customers
+  where deleted_at is null
+    and is_active = true
+),
+ticket_base as (
+  select
+    id,
+    title,
+    coalesce(priority, 'medium') as priority,
+    customer_id,
+    coalesce(status, 'open') as status,
+    resolved_at,
+    created_at
+  from support_tickets
+  where deleted_at is null
+),
+revenue_data as (
+  select
+    date_trunc('day', t.created_at) as period,
+    sum(t.total_amount) as revenue,
+    count(*)::bigint as orders
+  from transactions t
+  cross join bounds b
+  where t.status = 'completed'
+    and t.created_at >= b.range_start
+  group by 1
+),
+revenue_json as (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'period', to_char(period, 'YYYY-MM-DD'),
+        'revenue', revenue,
+        'orders', orders
+      )
+      order by period
+    ),
+    '[]'::jsonb
+  ) as data
+  from revenue_data
+),
+distribution_seed as (
+  select * from (
+    values
+      ('VIP', 'vip', '#3b82f6', 1),
+      ('Thân thiết', 'loyal', '#10b981', 2),
+      ('Tiềm năng', 'potential', '#f59e0b', 3),
+      ('Mới', 'new', '#8b92a5', 4),
+      ('Không hoạt động', 'inactive', '#ef4444', 5)
+  ) as seed(label, code, color, sort_order)
+),
+distribution_json as (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'type', seed.label,
+        'count', coalesce(counts.total, 0),
+        'color', seed.color
+      )
+      order by seed.sort_order
+    ),
+    '[]'::jsonb
+  ) as data
+  from distribution_seed seed
+  left join lateral (
+    select count(*)::bigint as total
+    from customer_base c
+    where c.customer_type = seed.code
+  ) counts on true
+),
+top_customers_json as (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', c.id,
+        'full_name', c.full_name,
+        'customer_code', c.customer_code,
+        'customer_type', c.customer_type,
+        'total_spent', c.total_spent
+      )
+      order by c.total_spent desc, c.created_at desc
+    ),
+    '[]'::jsonb
+  ) as data
+  from (
+    select *
+    from customer_base
+    order by total_spent desc, created_at desc
+    limit 5
+  ) c
+),
+urgent_tickets_json as (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', t.id,
+        'title', t.title,
+        'priority', t.priority,
+        'customer_id', t.customer_id,
+        'customer_name', coalesce(c.full_name, 'Khách hàng không xác định'),
+        'created_at', t.created_at
+      )
+      order by t.created_at desc
+    ),
+    '[]'::jsonb
+  ) as data
+  from (
+    select *
+    from ticket_base
+    where priority in ('urgent', 'high')
+    order by created_at desc
+    limit 5
+  ) t
+  left join customer_base c on c.id = t.customer_id
+)
+select
+  (select count(*) from customer_base) as total_customers,
+  (select count(*) from customer_base c cross join bounds b where c.created_at >= b.month_start) as new_customers_month,
+  (
+    select coalesce(sum(t.total_amount), 0)
+    from transactions t
+    cross join bounds b
+    where t.status = 'completed'
+      and t.created_at >= b.month_start
+  ) as total_revenue_month,
+  (
+    select count(*)
+    from transactions t
+    cross join bounds b
+    where t.status = 'completed'
+      and t.created_at >= b.month_start
+  ) as total_orders_month,
+  (
+    select count(*)
+    from ticket_base
+    where status in ('open', 'in_progress', 'pending')
+  ) as open_tickets,
+  (
+    select count(*)
+    from ticket_base t
+    cross join bounds b
+    where t.resolved_at is not null
+      and t.resolved_at >= b.month_start
+  ) as resolved_tickets_month,
+  (select data from revenue_json) as revenue_chart,
+  (select data from distribution_json) as customer_type_distribution,
+  (select data from top_customers_json) as top_customers,
+  (select data from urgent_tickets_json) as urgent_tickets;
+$$;
+
+create index if not exists idx_customers_active_created_at
+  on customers (created_at desc)
+  where deleted_at is null and is_active = true;
+
+create index if not exists idx_customers_active_customer_type_created_at
+  on customers (customer_type, created_at desc)
+  where deleted_at is null and is_active = true;
+
+create index if not exists idx_customers_assigned_to_created_at
+  on customers (assigned_to, created_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_customers_search_trgm
+  on customers
+  using gin ((coalesce(full_name, '') || ' ' || coalesce(phone, '') || ' ' || coalesce(email, '')) gin_trgm_ops)
+  where deleted_at is null;
+
+create index if not exists idx_transactions_customer_created_at
+  on transactions (customer_id, created_at desc);
+
+create index if not exists idx_transactions_status_created_at
+  on transactions (status, created_at desc);
+
+create index if not exists idx_transactions_payment_method_created_at
+  on transactions (payment_method, created_at desc);
+
+create index if not exists idx_deals_stage_created_at
+  on deals (stage, created_at desc);
+
+create index if not exists idx_deals_owner_stage_created_at
+  on deals (owner_id, stage, created_at desc);
+
+create index if not exists idx_deals_customer_created_at
+  on deals (customer_id, created_at desc);
+
+create index if not exists idx_deals_title_trgm
+  on deals using gin (title gin_trgm_ops);
+
+create index if not exists idx_tasks_entity_lookup
+  on tasks (entity_type, entity_id, created_at desc);
+
+create index if not exists idx_tasks_assigned_status_due_at
+  on tasks (assigned_to, status, due_at);
+
+create index if not exists idx_tasks_open_due_at
+  on tasks (due_at)
+  where status <> 'done';
+
+create index if not exists idx_support_tickets_status_created_at
+  on support_tickets (status, created_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_support_tickets_priority_created_at
+  on support_tickets (priority, created_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_support_tickets_assigned_status
+  on support_tickets (assigned_to, status, created_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_support_tickets_customer_created_at
+  on support_tickets (customer_id, created_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_support_tickets_title_trgm
+  on support_tickets using gin (title gin_trgm_ops)
+  where deleted_at is null;
+
+create index if not exists idx_notifications_user_unread_created_at
+  on notifications (user_id, is_read, created_at desc);
+
+create index if not exists idx_outbound_messages_campaign_created_at
+  on outbound_messages (campaign_id, created_at desc);
+
+create index if not exists idx_outbound_messages_automation_created_at
+  on outbound_messages (automation_rule_id, created_at desc);
+
+create index if not exists idx_outbound_messages_status_created_at
+  on outbound_messages (status, created_at desc);
+
+create index if not exists idx_campaigns_status_created_at
+  on campaigns (status, created_at desc);
+
+create index if not exists idx_audit_logs_created_at
+  on audit_logs (created_at desc);
+
+create index if not exists idx_audit_logs_entity_created_at
+  on audit_logs (entity_type, created_at desc);
+
+create index if not exists idx_audit_logs_user_created_at
+  on audit_logs (user_id, created_at desc);
 
 alter table profiles enable row level security;
 alter table customers enable row level security;
@@ -272,39 +681,46 @@ alter table notifications enable row level security;
 alter table outbound_messages enable row level security;
 alter table automation_rules enable row level security;
 alter table app_settings enable row level security;
+alter table audit_logs enable row level security;
 
-create policy "authenticated_all" on profiles
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on profiles;
+create policy "authenticated_all" on profiles for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on customers
-for all to authenticated using (deleted_at is null) with check (true);
+drop policy if exists "authenticated_all" on customers;
+create policy "authenticated_all" on customers for all to authenticated using (deleted_at is null) with check (true);
 
-create policy "authenticated_all" on transactions
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on transactions;
+create policy "authenticated_all" on transactions for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on deals
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on deals;
+create policy "authenticated_all" on deals for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on tasks
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on tasks;
+create policy "authenticated_all" on tasks for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on support_tickets
-for all to authenticated using (deleted_at is null) with check (true);
+drop policy if exists "authenticated_all" on support_tickets;
+create policy "authenticated_all" on support_tickets for all to authenticated using (deleted_at is null) with check (true);
 
-create policy "authenticated_all" on ticket_comments
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on ticket_comments;
+create policy "authenticated_all" on ticket_comments for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on campaigns
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on campaigns;
+create policy "authenticated_all" on campaigns for all to authenticated using (true) with check (true);
 
-create policy "own_notifications" on notifications
-for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "own_notifications" on notifications;
+create policy "own_notifications" on notifications for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
-create policy "authenticated_all" on outbound_messages
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on outbound_messages;
+create policy "authenticated_all" on outbound_messages for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on automation_rules
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on automation_rules;
+create policy "authenticated_all" on automation_rules for all to authenticated using (true) with check (true);
 
-create policy "authenticated_all" on app_settings
-for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated_all" on app_settings;
+create policy "authenticated_all" on app_settings for all to authenticated using (true) with check (true);
+
+drop policy if exists "authenticated_all" on audit_logs;
+create policy "authenticated_all" on audit_logs for all to authenticated using (true) with check (true);
+
+grant execute on function public.resolve_login_identifier(text) to anon, authenticated;
+grant execute on function public.get_dashboard_snapshot(text) to anon, authenticated;

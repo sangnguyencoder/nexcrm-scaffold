@@ -1,37 +1,36 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  EyeOff,
-  ExternalLink,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { EyeOff, ExternalLink, ShieldCheck, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
+import { InspectorList } from "@/components/shared/inspector-list";
+import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
 import { PageErrorState } from "@/components/shared/page-error-state";
+import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
+import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useAppMutation } from "@/hooks/useAppMutation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  useCustomerDetailQuery,
   queryKeys,
   useCommentsQuery,
+  useCustomerDetailQuery,
   useTicketDetailQuery,
   useUsersQuery,
 } from "@/hooks/useNexcrmQueries";
-import { formatDateTime, formatTicketStatus, getPriorityColor, timeAgo } from "@/lib/utils";
+import { formatDateTime, formatNumberCompact, formatTicketStatus, timeAgo } from "@/lib/utils";
 import { getAppErrorMessage } from "@/services/shared";
 import { ticketService } from "@/services/ticketService";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export function TicketDetailPage() {
   const { id } = useParams();
@@ -42,30 +41,39 @@ export function TicketDetailPage() {
   const customerQuery = useCustomerDetailQuery(ticketQuery.data?.customer_id);
   const commentsQuery = useCommentsQuery(id, Boolean(id));
   const ticket = ticketQuery.data;
-  const users = usersQuery.data ?? [];
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
   const customer = customerQuery.data;
-  const comments = commentsQuery.data ?? [];
+  const comments = useMemo(() => commentsQuery.data ?? [], [commentsQuery.data]);
   const [showInternal, setShowInternal] = useState(true);
   const [reply, setReply] = useState("");
   const [internalReply, setInternalReply] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [assignedSearch, setAssignedSearch] = useState("");
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [currentTimestamp] = useState(() => Date.now());
+  const replyTooShort = reply.trim().length > 0 && reply.trim().length < 10;
 
   const thread = useMemo(
     () =>
       comments
         .filter((comment) => comment.ticket_id === ticket?.id)
         .filter((comment) => (showInternal ? true : comment.type !== "internal"))
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()),
     [comments, showInternal, ticket?.id],
   );
 
-  const filteredUsers = users.filter((user) =>
-    user.full_name.toLowerCase().includes(assignedSearch.toLowerCase()),
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((user) =>
+        user.full_name.toLowerCase().includes(assignedSearch.toLowerCase()),
+      ),
+    [assignedSearch, users],
   );
+  const assignedUser = users.find((user) => user.id === ticket?.assigned_to);
+  const isOverdue = ticket ? new Date(ticket.due_at).getTime() < currentTimestamp : false;
 
   const updateTicket = useAppMutation({
+    action: "ticket.update",
     errorMessage: "Không thể cập nhật ticket.",
     mutationFn: (payload: Parameters<typeof ticketService.update>[1]) =>
       ticketService.update(id ?? "", payload),
@@ -79,12 +87,14 @@ export function TicketDetailPage() {
   });
 
   const addComment = useAppMutation({
+    action: "ticket.comment.create",
     errorMessage: "Không thể thêm phản hồi.",
     mutationFn: (payload: { content: string; isInternal: boolean }) =>
       ticketService.addComment(id ?? "", payload.content, payload.isInternal),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
       setReply("");
+      toast.success("Đã thêm phản hồi mới");
     },
   });
 
@@ -124,234 +134,348 @@ export function TicketDetailPage() {
     );
   }
 
+  const applyUpdate = async (
+    payload: Parameters<typeof ticketService.update>[1],
+    successMessage: string,
+  ) => {
+    try {
+      await updateTicket.mutateAsync(payload);
+      await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
+      toast.success(successMessage);
+    } catch {
+      return;
+    }
+  };
+
   const saveTitle = async () => {
     if (titleDraft.trim() && titleDraft.trim() !== ticket.title) {
-      try {
-        await updateTicket.mutateAsync({ title: titleDraft.trim() });
-        toast.success("Đã cập nhật tiêu đề ticket");
-      } catch {}
+      await applyUpdate({ title: titleDraft.trim() }, "Đã cập nhật tiêu đề ticket");
     }
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
-      <Card>
-        <CardContent className="flex h-full min-h-[720px] flex-col p-6">
-          <div className="mb-6 space-y-3">
-            <Input
-              value={titleDraft || ticket.title}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              onBlur={() => void saveTitle()}
-              className="h-12 font-display text-2xl font-bold"
-            />
-            <div className="inline-flex rounded-full bg-muted px-3 py-1 font-mono text-xs text-muted-foreground">
-              {ticket.ticket_code}
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-2">
-            {thread.map((item) =>
-              item.type === "system" ? (
-                <div key={item.id} className="text-center text-sm italic text-muted-foreground">
-                  {item.system_label ?? item.content}
-                </div>
-              ) : (
-                <div
-                  key={item.id}
-                  className={`max-w-[80%] rounded-2xl p-4 ${
-                    item.type === "internal"
-                      ? "bg-amber-500/10 text-foreground"
-                      : "bg-muted text-foreground"
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {users.find((user) => user.id === item.author_id)?.full_name ?? "Hệ thống"}
-                      </span>
-                      {item.type === "internal" ? (
-                        <span className="inline-flex items-center gap-1">
-                          <EyeOff className="size-3" />
-                          Nội bộ
-                        </span>
-                      ) : null}
-                    </div>
-                    <span>{timeAgo(item.created_at)}</span>
-                  </div>
-                  <div className="text-sm leading-6">{item.content}</div>
-                </div>
-              ),
-            )}
-          </div>
-
-          <div className="mt-6 space-y-4 border-t border-border pt-5">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Phản hồi ticket</div>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Switch checked={internalReply} onChange={(event) => setInternalReply(event.target.checked)} />
-                Nội bộ
-              </label>
-            </div>
-            <Textarea
-              value={reply}
-              onChange={(event) => setReply(event.target.value)}
-              placeholder="Nhập nội dung phản hồi khách hàng"
-            />
-            <div className="flex justify-end">
-              <Button
-                onClick={async () => {
-                  if (reply.trim().length < 10) {
-                    toast.error("Phản hồi tối thiểu 10 ký tự");
-                    return;
-                  }
-                  try {
-                    await addComment.mutateAsync({
-                      content: reply.trim(),
-                      isInternal: internalReply,
-                    });
-                    toast.success("Đã thêm phản hồi mới");
-                  } catch {}
-                }}
-                disabled={addComment.isPending}
-              >
-                Gửi
+    <div className="space-y-5">
+      <PageHeader
+        title={ticket.title}
+        // subtitle={`${ticket.ticket_code} · ${customer?.full_name ?? "Chưa gắn khách hàng"} · cập nhật ${timeAgo(ticket.updated_at ?? ticket.created_at)}`}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {customer ? (
+              <Button variant="secondary" size="sm" onClick={() => navigate(`/customers/${customer.id}`)}>
+                <ExternalLink className="size-4" />
+                Hồ sơ khách hàng
               </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-5">
-        <Card>
-          <CardHeader>
-            <CardTitle>Thuộc tính ticket</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Field label="Trạng thái">
-              <Select
-                value={ticket.status}
-                onChange={async (event) => {
-                  const nextStatus = event.target.value as typeof ticket.status;
-                  try {
-                    await updateTicket.mutateAsync({ status: nextStatus });
-                    await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
-                    toast.success("Đã cập nhật trạng thái");
-                  } catch {}
-                }}
-              >
-                <option value="open">Mở</option>
-                <option value="in_progress">Đang xử lý</option>
-                <option value="pending">Chờ</option>
-                <option value="resolved">Đã giải quyết</option>
-                <option value="closed">Đóng</option>
-              </Select>
-            </Field>
-            <Field label="Ưu tiên">
-              <Select
-                value={ticket.priority}
-                onChange={async (event) => {
-                  try {
-                    await updateTicket.mutateAsync({ priority: event.target.value as typeof ticket.priority });
-                    await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
-                    toast.success("Đã cập nhật mức ưu tiên");
-                  } catch {}
-                }}
-              >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-                <option value="urgent">Khẩn cấp</option>
-              </Select>
-              <StatusBadge
-                label={ticket.priority}
-                className={getPriorityColor(ticket.priority)}
-                dotClassName="bg-current"
-              />
-            </Field>
-            <Field label="Phụ trách">
-              <input
-                value={assignedSearch}
-                onChange={(event) => setAssignedSearch(event.target.value)}
-                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
-                placeholder="Tìm người phụ trách"
-              />
-              <Select
-                value={ticket.assigned_to}
-                onChange={async (event) => {
-                  try {
-                    await updateTicket.mutateAsync({ assigned_to: event.target.value });
-                    await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
-                    toast.success("Đã cập nhật người phụ trách");
-                  } catch {}
-                }}
-              >
-                {filteredUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <label className="flex items-center justify-between rounded-2xl border border-border p-4 text-sm">
-              <span>Hiển thị ghi chú nội bộ</span>
-              <Switch checked={showInternal} onChange={(event) => setShowInternal(event.target.checked)} />
-            </label>
+            ) : null}
             {ticket.status === "resolved" ? (
-              <Button variant="destructive" onClick={() => setCloseConfirmOpen(true)}>
+              <Button size="sm" onClick={() => setCloseConfirmOpen(true)}>
                 <ShieldCheck className="size-4" />
                 Close Ticket
               </Button>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        }
+      />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Khách hàng liên quan</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="font-medium">{customer?.full_name ?? "--"}</div>
-            <div className="text-sm text-muted-foreground">{customer?.customer_code}</div>
-            <Button variant="secondary" onClick={() => navigate(`/customers/${customer?.id}`)}>
-              <ExternalLink className="size-4" />
-              Mở hồ sơ khách hàng
-            </Button>
-          </CardContent>
-        </Card>
+      <MetricStrip>
+        <MetricStripItem label="Trạng thái" value={formatTicketStatus(ticket.status)} helper="Workflow hiện tại của ticket." />
+        <MetricStripItem label="Ưu tiên" value={ticket.priority.toUpperCase()} helper="Dùng để ưu tiên xử lý trong queue." />
+        <MetricStripItem label="SLA" value={isOverdue ? "Quá hạn" : timeAgo(ticket.due_at)} helper={formatDateTime(ticket.due_at)} />
+        <MetricStripItem label="Trao đổi" value={formatNumberCompact(thread.length)} helper={`${formatNumberCompact(comments.length)} comment tổng cộng.`} />
+      </MetricStrip>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Thông tin bổ sung</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Danh mục</span>
-              <span>{ticket.category}</span>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr),320px]">
+        <div className="space-y-5">
+          <SectionPanel
+            title="Luồng trao đổi"
+            // description="Thread chính, đủ rõ để xử lý ticket liên tục mà không đổi trang."
+            meta={
+              <Button
+                variant={showInternal ? "outline" : "ghost"}
+                size="sm"
+                onClick={() => setShowInternal((value) => !value)}
+              >
+                <EyeOff className="size-4" />
+                {showInternal ? "Ẩn note nội bộ" : "Hiện note nội bộ"}
+              </Button>
+            }
+            contentClassName="p-0 lg:p-0"
+          >
+            {thread.length ? (
+              <div className="max-h-[620px] divide-y divide-border/70 overflow-y-auto">
+                {thread.map((item) =>
+                  item.type === "system" ? (
+                    <div key={item.id} className="px-4 py-4">
+                      <div className="rounded-full border border-dashed border-border/80 bg-muted/30 px-4 py-2 text-center text-xs italic text-muted-foreground">
+                        {item.system_label ?? item.content}
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={item.id} className="px-4 py-4">
+                      <div
+                        className={
+                          item.type === "internal"
+                            ? "rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
+                            : "rounded-2xl border border-border/70 bg-card p-4"
+                        }
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">
+                                {users.find((user) => user.id === item.author_id)?.full_name ?? "Hệ thống"}
+                              </span>
+                              <StatusBadge
+                                label={item.type === "internal" ? "Internal note" : "Public reply"}
+                                className={
+                                  item.type === "internal"
+                                    ? "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-200"
+                                    : "bg-muted text-muted-foreground ring-border"
+                                }
+                                dotClassName={item.type === "internal" ? "bg-amber-500" : "bg-primary"}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDateTime(item.created_at)}
+                            </div>
+                          </div>
+                          <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                            {timeAgo(item.created_at)}
+                          </div>
+                        </div>
+                        <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                          {item.content}
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            ) : (
+              <div className="p-4">
+                <EmptyState
+                  icon={EyeOff}
+                  title="Chưa có trao đổi"
+                  description="Ticket này chưa có comment nào để hiển thị."
+                  className="min-h-[220px] border-dashed bg-transparent shadow-none"
+                />
+              </div>
+            )}
+          </SectionPanel>
+
+          <SectionPanel
+            title="Phản hồi ticket"
+            // description="Soạn nhanh phản hồi công khai hoặc ghi chú nội bộ ngay trong cùng màn."
+          >
+            <div className="space-y-4">
+              {addComment.actionError ? (
+                <ActionErrorAlert
+                  error={addComment.actionError}
+                  onDismiss={addComment.clearActionError}
+                  onRetry={addComment.canRetry ? () => void addComment.retryLast() : undefined}
+                />
+              ) : null}
+
+              <FormField
+                label="Nội dung phản hồi"
+                hint={internalReply ? "Ghi chú chỉ hiển thị nội bộ" : "Sẽ được ghi vào thread ticket"}
+                description={replyTooShort ? "Phản hồi cần tối thiểu 10 ký tự để gửi." : undefined}
+                error={replyTooShort ? "Phản hồi tối thiểu 10 ký tự." : undefined}
+              >
+                <Textarea
+                  value={reply}
+                  onChange={(event) => setReply(event.target.value)}
+                  placeholder={
+                    internalReply
+                      ? "Nhập ghi chú nội bộ cho team xử lý ticket"
+                      : "Nhập phản hồi gửi cho khách hàng"
+                  }
+                  rows={6}
+                />
+              </FormField>
+
+              <div className="grid gap-2 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setInternalReply(false)}
+                  className={
+                    internalReply
+                      ? "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
+                      : "rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-left text-sm text-primary transition"
+                  }
+                >
+                  <div className="font-medium">Public reply</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Hiển thị trong luồng trao đổi với khách hàng.</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInternalReply(true)}
+                  className={
+                    internalReply
+                      ? "rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-left text-sm text-amber-700 transition dark:text-amber-200"
+                      : "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
+                  }
+                >
+                  <div className="flex items-center gap-2 font-medium">
+                    <EyeOff className="size-4" />
+                    Internal note
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">Chỉ team nội bộ nhìn thấy, không gửi cho khách.</div>
+                </button>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={async () => {
+                    if (reply.trim().length < 10) {
+                      toast.error("Phản hồi tối thiểu 10 ký tự");
+                      return;
+                    }
+                    try {
+                      await addComment.mutateAsync({
+                        content: reply.trim(),
+                        isInternal: internalReply,
+                      });
+                    } catch {
+                      return;
+                    }
+                  }}
+                  disabled={addComment.isPending}
+                >
+                  {addComment.isPending ? "Đang gửi…" : "Gửi phản hồi"}
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Kênh</span>
-              <span>{ticket.channel}</span>
+          </SectionPanel>
+        </div>
+
+        <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+          <SectionPanel
+            title="Điều phối ticket"
+            // description="Cập nhật title, status, priority và assignee mà không làm đứt luồng xử lý."
+          >
+            <div className="space-y-4">
+              {updateTicket.actionError ? (
+                <ActionErrorAlert
+                  error={updateTicket.actionError}
+                  onDismiss={updateTicket.clearActionError}
+                  onRetry={updateTicket.canRetry ? () => void updateTicket.retryLast() : undefined}
+                />
+              ) : null}
+
+              <FormField label="Tiêu đề">
+                <Input
+                  value={titleDraft || ticket.title}
+                  onChange={(event) => setTitleDraft(event.target.value)}
+                  onBlur={() => void saveTitle()}
+                  aria-label="Tiêu đề ticket"
+                />
+              </FormField>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                <FormField label="Trạng thái">
+                  <Select
+                    value={ticket.status}
+                    onChange={(event) =>
+                      void applyUpdate(
+                        { status: event.target.value as typeof ticket.status },
+                        "Đã cập nhật trạng thái",
+                      )
+                    }
+                  >
+                    <option value="open">Mở</option>
+                    <option value="in_progress">Đang xử lý</option>
+                    <option value="pending">Chờ</option>
+                    <option value="resolved">Đã giải quyết</option>
+                    <option value="closed">Đóng</option>
+                  </Select>
+                </FormField>
+
+                <FormField label="Ưu tiên">
+                  <Select
+                    value={ticket.priority}
+                    onChange={(event) =>
+                      void applyUpdate(
+                        { priority: event.target.value as typeof ticket.priority },
+                        "Đã cập nhật mức ưu tiên",
+                      )
+                    }
+                  >
+                    <option value="low">Thấp</option>
+                    <option value="medium">Trung bình</option>
+                    <option value="high">Cao</option>
+                    <option value="urgent">Khẩn cấp</option>
+                  </Select>
+                </FormField>
+              </div>
+
+              <FormSection
+                title="Phụ trách"
+                // description={assignedUser ? `${assignedUser.full_name} · ${assignedUser.department}` : "Chưa gán người xử lý"}
+              >
+                <FormField label="Tìm theo tên">
+                  <Input
+                    value={assignedSearch}
+                    onChange={(event) => setAssignedSearch(event.target.value)}
+                    placeholder="Tìm người phụ trách…"
+                    aria-label="Tìm người phụ trách ticket"
+                  />
+                </FormField>
+                <FormField label="Người phụ trách">
+                  <Select
+                    value={ticket.assigned_to}
+                    onChange={(event) =>
+                      void applyUpdate(
+                        { assigned_to: event.target.value },
+                        "Đã cập nhật người phụ trách",
+                      )
+                    }
+                  >
+                    {filteredUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.full_name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              </FormSection>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Hạn xử lý</span>
-              <span className={new Date(ticket.due_at).getTime() < Date.now() ? "text-rose-500" : ""}>
-                {formatDateTime(ticket.due_at)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tạo lúc</span>
-              <span>{formatDateTime(ticket.created_at)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Cập nhật</span>
-              <span>{timeAgo(ticket.updated_at ?? ticket.created_at)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Giải quyết</span>
-              <span>{ticket.resolved_at ? formatDateTime(ticket.resolved_at) : "--"}</span>
-            </div>
-          </CardContent>
-        </Card>
+          </SectionPanel>
+
+          <SectionPanel
+            title="SLA & metadata"
+            // description="Mọi thông tin đủ để quyết định escalations hoặc follow-up tiếp theo."
+          >
+            <InspectorList
+              items={[
+                { label: "Danh mục", value: ticket.category },
+                { label: "Kênh", value: ticket.channel },
+                {
+                  label: "Hạn xử lý",
+                  value: formatDateTime(ticket.due_at),
+                  valueClassName: isOverdue ? "text-rose-500" : undefined,
+                },
+                { label: "Tạo lúc", value: formatDateTime(ticket.created_at) },
+                { label: "Cập nhật", value: timeAgo(ticket.updated_at ?? ticket.created_at) },
+                { label: "Giải quyết", value: ticket.resolved_at ? formatDateTime(ticket.resolved_at) : "--" },
+              ]}
+            />
+          </SectionPanel>
+
+          {customer ? (
+            <SectionPanel
+              title="Khách hàng liên quan"
+              // description="Mở nhanh hồ sơ để xem lịch sử giao dịch hoặc ticket khác."
+              contentClassName="space-y-3"
+            >
+              <div className="text-sm font-medium text-foreground">{customer.full_name}</div>
+              <div className="text-xs text-muted-foreground">{customer.customer_code}</div>
+              <Button variant="secondary" onClick={() => navigate(`/customers/${customer.id}`)}>
+                <ExternalLink className="size-4" />
+                Mở hồ sơ khách hàng
+              </Button>
+            </SectionPanel>
+          ) : null}
+        </aside>
       </div>
 
       <ConfirmDialog
@@ -360,29 +484,8 @@ export function TicketDetailPage() {
         title="Đóng ticket này?"
         description="Ticket đã resolved sẽ được chuyển sang trạng thái closed."
         confirmLabel="Đóng ticket"
-        onConfirm={async () => {
-          try {
-            await updateTicket.mutateAsync({ status: "closed" });
-            await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
-            toast.success("Ticket đã được đóng");
-          } catch {}
-        }}
+        onConfirm={() => void applyUpdate({ status: "closed" }, "Ticket đã được đóng")}
       />
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="text-sm font-medium">{label}</div>
-      {children}
     </div>
   );
 }

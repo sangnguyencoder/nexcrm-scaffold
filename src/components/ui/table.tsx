@@ -4,27 +4,27 @@ import { cn } from "@/lib/utils";
 
 export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border">
+    <div className="overflow-hidden rounded-lg bg-card">
       <div className="overflow-x-auto">
-        <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
+        <table className={cn("w-full caption-bottom text-[13px]", className)} {...props} />
       </div>
     </div>
   );
 }
 
 export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("bg-muted/40", className)} {...props} />;
+  return <thead className={cn("bg-muted/45", className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("[&_tr:nth-child(even)]:bg-muted/20", className)} {...props} />;
+  return <tbody className={cn("[&_tr:last-child]:border-b-0", className)} {...props} />;
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
       className={cn(
-        "h-12 border-b border-border/70 transition-colors hover:bg-muted/40",
+        "h-11 border-b border-border/70 transition-colors hover:bg-muted/35",
         className,
       )}
       {...props}
@@ -35,12 +35,12 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
 export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn("px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground", className)}
+      className={cn("px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground", className)}
       {...props}
     />
   );
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-4 py-3 align-middle", className)} {...props} />;
+  return <td className={cn("px-4 py-2 align-middle text-foreground", className)} {...props} />;
 }

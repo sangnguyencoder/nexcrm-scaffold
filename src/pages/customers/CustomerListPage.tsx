@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   Pencil,
@@ -8,22 +8,31 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
+import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
+import { DataTableShell } from "@/components/shared/data-table-shell";
+import { EmptyState } from "@/components/shared/empty-state";
+import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { useAppMutation } from "@/hooks/useAppMutation";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CompactPagination } from "@/components/shared/compact-pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -37,9 +46,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useCustomersQuery, queryKeys, useUsersQuery } from "@/hooks/useNexcrmQueries";
+import { useCustomersQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
 import {
+  cn,
   formatCurrency,
+  formatCurrencyCompact,
   formatCustomerType,
   formatDate,
   timeAgo,
@@ -47,6 +58,7 @@ import {
 } from "@/lib/utils";
 import { customerService } from "@/services/customerService";
 import { getAppErrorMessage } from "@/services/shared";
+import { preloadRoutePath } from "@/routes/route-modules";
 import type { Customer } from "@/types";
 
 const customerSchema = z.object({
@@ -165,7 +177,9 @@ function CustomerFormModal({
     }
   }, [form, initialCustomer, open, users]);
 
-  const mutation = useMutation({
+  const mutation = useAppMutation({
+    action: isEdit ? "customer.update" : "customer.create",
+    errorMessage: isEdit ? "Không thể cập nhật khách hàng." : "Không thể tạo khách hàng.",
     mutationFn: async (values: CustomerFormValues) => {
       if (isEdit && initialCustomer) {
         return customerService.update(initialCustomer.id, values);
@@ -186,9 +200,6 @@ function CustomerFormModal({
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success(isEdit ? "Đã cập nhật khách hàng" : "Đã thêm khách hàng mới");
       onOpenChange(false);
-    },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, isEdit ? "Không thể cập nhật khách hàng." : "Không thể tạo khách hàng."));
     },
   });
 
@@ -212,59 +223,72 @@ function CustomerFormModal({
           onOpenChange(nextOpen);
         }}
         title={isEdit ? "Cập nhật khách hàng" : "Thêm Khách Hàng"}
-        description="Lưu hồ sơ khách hàng trực tiếp vào dữ liệu demo của NexCRM."
+        description="" //Lưu hồ sơ khách hàng trực tiếp vào dữ liệu demo của NexCRM.
       >
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Họ và tên" error={form.formState.errors.full_name?.message}>
-              <Input {...form.register("full_name")} placeholder="Nhập họ tên khách hàng" />
-            </Field>
-            <Field label="Số điện thoại" error={form.formState.errors.phone?.message}>
-              <Input {...form.register("phone")} placeholder="090xxxxxxx" />
-            </Field>
-            <Field label="Email" error={form.formState.errors.email?.message}>
-              <Input {...form.register("email")} placeholder="email@domain.vn" />
-            </Field>
-            <Field label="Phân loại" error={form.formState.errors.customer_type?.message}>
-              <Select {...form.register("customer_type")}>
-                <option value="new">Mới</option>
-                <option value="potential">Tiềm năng</option>
-                <option value="loyal">Thân thiết</option>
-                <option value="vip">VIP</option>
-                <option value="inactive">Không hoạt động</option>
-              </Select>
-            </Field>
-            <Field label="Nguồn">
-              <Select {...form.register("source")}>
-                <option value="direct">Trực tiếp</option>
-                <option value="marketing">Marketing</option>
-                <option value="referral">Giới thiệu</option>
-                <option value="pos">POS</option>
-                <option value="online">Online</option>
-              </Select>
-            </Field>
-            <Field label="Phụ trách">
-              <Select {...form.register("assigned_to")}>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <Field label="Địa chỉ">
-            <Input {...form.register("address")} placeholder="Số nhà, đường, quận/huyện" />
-          </Field>
-          <Field label="Tỉnh / Thành">
-            <Input {...form.register("province")} placeholder="TP. Hồ Chí Minh" />
-          </Field>
-          <Field label="Ghi chú">
-            <Textarea {...form.register("notes")} placeholder="Thông tin thêm về khách hàng" />
-          </Field>
+          {mutation.actionError ? (
+            <ActionErrorAlert
+              error={mutation.actionError}
+              onDismiss={mutation.clearActionError}
+              onRetry={mutation.canRetry ? () => void mutation.retryLast() : undefined}
+            />
+          ) : null}
+          <FormSection title="Thông tin khách hàng" description="">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField label="Họ và tên" error={form.formState.errors.full_name?.message}>
+                <Input {...form.register("full_name")} placeholder="Nhập họ tên khách hàng" />
+              </FormField>
+              <FormField label="Số điện thoại" error={form.formState.errors.phone?.message}>
+                <Input {...form.register("phone")} placeholder="090xxxxxxx" />
+              </FormField>
+              <FormField label="Email" error={form.formState.errors.email?.message}>
+                <Input {...form.register("email")} placeholder="email@domain.vn" />
+              </FormField>
+              <FormField label="Phân loại" error={form.formState.errors.customer_type?.message}>
+                <Select {...form.register("customer_type")}>
+                  <option value="new">Mới</option>
+                  <option value="potential">Tiềm năng</option>
+                  <option value="loyal">Thân thiết</option>
+                  <option value="vip">VIP</option>
+                  <option value="inactive">Không hoạt động</option>
+                </Select>
+              </FormField>
+              <FormField label="Nguồn">
+                <Select {...form.register("source")}>
+                  <option value="direct">Trực tiếp</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="referral">Giới thiệu</option>
+                  <option value="pos">POS</option>
+                  <option value="online">Online</option>
+                </Select>
+              </FormField>
+              <FormField label="Phụ trách">
+                <Select {...form.register("assigned_to")}>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.full_name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+          </FormSection>
+          <FormSection title="Thông tin bổ sung" description="">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField label="Địa chỉ">
+                <Input {...form.register("address")} placeholder="Số nhà, đường, quận/huyện" />
+              </FormField>
+              <FormField label="Tỉnh / Thành">
+                <Input {...form.register("province")} placeholder="TP. Hồ Chí Minh" />
+              </FormField>
+            </div>
+            <FormField label="Ghi chú">
+              <Textarea {...form.register("notes")} placeholder="Thông tin thêm về khách hàng" />
+            </FormField>
+          </FormSection>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={attemptClose}>
               Hủy
@@ -292,40 +316,30 @@ function CustomerFormModal({
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-2 text-sm">
-      <span className="font-medium text-foreground">{label}</span>
-      {children}
-      {error ? <span className="text-xs text-rose-500">{error}</span> : null}
-    </label>
-  );
-}
-
 export function CustomerListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const customersQuery = useCustomersQuery();
-  const usersQuery = useUsersQuery();
-  const customers = customersQuery.data ?? [];
-  const users = usersQuery.data ?? [];
-  const importInputRef = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const serverSearch = useDebouncedValue(search, 250);
   const [selectedType, setSelectedType] = useState<Customer["customer_type"] | "all">("all");
+  const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showInactive, setShowInactive] = useState(false);
   const [sortKey, setSortKey] = useState<"full_name" | "total_spent" | "created_at">(
     "created_at",
   );
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const customersQuery = useCustomersQuery(
+    {
+      search: serverSearch || undefined,
+      includeInactive: showInactive,
+      sortBy: sortKey,
+      sortDirection,
+    },
+  );
+  const usersQuery = useUsersQuery();
+  const customers = useMemo(() => customersQuery.data ?? [], [customersQuery.data]);
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkType, setBulkType] = useState<Customer["customer_type"]>("potential");
@@ -333,11 +347,6 @@ export function CustomerListPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
-    return () => window.clearTimeout(timer);
-  }, [search]);
 
   const customerMap = useMemo(
     () =>
@@ -349,32 +358,18 @@ export function CustomerListPage() {
   );
 
   const filteredCustomers = useMemo(() => {
-    const keyword = toSlug(debouncedSearch);
-    const result = customers
-      .filter((customer) => (showInactive ? true : customer.is_active))
-      .filter((customer) =>
-        selectedType === "all" ? true : customer.customer_type === selectedType,
-      )
-      .filter((customer) => {
-        if (!keyword) return true;
-        return toSlug([customer.full_name, customer.phone, customer.email].join(" ")).includes(keyword);
-      })
-      .sort((a, b) => {
-        const direction = sortDirection === "asc" ? 1 : -1;
-        if (sortKey === "full_name") {
-          return a.full_name.localeCompare(b.full_name, "vi") * direction;
-        }
-        if (sortKey === "total_spent") {
-          return (a.total_spent - b.total_spent) * direction;
-        }
-        return (
-          (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) *
-          direction
-        );
-      });
+    return customers.filter((customer) => {
+      if (selectedType !== "all" && customer.customer_type !== selectedType) {
+        return false;
+      }
 
-    return result;
-  }, [customers, debouncedSearch, selectedType, showInactive, sortDirection, sortKey]);
+      if (assignedFilter !== "all" && customer.assigned_to !== assignedFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [assignedFilter, customers, selectedType]);
 
   const chipCounts = useMemo(
     () => ({
@@ -390,43 +385,40 @@ export function CustomerListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, selectedType, showInactive, sortDirection, sortKey]);
+  }, [assignedFilter, serverSearch, selectedType, showInactive, sortDirection, sortKey]);
 
   const pagedCustomers = filteredCustomers.slice((page - 1) * 10, page * 10);
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / 10));
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useAppMutation({
+    action: "customer.soft-delete",
+    errorMessage: "Không thể xóa mềm khách hàng.",
     mutationFn: customerService.softDelete,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Đã chuyển khách hàng sang trạng thái không hoạt động");
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể xóa mềm khách hàng."));
-    },
   });
 
-  const bulkDeleteMutation = useMutation({
+  const bulkDeleteMutation = useAppMutation({
+    action: "customer.bulk-soft-delete",
+    errorMessage: "Không thể cập nhật danh sách đã chọn.",
     mutationFn: customerService.softDeleteMany,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       setSelectedIds([]);
       toast.success("Đã cập nhật trạng thái không hoạt động cho danh sách đã chọn");
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể cập nhật danh sách đã chọn."));
-    },
   });
 
-  const bulkChangeTypeMutation = useMutation({
+  const bulkChangeTypeMutation = useAppMutation({
+    action: "customer.bulk-change-type",
+    errorMessage: "Không thể đổi phân loại khách hàng.",
     mutationFn: ({ ids, type }: { ids: string[]; type: Customer["customer_type"] }) =>
       customerService.bulkChangeType(ids, type),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Đã cập nhật phân loại khách hàng");
-    },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể đổi phân loại khách hàng."));
     },
   });
 
@@ -553,119 +545,123 @@ export function CustomerListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Khách Hàng"
-        subtitle="Quản lý danh sách khách hàng và theo dõi tình trạng chăm sóc."
-        actions={
-          <>
-            <Badge className="bg-primary/10 text-primary ring-primary/20">
-              {customers.length} khách hàng
-            </Badge>
-            <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
-              Nhập Excel
-            </Button>
-            <Button variant="secondary" onClick={() => void handleExport()}>
-              Xuất Excel
-            </Button>
-            <Button onClick={() => {
-              setEditingCustomer(null);
-              setFormOpen(true);
-            }}>
-              <UserPlus className="size-4" />
-              Thêm Khách Hàng
-            </Button>
-          </>
-        }
+        // subtitle="Tìm kiếm, phân loại và thao tác nhanh trên cùng một màn hình."
+        actions={<Badge className="bg-primary/10 text-primary ring-primary/20">{customers.length} khách hàng</Badge>}
       />
 
-      <Card>
-        <CardContent className="space-y-5 p-5">
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleImport}
-          />
-          <div className="grid gap-3 lg:grid-cols-[2fr,1fr,auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm theo tên, số điện thoại hoặc email"
-                className="pl-9"
-              />
-            </div>
-            <Select
-              value={selectedType}
-              onChange={(event) =>
-                setSelectedType(event.target.value as Customer["customer_type"] | "all")
-              }
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={handleImport}
+      />
+
+      <StickyFilterBar>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <div className="relative min-w-[280px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm theo tên, số điện thoại hoặc email"
+              className="pl-9"
+            />
+          </div>
+          <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)} className="w-[180px]">
+            <option value="all">Tất cả phụ trách</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name}
+              </option>
+            ))}
+          </Select>
+          <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 px-3 text-sm text-muted-foreground">
+            <Checkbox checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
+            Hiện inactive
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => importInputRef.current?.click()}>
+            Nhập Excel
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+            Xuất Excel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingCustomer(null);
+              setFormOpen(true);
+            }}
+          >
+            <UserPlus className="size-4" />
+            Thêm Khách Hàng
+          </Button>
+        </div>
+        <div className="flex basis-full flex-wrap gap-1">
+          {chipConfig.map((chip) => (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() => setSelectedType(chip.value)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm font-medium transition",
+                selectedType === chip.value
+                  ? "bg-foreground text-background shadow-xs"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
             >
-              <option value="all">Tất cả phân loại</option>
-              <option value="vip">VIP</option>
-              <option value="loyal">Thân thiết</option>
+              {chip.label} ({chipCounts[chip.value]})
+            </button>
+          ))}
+        </div>
+      </StickyFilterBar>
+
+      {selectedIds.length ? (
+        <BulkActionBar>
+          <div className="text-sm font-medium text-primary">{selectedIds.length} khách hàng đã chọn</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={bulkType}
+              onChange={(event) => setBulkType(event.target.value as Customer["customer_type"])}
+              className="w-[180px]"
+            >
               <option value="potential">Tiềm năng</option>
               <option value="new">Mới</option>
+              <option value="loyal">Thân thiết</option>
+              <option value="vip">VIP</option>
               <option value="inactive">Không hoạt động</option>
             </Select>
-            <label className="inline-flex items-center gap-2 rounded-xl border border-border px-4 text-sm text-muted-foreground">
-              <Checkbox checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
-              Hiện cả inactive
-            </label>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => bulkChangeTypeMutation.mutate({ ids: selectedIds, type: bulkType })}
+            >
+              Đổi phân loại
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+              Xóa mềm
+            </Button>
           </div>
+        </BulkActionBar>
+      ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            {chipConfig.map((chip) => (
-              <button
-                key={chip.value}
-                type="button"
-                onClick={() => setSelectedType(chip.value)}
-                className={`rounded-full border px-4 py-2 text-sm transition ${
-                  selectedType === chip.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                {chip.label} ({chipCounts[chip.value]})
-              </button>
-            ))}
-          </div>
-
-          {selectedIds.length ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="text-sm font-medium text-primary">
-                {selectedIds.length} đã chọn
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Select
-                  value={bulkType}
-                  onChange={(event) => setBulkType(event.target.value as Customer["customer_type"])}
-                  className="w-[180px]"
-                >
-                  <option value="potential">Tiềm năng</option>
-                  <option value="new">Mới</option>
-                  <option value="loyal">Thân thiết</option>
-                  <option value="vip">VIP</option>
-                  <option value="inactive">Không hoạt động</option>
-                </Select>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    bulkChangeTypeMutation.mutate({ ids: selectedIds, type: bulkType })
-                  }
-                >
-                  Đổi phân loại
-                </Button>
-                <Button variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
-                  Xóa mềm
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
+      <DataTableShell
+        footer={
+          <CompactPagination
+            page={page}
+            totalPages={totalPages}
+            label={`${filteredCustomers.length} kết quả`}
+            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+        }
+      >
+        {filteredCustomers.length ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -695,14 +691,16 @@ export function CustomerListPage() {
                 <TableHead className="cursor-pointer" onClick={() => toggleSort("created_at")}>
                   Lần Cuối
                 </TableHead>
-                <TableHead className="w-[160px] text-right">Hành động</TableHead>
+                <TableHead className="w-[128px] text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pagedCustomers.map((customer) => (
                 <TableRow
                   key={customer.id}
-                  className="group cursor-pointer"
+                  className="cursor-pointer"
+                  onMouseEnter={() => preloadRoutePath(`/customers/${customer.id}`)}
+                  onFocus={() => preloadRoutePath(`/customers/${customer.id}`)}
                   onClick={() => navigate(`/customers/${customer.id}`)}
                 >
                   <TableCell onClick={(event) => event.stopPropagation()}>
@@ -719,9 +717,9 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <CustomerAvatar name={customer.full_name} type={customer.customer_type} />
-                      <div>
-                        <div className="font-medium">{customer.full_name}</div>
+                      <CustomerAvatar name={customer.full_name} type={customer.customer_type} className="size-10 text-sm" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{customer.full_name}</div>
                         <div className="font-mono text-xs text-muted-foreground">
                           {customer.customer_code}
                         </div>
@@ -729,9 +727,9 @@ export function CustomerListPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1 text-sm">
+                    <div className="space-y-0.5 text-sm">
                       <div>{customer.phone || "--"}</div>
-                      <div className="text-muted-foreground">{customer.email || "--"}</div>
+                      <div className="truncate text-muted-foreground">{customer.email || "--"}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -743,11 +741,11 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>{customerMap[customer.assigned_to] ?? "--"}</TableCell>
                   <TableCell className={customer.total_spent > 10_000_000 ? "font-semibold" : ""}>
-                    {formatCurrency(customer.total_spent)}
+                    {formatCurrencyCompact(customer.total_spent)}
                   </TableCell>
                   <TableCell>{customer.total_orders}</TableCell>
                   <TableCell>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <div>{timeAgo(customer.last_order_at)}</div>
                       <div className="text-xs text-muted-foreground">
                         {formatDate(customer.created_at)}
@@ -756,7 +754,7 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div
-                      className="flex justify-end gap-2 opacity-0 transition group-hover:opacity-100"
+                      className="flex justify-end gap-1.5"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Button size="icon" variant="ghost" aria-label={`Xem hồ sơ ${customer.full_name}`} onClick={() => navigate(`/customers/${customer.id}`)}>
@@ -782,37 +780,17 @@ export function CustomerListPage() {
               ))}
             </TableBody>
           </Table>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Trang {page}/{totalPages} · {filteredCustomers.length} kết quả
-            </div>
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setPage((value) => Math.max(1, value - 1))}>
-                Trang trước
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-              >
-                Trang sau
-              </Button>
-            </div>
+        ) : (
+          <div className="p-4 lg:p-5">
+            <EmptyState
+              icon={Users}
+              title="Không có khách hàng phù hợp"
+              description="Thử đổi bộ lọc, tìm kiếm khác hoặc thêm khách hàng mới vào danh sách."
+              className="min-h-[240px] border-dashed bg-transparent shadow-none"
+            />
           </div>
-        </CardContent>
-      </Card>
-
-      {!filteredCustomers.length ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Users className="mx-auto mb-4 size-12 text-muted-foreground" />
-            <div className="font-display text-xl font-semibold">Không có khách hàng phù hợp</div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              Thử thay đổi bộ lọc hoặc thêm khách hàng mới vào danh sách.
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+        )}
+      </DataTableShell>
 
       <CustomerFormModal
         open={formOpen}

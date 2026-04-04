@@ -11,6 +11,10 @@ type ModalProps = {
   description?: string;
   children: ReactNode;
   className?: string;
+  footer?: ReactNode;
+  bodyClassName?: string;
+  hideHeader?: boolean;
+  showCloseButton?: boolean;
 };
 
 export function Modal({
@@ -20,6 +24,10 @@ export function Modal({
   description,
   children,
   className,
+  footer,
+  bodyClassName,
+  hideHeader = false,
+  showCloseButton = true,
 }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -27,29 +35,39 @@ export function Modal({
         <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px] border border-border bg-card p-6 shadow-soft",
+            "fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(94vw,760px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border border-border/80 bg-card shadow-panel",
             className,
           )}
         >
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <div>
-              <Dialog.Title className="font-display text-xl font-bold text-foreground">
-                {title}
-              </Dialog.Title>
-              {description ? (
-                <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                  {description}
-                </Dialog.Description>
+          {hideHeader ? (
+            <div className="sr-only">
+              <Dialog.Title>{title}</Dialog.Title>
+              {description ? <Dialog.Description>{description}</Dialog.Description> : null}
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-4 border-b border-border/70 px-4 py-4 lg:px-5">
+              <div>
+                <Dialog.Title className="font-display text-lg font-semibold text-foreground">
+                  {title}
+                </Dialog.Title>
+                {description ? (
+                  <Dialog.Description className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">
+                    {description}
+                  </Dialog.Description>
+                ) : null}
+              </div>
+              {showCloseButton ? (
+                <Dialog.Close
+                  aria-label="Đóng hộp thoại"
+                  className="rounded-lg border border-transparent p-2 text-muted-foreground transition hover:border-border/70 hover:bg-muted hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </Dialog.Close>
               ) : null}
             </div>
-            <Dialog.Close
-              aria-label="Đóng hộp thoại"
-              className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              <X className="size-4" />
-            </Dialog.Close>
-          </div>
-          {children}
+          )}
+          <div className={cn("min-h-0 flex-1 overflow-y-auto p-4 lg:p-5", bodyClassName)}>{children}</div>
+          {footer ? <div className="border-t border-border/70 px-4 py-4 lg:px-5">{footer}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

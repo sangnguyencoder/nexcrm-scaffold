@@ -17,13 +17,17 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,9 +39,11 @@ import { useCustomersQuery, useDealsQuery, useTasksQuery, useUsersQuery } from "
 import {
   cn,
   formatCurrency,
+  formatCurrencyCompact,
   formatDate,
   formatDateTime,
   formatDealStage,
+  formatNumberCompact,
   formatTaskStatus,
   getDealStageColor,
   getPriorityColor,
@@ -110,6 +116,7 @@ function DealFormModal({
   const { data: customers = [] } = useCustomersQuery();
   const { data: users = [] } = useUsersQuery();
   const [customerSearch, setCustomerSearch] = useState("");
+  const deferredCustomerSearch = useDebouncedValue(customerSearch, 150);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const isEdit = Boolean(initialDeal);
   const form = useForm<DealFormValues>({
@@ -142,6 +149,7 @@ function DealFormModal({
   }, [form, initialDeal, open, prefillCustomerId, users]);
 
   const mutation = useAppMutation({
+    action: isEdit ? "deal.update" : "deal.create",
     errorMessage: isEdit ? "Không thể cập nhật cơ hội." : "Không thể tạo cơ hội mới.",
     mutationFn: async (values: DealFormValues) => {
       const payload = {
@@ -170,7 +178,7 @@ function DealFormModal({
   });
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.full_name.toLowerCase().includes(customerSearch.toLowerCase()),
+    customer.full_name.toLowerCase().includes(deferredCustomerSearch.toLowerCase()),
   );
 
   const attemptClose = () => {
@@ -193,9 +201,16 @@ function DealFormModal({
           onOpenChange(nextOpen);
         }}
         title={isEdit ? "Cập nhật cơ hội" : "Tạo cơ hội mới"}
-        description="Theo dõi pipeline bán hàng theo từng giai đoạn xử lý."
+        // description="Theo dõi pipeline bán hàng theo từng giai đoạn xử lý."
       >
         <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+          {mutation.actionError ? (
+            <ActionErrorAlert
+              error={mutation.actionError}
+              onDismiss={mutation.clearActionError}
+              onRetry={mutation.canRetry ? () => void mutation.retryLast() : undefined}
+            />
+          ) : null}
           <Field label="Tên cơ hội" error={form.formState.errors.title?.message}>
             <Input {...form.register("title")} placeholder="Ví dụ: Gia hạn gói CRM 12 tháng" />
           </Field>
@@ -306,6 +321,7 @@ function TaskForm({ dealId }: { dealId: string }) {
   }, [form, users]);
 
   const createTask = useAppMutation({
+    action: "deal.task.create",
     errorMessage: "Không thể tạo nhiệm vụ follow-up.",
     mutationFn: (values: TaskFormValues) =>
       taskService.create({
@@ -336,6 +352,13 @@ function TaskForm({ dealId }: { dealId: string }) {
   return (
     <form className="space-y-3 rounded-2xl border border-border p-4" onSubmit={form.handleSubmit((values) => createTask.mutate(values))}>
       <div className="font-medium">Tạo nhiệm vụ mới</div>
+      {createTask.actionError ? (
+        <ActionErrorAlert
+          error={createTask.actionError}
+          onDismiss={createTask.clearActionError}
+          onRetry={createTask.canRetry ? () => void createTask.retryLast() : undefined}
+        />
+      ) : null}
       <Field label="Tiêu đề" error={form.formState.errors.title?.message}>
         <Input {...form.register("title")} placeholder="Ví dụ: Gọi xác nhận nhu cầu" />
       </Field>
@@ -373,41 +396,25 @@ function TaskForm({ dealId }: { dealId: string }) {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="space-y-2 p-5">
-        <div className="text-sm text-muted-foreground">{label}</div>
-        <div className="font-display text-2xl font-bold">{value}</div>
-        <div className="text-xs text-muted-foreground">{helper}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function DealPipelinePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const dealsQuery = useDealsQuery();
+  const [search, setSearch] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const deferredSearch = useDebouncedValue(search, 250);
+  const dealsQuery = useDealsQuery({
+    search: deferredSearch || undefined,
+    ownerId: ownerFilter,
+  });
   const customersQuery = useCustomersQuery();
   const usersQuery = useUsersQuery();
   const tasksQuery = useTasksQuery({ entityType: "deal" });
-  const deals = dealsQuery.data ?? [];
-  const customers = customersQuery.data ?? [];
-  const users = usersQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
-  const [search, setSearch] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("all");
-  const [formOpen, setFormOpen] = useState(false);
+  const deals = useMemo(() => dealsQuery.data ?? [], [dealsQuery.data]);
+  const customers = useMemo(() => customersQuery.data ?? [], [customersQuery.data]);
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
+  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
+  const [formOpenLocal, setFormOpenLocal] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
@@ -416,13 +423,7 @@ export function DealPipelinePage() {
 
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
-
-  useEffect(() => {
-    if (requestedCreate) {
-      setEditingDeal(null);
-      setFormOpen(true);
-    }
-  }, [requestedCreate]);
+  const formOpen = requestedCreate || formOpenLocal;
 
   const clearPrefillParams = () => {
     if (!requestedCreate && !prefillCustomerId) return;
@@ -450,16 +451,22 @@ export function DealPipelinePage() {
     [users],
   );
 
-  const filteredDeals = useMemo(
+  const tasksByDealId = useMemo(
     () =>
-      deals.filter((deal) => {
-        if (ownerFilter !== "all" && deal.owner_id !== ownerFilter) return false;
-        if (!search.trim()) return true;
+      tasks.reduce<Record<string, Task[]>>((acc, task) => {
+        if (task.entity_type !== "deal") {
+          return acc;
+        }
 
-        const customerName = customerMap[deal.customer_id]?.full_name ?? "";
-        return `${deal.title} ${customerName}`.toLowerCase().includes(search.toLowerCase());
-      }),
-    [customerMap, deals, ownerFilter, search],
+        (acc[task.entity_id] ??= []).push(task);
+        return acc;
+      }, {}),
+    [tasks],
+  );
+
+  const filteredDeals = useMemo(
+    () => deals,
+    [deals],
   );
 
   const selectedDeal =
@@ -468,8 +475,8 @@ export function DealPipelinePage() {
     null;
 
   const selectedDealTasks = useMemo(
-    () => tasks.filter((task) => task.entity_type === "deal" && task.entity_id === selectedDeal?.id),
-    [selectedDeal?.id, tasks],
+    () => (selectedDeal?.id ? tasksByDealId[selectedDeal.id] ?? [] : []),
+    [selectedDeal?.id, tasksByDealId],
   );
 
   const summary = useMemo(() => {
@@ -485,6 +492,7 @@ export function DealPipelinePage() {
   }, [filteredDeals, tasks]);
 
   const updateStage = useAppMutation({
+    action: "deal.update-stage",
     errorMessage: "Không thể cập nhật giai đoạn cơ hội.",
     mutationFn: ({ id, stage }: { id: string; stage: DealStage }) => dealService.updateStage(id, stage),
     onSuccess: async (_, variables) => {
@@ -497,6 +505,7 @@ export function DealPipelinePage() {
   });
 
   const deleteDeal = useAppMutation({
+    action: "deal.delete",
     errorMessage: "Không thể xóa cơ hội.",
     mutationFn: (id: string) => dealService.delete(id),
     onSuccess: async () => {
@@ -511,6 +520,7 @@ export function DealPipelinePage() {
   });
 
   const completeTask = useAppMutation({
+    action: "deal.task.complete",
     errorMessage: "Không thể cập nhật nhiệm vụ.",
     mutationFn: (id: string) => taskService.complete(id),
     onSuccess: async () => {
@@ -523,6 +533,7 @@ export function DealPipelinePage() {
   });
 
   const deleteTask = useAppMutation({
+    action: "deal.task.delete",
     errorMessage: "Không thể xóa nhiệm vụ.",
     mutationFn: (id: string) => taskService.delete(id),
     onSuccess: async () => {
@@ -556,15 +567,15 @@ export function DealPipelinePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Pipeline Kinh Doanh"
-        subtitle="Quản lý lead, cơ hội bán hàng, follow-up và trạng thái chốt deal."
+        // subtitle="Kanban compact để kéo thả nhanh, còn chi tiết rich context nằm trong inspector."
         actions={
           <Button
             onClick={() => {
               setEditingDeal(null);
-              setFormOpen(true);
+              setFormOpenLocal(true);
             }}
           >
             <Plus className="size-4" />
@@ -573,44 +584,43 @@ export function DealPipelinePage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <SummaryCard label="Tổng giá trị pipeline" value={formatCurrency(summary.totalValue)} helper={`${summary.dealsCount} cơ hội đang theo dõi`} />
-        <SummaryCard label="Giá trị đã chốt" value={formatCurrency(summary.wonValue)} helper="Các cơ hội ở trạng thái Thành công" />
-        <SummaryCard label="Lead / Deal" value={String(summary.dealsCount)} helper="Số cơ hội theo bộ lọc hiện tại" />
-        <SummaryCard label="Nhiệm vụ mở" value={String(summary.openTasks)} helper="Follow-up chưa hoàn thành" />
-      </div>
+      <MetricStrip>
+        <MetricStripItem label="Tổng value pipeline" value={formatCurrencyCompact(summary.totalValue)} helper={`${formatNumberCompact(summary.dealsCount)} cơ hội đang theo dõi`} />
+        <MetricStripItem label="Đã chốt" value={formatCurrencyCompact(summary.wonValue)} helper="Giá trị các deal won" />
+        <MetricStripItem label="Số cơ hội" value={formatNumberCompact(summary.dealsCount)} helper="Theo bộ lọc hiện tại" />
+        <MetricStripItem label="Nhiệm vụ mở" value={formatNumberCompact(summary.openTasks)} helper="Follow-up chưa hoàn thành" />
+      </MetricStrip>
 
-      <Card>
-        <CardContent className="grid gap-3 p-5 md:grid-cols-[minmax(0,1fr),240px,auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Tìm theo tên cơ hội hoặc khách hàng" />
-          </div>
-          <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
-            <option value="all">Tất cả phụ trách</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name}
-              </option>
-            ))}
-          </Select>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setSearch("");
-              setOwnerFilter("all");
-            }}
-          >
-            Xóa bộ lọc
-          </Button>
-        </CardContent>
-      </Card>
+      <StickyFilterBar>
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Tìm theo tên cơ hội hoặc khách hàng" />
+        </div>
+        <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} className="w-[220px]">
+          <option value="all">Tất cả phụ trách</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.full_name}
+            </option>
+          ))}
+        </Select>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setSearch("");
+            setOwnerFilter("all");
+          }}
+        >
+          Xóa bộ lọc
+        </Button>
+      </StickyFilterBar>
 
       {filteredDeals.length ? (
         <div className="overflow-x-auto">
           <div className="grid min-w-[1440px] grid-cols-6 gap-4">
             {stageColumns.map((column) => {
               const columnDeals = filteredDeals.filter((deal) => deal.stage === column.value);
+              const columnValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
               return (
                 <Card
                   key={column.value}
@@ -622,17 +632,20 @@ export function DealPipelinePage() {
                     setDraggedDealId(null);
                   }}
                 >
-                  <CardContent className="space-y-4 p-4">
+                  <CardContent className="space-y-3 p-3.5">
                     <div className="flex items-center justify-between">
-                      <div className="font-display text-sm font-semibold">{column.label}</div>
-                      <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{columnDeals.length}</div>
+                      <div>
+                        <div className="font-display text-sm font-semibold">{column.label}</div>
+                        <div className="text-xs text-muted-foreground">{formatCurrencyCompact(columnValue)}</div>
+                      </div>
+                      <div className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">{formatNumberCompact(columnDeals.length)}</div>
                     </div>
 
                     <div className="space-y-3">
                       {columnDeals.map((deal) => {
                         const customer = customerMap[deal.customer_id];
                         const owner = userMap[deal.owner_id];
-                        const relatedTasks = tasks.filter((task) => task.entity_id === deal.id && task.entity_type === "deal");
+                        const relatedTasks = tasksByDealId[deal.id] ?? [];
 
                         return (
                           <button
@@ -641,24 +654,24 @@ export function DealPipelinePage() {
                             draggable
                             onDragStart={() => setDraggedDealId(deal.id)}
                             onClick={() => setSelectedDealId(deal.id)}
-                            className="w-full rounded-2xl border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-primary/5"
+                            className="w-full rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="space-y-2">
-                                <div className="line-clamp-2 font-medium">{deal.title}</div>
-                                <div className="text-sm text-muted-foreground">{customer?.full_name ?? "Khách hàng không xác định"}</div>
+                                <div className="line-clamp-2 text-sm font-medium">{deal.title}</div>
+                                <div className="truncate text-xs text-muted-foreground">{customer?.full_name ?? "Khách hàng không xác định"}</div>
                               </div>
                               <StatusBadge label={`${deal.probability}%`} className={getDealStageColor(deal.stage)} dotClassName="bg-current" />
                             </div>
 
-                            <div className="mt-4 flex items-center justify-between text-sm">
-                              <div className="font-semibold">{formatCurrency(deal.value)}</div>
-                              <div className="text-muted-foreground">{owner?.full_name ?? "--"}</div>
-                            </div>
+                            <div className="mt-3 flex items-center justify-between text-sm">
+                                <div className="font-semibold">{formatCurrencyCompact(deal.value)}</div>
+                                <div className="truncate pl-3 text-xs text-muted-foreground">{owner?.full_name ?? "--"}</div>
+                              </div>
 
                             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                               <span>{deal.expected_close_at ? formatDate(deal.expected_close_at) : "Chưa có ngày chốt"}</span>
-                              <span>{relatedTasks.filter((task) => task.status !== "done").length} việc mở</span>
+                              <span>{formatNumberCompact(relatedTasks.filter((task) => task.status !== "done").length)} việc mở</span>
                             </div>
                           </button>
                         );
@@ -678,7 +691,7 @@ export function DealPipelinePage() {
           actionLabel="Tạo Cơ Hội"
           onAction={() => {
             setEditingDeal(null);
-            setFormOpen(true);
+            setFormOpenLocal(true);
           }}
         />
       )}
@@ -686,7 +699,7 @@ export function DealPipelinePage() {
       <DealFormModal
         open={formOpen}
         onOpenChange={(open) => {
-          setFormOpen(open);
+          setFormOpenLocal(open);
           if (!open) {
             setEditingDeal(null);
             clearPrefillParams();
@@ -702,7 +715,32 @@ export function DealPipelinePage() {
           if (!open) setSelectedDealId(null);
         }}
         title={selectedDeal?.title ?? "Chi tiết cơ hội"}
-        description={selectedDeal ? "Theo dõi thông tin chốt deal và các nhiệm vụ follow-up." : undefined}
+        // description={selectedDeal ? "Theo dõi thông tin chốt deal và các nhiệm vụ follow-up." : undefined}
+        className="w-[min(100vw,760px)]"
+        footer={
+          selectedDeal ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Button variant="secondary" onClick={() => setSelectedDealId(null)}>
+                Đóng
+              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingDeal(selectedDeal);
+                    setFormOpenLocal(true);
+                  }}
+                >
+                  Cập nhật
+                </Button>
+                <Button variant="destructive" onClick={() => setDeleteDealTarget(selectedDeal)}>
+                  <Trash2 className="size-4" />
+                  Xóa cơ hội
+                </Button>
+              </div>
+            </div>
+          ) : null
+        }
       >
         {selectedDeal ? (
           <div className="space-y-5">
@@ -713,26 +751,12 @@ export function DealPipelinePage() {
                     <div className="font-display text-xl font-bold">{selectedDeal.title}</div>
                     <StatusBadge label={formatDealStage(selectedDeal.stage)} className={getDealStageColor(selectedDeal.stage)} dotClassName="bg-current" />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setEditingDeal(selectedDeal);
-                        setFormOpen(true);
-                      }}
-                    >
-                      Cập nhật
-                    </Button>
-                    <Button variant="destructive" onClick={() => setDeleteDealTarget(selectedDeal)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
                 </div>
 
                 <div className="rounded-2xl bg-muted/40 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Giá trị cơ hội</span>
-                    <span className="font-display text-2xl font-bold">{formatCurrency(selectedDeal.value)}</span>
+                    <span className="font-display text-2xl font-bold">{formatCurrencyCompact(selectedDeal.value)}</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                     <div>

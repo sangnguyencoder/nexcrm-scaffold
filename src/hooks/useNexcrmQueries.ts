@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/hooks/useAppMutation";
 import { auditService } from "@/services/auditService";
 import { automationService } from "@/services/automationService";
 import { campaignService } from "@/services/campaignService";
@@ -55,23 +56,25 @@ export function useDashboardStats(
 ) {
   return useQuery({
     queryKey: queryKeys.dashboard(range),
-    queryFn: () => dashboardService.getStats(range),
+    queryFn: ({ signal }) => dashboardService.getStats(range, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useCustomersQuery(filters?: CustomerFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.customers(filters),
-    queryFn: () => customerService.getList(filters),
+    queryFn: ({ signal }) => customerService.getList(filters, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useCustomerDetailQuery(id?: string) {
   return useQuery({
     queryKey: queryKeys.customer(id ?? ""),
-    queryFn: () => customerService.getById(id ?? ""),
+    queryFn: ({ signal }) => customerService.getById(id ?? "", { signal }),
     enabled: Boolean(id),
   });
 }
@@ -79,23 +82,25 @@ export function useCustomerDetailQuery(id?: string) {
 export function useTransactionsQuery(filters?: TransactionFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.transactions(filters),
-    queryFn: () => transactionService.getList(filters),
+    queryFn: ({ signal }) => transactionService.getList(filters, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useTicketsQuery(filters?: TicketFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.tickets(filters),
-    queryFn: () => ticketService.getList(filters),
+    queryFn: ({ signal }) => ticketService.getList(filters, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useTicketDetailQuery(id?: string) {
   return useQuery({
     queryKey: queryKeys.ticket(id ?? ""),
-    queryFn: () => ticketService.getById(id ?? ""),
+    queryFn: ({ signal }) => ticketService.getById(id ?? "", { signal }),
     enabled: Boolean(id),
   });
 }
@@ -119,16 +124,18 @@ export function useOutboundMessagesQuery(filters?: OutboundMessageFilters, enabl
 export function useDealsQuery(filters?: DealFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.deals(filters),
-    queryFn: () => dealService.getList(filters),
+    queryFn: ({ signal }) => dealService.getList(filters, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useTasksQuery(filters?: TaskFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.tasks(filters),
-    queryFn: () => taskService.getList(filters),
+    queryFn: ({ signal }) => taskService.getList(filters, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -143,7 +150,8 @@ export function useNotificationsQuery(userId?: string) {
 export function useUsersQuery() {
   return useQuery({
     queryKey: queryKeys.profiles,
-    queryFn: profileService.getAll,
+    queryFn: ({ signal }) => profileService.getAll({ signal }),
+    staleTime: 15 * 60_000,
   });
 }
 
@@ -158,7 +166,8 @@ export function useAutomationQuery(enabled = true) {
 export function useSettingsQuery() {
   return useQuery({
     queryKey: queryKeys.settings,
-    queryFn: settingsService.get,
+    queryFn: ({ signal }) => settingsService.get({ signal }),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -172,15 +181,16 @@ export function useAuditQuery() {
 export function useReportSnapshot(request: ReportRequest, enabled = true) {
   return useQuery({
     queryKey: queryKeys.reports(request),
-    queryFn: () => reportService.getSnapshot(request),
+    queryFn: ({ signal }) => reportService.getSnapshot(request, { signal }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useNotesQuery(customerId?: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.notes(customerId ? { customerId } : undefined),
-    queryFn: () => customerService.getNotes(customerId),
+    queryFn: ({ signal }) => customerService.getNotes(customerId, { signal }),
     enabled,
   });
 }
@@ -188,7 +198,7 @@ export function useNotesQuery(customerId?: string, enabled = true) {
 export function useCommentsQuery(ticketId?: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.comments(ticketId ? { ticketId } : undefined),
-    queryFn: () => ticketService.getComments(ticketId),
+    queryFn: ({ signal }) => ticketService.getComments(ticketId, { signal }),
     enabled,
   });
 }
@@ -223,7 +233,9 @@ export function useInvalidateQueries() {
 export function useMarkAllNotificationsRead(userId?: string) {
   const invalidate = useInvalidateQueries();
 
-  return useMutation({
+  return useAppMutation({
+    action: "notification.mark-all-read",
+    errorMessage: "Không thể đánh dấu tất cả thông báo đã đọc.",
     mutationFn: () => notificationService.markAllRead(userId ?? ""),
     onSuccess: () => invalidate(),
   });

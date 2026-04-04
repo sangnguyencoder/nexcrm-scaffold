@@ -1,7 +1,9 @@
+import { memo } from "react";
+
 import { cn, formatCustomerType, getCustomerTypeColor, getInitials } from "@/lib/utils";
 import type { CustomerType } from "@/types";
 
-export function CustomerAvatar({
+export const CustomerAvatar = memo(function CustomerAvatar({
   name,
   type,
   className,
@@ -13,7 +15,7 @@ export function CustomerAvatar({
   return (
     <div
       className={cn(
-        "inline-flex size-11 items-center justify-center rounded-full font-semibold",
+        "inline-flex size-11 items-center justify-center rounded-lg border border-current/10 font-semibold shadow-xs",
         getCustomerTypeColor(type),
         className,
       )}
@@ -22,4 +24,4 @@ export function CustomerAvatar({
       {getInitials(name)}
     </div>
   );
-}
+});

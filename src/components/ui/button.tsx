@@ -4,23 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:opacity-90",
+        default:
+          "border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/92",
         secondary:
-          "bg-card text-foreground ring-1 ring-border hover:bg-muted/70",
-        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+          "border-border/80 bg-card text-foreground shadow-xs hover:bg-muted/45",
+        ghost: "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
         destructive:
-          "bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500",
-        outline:
-          "bg-transparent text-foreground ring-1 ring-border hover:bg-muted/60",
+          "border-destructive bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90",
+        outline: "border-border/80 bg-background text-foreground hover:bg-muted/50",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 px-3",
-        lg: "h-12 px-5 text-base",
+        default: "h-10 px-4",
+        sm: "h-9 px-3.5 text-[13px]",
+        lg: "h-11 px-5 text-[15px]",
         icon: "size-10",
       },
     },

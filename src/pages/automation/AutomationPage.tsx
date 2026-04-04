@@ -1,33 +1,45 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
-  Clock3,
+  Copy,
   Lightbulb,
   Mail,
   MessageSquare,
+  Pencil,
   Play,
   Plus,
-  Sparkles,
-  Tag,
+  Trash2,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 
+import { ActionErrorAlert } from "@/components/shared/action-error-alert";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { DataTableShell } from "@/components/shared/data-table-shell";
+import { EmptyState } from "@/components/shared/empty-state";
+import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
+import { InspectorList } from "@/components/shared/inspector-list";
+import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageLoader } from "@/components/shared/page-loader";
+import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { useAppMutation } from "@/hooks/useAppMutation";
+import { queryKeys, useAutomationQuery, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
+import { cn, formatNumberCompact, timeAgo } from "@/lib/utils";
+import { automationService } from "@/services/automationService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { Sheet } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useAutomationQuery, queryKeys, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
-import { cn, timeAgo } from "@/lib/utils";
-import { automationService } from "@/services/automationService";
-import { getAppErrorMessage } from "@/services/shared";
+import type { AutomationRule } from "@/types";
 
 type RuleForm = {
   name: string;
@@ -46,28 +58,53 @@ const VARIABLE_TOKENS = [
   "{lan_mua_cuoi}",
 ] as const;
 
+function formatChannel(channel: "email" | "sms") {
+  return channel === "email" ? "Email" : "SMS";
+}
+
+function getChannelIcon(channel: "email" | "sms") {
+  return channel === "email" ? Mail : MessageSquare;
+}
+
+function getRuleStatusColor(isActive: boolean) {
+  return isActive
+    ? "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300"
+    : "bg-slate-500/15 text-slate-600 ring-slate-500/25 dark:text-slate-300";
+}
+
 function getRuleTone(channel: "email" | "sms") {
   return channel === "email"
-    ? "from-sky-500/20 via-primary/15 to-transparent"
+    ? "from-sky-500/20 via-primary/10 to-transparent"
     : "from-emerald-500/20 via-primary/10 to-transparent";
+}
+
+function getRuleDraft(rule?: AutomationRule | null): RuleForm {
+  return {
+    name: rule?.name ?? "",
+    description: rule?.description ?? "",
+    trigger_type: rule?.trigger_type ?? "birthday",
+    trigger_days: rule?.trigger_days ?? 30,
+    channel: rule?.channel ?? "email",
+    summary: rule?.action_summary ?? "Gửi ưu đãi tự động",
+    content:
+      rule?.content ??
+      "Xin chào {ten_khach_hang}, NexCRM gửi bạn ưu đãi cá nhân hóa. Tổng chi tiêu gần nhất: {tong_chi_tieu}.",
+  };
 }
 
 export function AutomationPage() {
   const queryClient = useQueryClient();
-  const { data: rules = [] } = useAutomationQuery();
+  const { data: rules = [], isLoading } = useAutomationQuery();
   const { data: outboundMessages = [] } = useOutboundMessagesQuery();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [channelFilter, setChannelFilter] = useState<"all" | "email" | "sms">("all");
+  const [detailRule, setDetailRule] = useState<AutomationRule | null>(null);
+  const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AutomationRule | null>(null);
   const form = useForm<RuleForm>({
-    defaultValues: {
-      name: "",
-      description: "",
-      trigger_type: "birthday",
-      trigger_days: 30,
-      channel: "email",
-      summary: "Gửi ưu đãi tự động",
-      content:
-        "Xin chào {ten_khach_hang}, NexCRM gửi bạn ưu đãi cá nhân hóa. Tổng chi tiêu gần nhất: {tong_chi_tieu}.",
-    },
+    defaultValues: getRuleDraft(),
   });
 
   const groupedMessages = useMemo(() => {
@@ -101,39 +138,82 @@ export function AutomationPage() {
       }
 
       current.recent = [...current.recent, message]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 3);
+        .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+        .slice(0, 5);
 
       acc[message.automation_rule_id] = current;
       return acc;
     }, {});
   }, [outboundMessages]);
 
-  const createRule = useMutation({
-    mutationFn: automationService.create,
+  const filteredRules = useMemo(
+    () =>
+      rules.filter((rule) => {
+        if (activeFilter === "active" && !rule.is_active) return false;
+        if (activeFilter === "inactive" && rule.is_active) return false;
+        if (channelFilter !== "all" && rule.channel !== channelFilter) return false;
+        if (!search.trim()) return true;
+
+        const keyword = search.toLowerCase();
+        const haystack = `${rule.name} ${rule.description ?? ""} ${rule.action_summary ?? ""} ${rule.trigger}`.toLowerCase();
+        return haystack.includes(keyword);
+      }),
+    [activeFilter, channelFilter, rules, search],
+  );
+
+  const summary = useMemo(() => {
+    const active = rules.filter((rule) => rule.is_active).length;
+    const sent = rules.reduce((total, rule) => total + rule.sent_count, 0);
+    const failed = rules.reduce((total, rule) => total + (groupedMessages[rule.id]?.failed ?? 0), 0);
+    const recentRuns = rules.filter((rule) => rule.last_run_at).length;
+    return { active, sent, failed, recentRuns };
+  }, [groupedMessages, rules]);
+
+  const saveRule = useAppMutation({
+    action: editingRule ? "automation.update" : "automation.create",
+    errorMessage: editingRule
+      ? "Không thể cập nhật quy tắc tự động."
+      : "Không thể tạo quy tắc tự động.",
+    successMessage: editingRule
+      ? "Đã cập nhật quy tắc tự động"
+      : "Đã tạo quy tắc tự động mới",
+    mutationFn: (values: RuleForm) => {
+      const payload = {
+        name: values.name,
+        description: values.description,
+        trigger_type: values.trigger_type,
+        trigger_days: values.trigger_days,
+        channel: values.channel,
+        summary: values.summary,
+        content: values.content,
+      };
+
+      return editingRule
+        ? automationService.update(editingRule.id, payload)
+        : automationService.create(payload);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.automation });
-      toast.success("Đã tạo quy tắc tự động mới");
-      form.reset();
+      form.reset(getRuleDraft());
+      setEditingRule(null);
       setOpen(false);
     },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể tạo quy tắc tự động."));
-    },
   });
 
-  const toggleRule = useMutation({
-    mutationFn: (id: string) => automationService.toggleActive(id),
+  const toggleRule = useAppMutation({
+    action: "automation.toggle",
+    errorMessage: "Không thể cập nhật trạng thái quy tắc.",
+    successMessage: "Đã cập nhật trạng thái quy tắc",
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => automationService.toggleActive(id, isActive),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.automation });
-      toast.success("Đã cập nhật trạng thái quy tắc");
-    },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể cập nhật trạng thái quy tắc."));
     },
   });
 
-  const runRule = useMutation({
+  const runRule = useAppMutation({
+    action: "automation.run",
+    errorMessage: "Không thể chạy quy tắc tự động.",
+    successMessage: "Đã chạy quy tắc tự động",
     mutationFn: (id: string) => automationService.runNow(id),
     onSuccess: async () => {
       await Promise.all([
@@ -142,18 +222,54 @@ export function AutomationPage() {
         queryClient.invalidateQueries({ queryKey: ["notifications"] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
       ]);
-      toast.success("Đã chạy quy tắc tự động");
-    },
-    onError: (error) => {
-      toast.error(getAppErrorMessage(error, "Không thể chạy quy tắc tự động."));
     },
   });
 
-  const triggerType = form.watch("trigger_type");
-  const channel = form.watch("channel");
-  const content = form.watch("content");
+  const duplicateRule = useAppMutation({
+    action: "automation.duplicate",
+    errorMessage: "Không thể nhân bản quy tắc tự động.",
+    successMessage: "Đã nhân bản quy tắc tự động",
+    mutationFn: automationService.duplicate,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.automation });
+    },
+  });
 
-  const previewContent = content
+  const deleteRule = useAppMutation({
+    action: "automation.delete",
+    errorMessage: "Không thể xóa quy tắc tự động.",
+    successMessage: "Đã xóa quy tắc tự động",
+    mutationFn: automationService.delete,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.automation }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.outboundMessages() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
+      ]);
+      setDetailRule(null);
+    },
+  });
+
+  const openRuleEditor = (rule?: AutomationRule | null) => {
+    setEditingRule(rule ?? null);
+    form.reset(getRuleDraft(rule));
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (open) {
+      form.reset(getRuleDraft(editingRule));
+    }
+  }, [editingRule, form, open]);
+
+  const triggerType = useWatch({ control: form.control, name: "trigger_type" });
+  const triggerDays = useWatch({ control: form.control, name: "trigger_days" });
+  const channel = useWatch({ control: form.control, name: "channel" });
+  const content = useWatch({ control: form.control, name: "content" });
+  const ruleName = useWatch({ control: form.control, name: "name" });
+  const ruleSummary = useWatch({ control: form.control, name: "summary" });
+
+  const previewContent = (content || "")
     .replaceAll("{ten_khach_hang}", "Nguyễn Minh Anh")
     .replaceAll("{ma_khach_hang}", "KH-2026-0128")
     .replaceAll("{tong_chi_tieu}", "18.500.000 ₫")
@@ -165,324 +281,457 @@ export function AutomationPage() {
     });
   };
 
+  if (isLoading) {
+    return <PageLoader panels={2} />;
+  }
+
+  const detailStats = detailRule ? groupedMessages[detailRule.id] : undefined;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Chăm Sóc Tự Động"
-        subtitle="Thiết lập các kịch bản gửi Email/SMS theo hành vi khách hàng."
+        // subtitle="Rule list, trigger và kết quả gửi được gom vào cùng một workspace để team vận hành scan nhanh hơn."
         actions={
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={() => openRuleEditor()}>
             <Plus className="size-4" />
             Tạo Quy Tắc
           </Button>
         }
       />
 
-      <Card>
-        <CardContent className="flex items-center gap-3 p-5 text-sm text-muted-foreground">
-          <Lightbulb className="size-5 text-primary" />
-          Hệ thống tự động gửi Email/SMS theo kịch bản đã thiết lập. Quy tắc có thể chạy thủ công để test nhanh trước khi vận hành thật.
-        </CardContent>
-      </Card>
+      <MetricStrip>
+        <MetricStripItem label="Quy tắc" value={formatNumberCompact(rules.length)} helper={`${formatNumberCompact(summary.active)} rule đang hoạt động.`} />
+        <MetricStripItem label="Đã gửi" value={formatNumberCompact(summary.sent)} helper="Outbound message từ tất cả quy tắc." />
+        <MetricStripItem label="Thất bại" value={formatNumberCompact(summary.failed)} helper="Dùng để kiểm tra provider hoặc dữ liệu liên hệ." />
+        <MetricStripItem label="Đã chạy" value={formatNumberCompact(summary.recentRuns)} helper="Rule đã có ít nhất một lần run." />
+      </MetricStrip>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {rules.map((rule) => {
-          const messageStats = groupedMessages[rule.id] ?? {
-            sent: 0,
-            failed: 0,
-            lastSentAt: null,
-            recent: [],
-          };
-
-          return (
-            <Card key={rule.id} className="overflow-hidden">
-              <div className={cn("border-b border-border bg-gradient-to-br p-5", getRuleTone(rule.channel))}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      <Sparkles className="size-4 text-primary" />
-                      Automation Rule
-                    </div>
-                    <div className="font-display text-xl font-semibold">{rule.name}</div>
-                    <div className="max-w-xl text-sm text-muted-foreground">
-                      {rule.description || rule.action_summary || "Chưa có mô tả chi tiết cho quy tắc này."}
-                    </div>
-                  </div>
-                  <Switch checked={rule.is_active} onChange={() => toggleRule.mutate(rule.id)} />
-                </div>
-              </div>
-
-              <CardContent className="space-y-4 p-5">
-                <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-border bg-muted/30 p-4 text-sm">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Zap className="size-4 text-primary" />
-                      Trigger
-                    </div>
-                    <div className="mt-2 text-foreground">{rule.trigger}</div>
-                    {rule.trigger_days ? (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Chu kỳ chi tiết: {rule.trigger_days} ngày
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="rounded-2xl border border-border bg-muted/30 p-4 text-sm">
-                    <div className="flex items-center gap-2 font-medium">
-                      {rule.channel === "email" ? (
-                        <Mail className="size-4 text-primary" />
-                      ) : (
-                        <MessageSquare className="size-4 text-primary" />
-                      )}
-                      Action
-                    </div>
-                    <div className="mt-2 text-foreground">{rule.action}</div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Kênh: {rule.channel.toUpperCase()} · Tóm tắt: {rule.action_summary || "--"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium">Biến và nội dung mẫu</div>
-                    <StatusBadge
-                      label={rule.is_active ? "Đang hoạt động" : "Đã tắt"}
-                      className="bg-muted text-muted-foreground ring-border"
-                      dotClassName={rule.is_active ? "bg-emerald-500" : "bg-slate-400"}
-                    />
-                  </div>
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {rule.variables.map((variable) => (
-                      <span
-                        key={variable}
-                        className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground"
-                      >
-                        {variable}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="rounded-2xl bg-muted/40 p-4 text-sm text-muted-foreground">
-                    {rule.content || "Chưa có nội dung tự động."}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <StatCard
-                    icon={Mail}
-                    label="Đã gửi"
-                    value={String(rule.sent_count)}
-                    hint={messageStats.sent ? `${messageStats.sent} gửi thành công gần đây` : "Chưa có lần gửi gần đây"}
-                  />
-                  <StatCard
-                    icon={Clock3}
-                    label="Lần chạy gần nhất"
-                    value={rule.last_run_at ? timeAgo(rule.last_run_at) : "Chưa chạy"}
-                    hint={messageStats.lastSentAt ? `Có outbound ${timeAgo(messageStats.lastSentAt)}` : "Chưa có log outbound"}
-                  />
-                  <StatCard
-                    icon={Tag}
-                    label="Lỗi gửi"
-                    value={String(messageStats.failed)}
-                    hint={messageStats.failed ? "Cần kiểm tra provider hoặc dữ liệu liên hệ" : "Không có lỗi gần đây"}
-                  />
-                </div>
-
-                {messageStats.recent.length ? (
-                  <div className="space-y-3 rounded-2xl border border-border p-4">
-                    <div className="text-sm font-medium">Lần chạy gần đây</div>
-                    {messageStats.recent.map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
-                        <div>
-                          <div className="font-medium">{item.recipient}</div>
-                          <div className="text-muted-foreground">
-                            {item.channel.toUpperCase()} · {item.provider}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{item.status}</div>
-                          <div className="text-xs text-muted-foreground">{timeAgo(item.created_at)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                <div className="flex justify-end">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => runRule.mutate(rule.id)}
-                    disabled={runRule.isPending || !rule.is_active}
-                  >
-                    <Play className="size-4" />
-                    Chạy ngay
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="size-4 text-primary" />
+          Ưu tiên compact list để operator thấy trigger, kênh, last run và tình trạng gửi trong một màn thay vì card grid dài.
+        </div>
       </div>
 
-      <Modal
-        open={open}
-        onOpenChange={setOpen}
-        title="Tạo Quy Tắc Tự Động"
-        description="Thiết lập trigger, biến nội dung và kênh gửi chi tiết hơn cho quy tắc mới."
-        className="max-w-4xl"
-      >
-        <form className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]" onSubmit={form.handleSubmit((values) => createRule.mutate(values))}>
-          <div className="space-y-4">
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="font-medium">Tên quy tắc</span>
-              <Input {...form.register("name", { required: true })} placeholder="Ví dụ: Chúc mừng sinh nhật VIP" />
-            </label>
+      <StickyFilterBar>
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tìm theo rule, mô tả hoặc trigger"
+          aria-label="Tìm quy tắc tự động"
+          className="min-w-[260px] flex-1"
+        />
+        <Select
+          value={activeFilter}
+          onChange={(event) => setActiveFilter(event.target.value as typeof activeFilter)}
+          className="w-[150px]"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Đã tắt</option>
+        </Select>
+        <Select
+          value={channelFilter}
+          onChange={(event) => setChannelFilter(event.target.value as typeof channelFilter)}
+          className="w-[130px]"
+        >
+          <option value="all">Tất cả kênh</option>
+          <option value="email">Email</option>
+          <option value="sms">SMS</option>
+        </Select>
+      </StickyFilterBar>
 
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="font-medium">Mô tả ngắn</span>
-              <Textarea
-                {...form.register("description")}
-                placeholder="Mô tả mục tiêu của quy tắc để đội vận hành dễ theo dõi."
-              />
-            </label>
+      <DataTableShell>
+        {filteredRules.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Quy tắc</TableHead>
+                <TableHead>Trigger</TableHead>
+                <TableHead>Kênh</TableHead>
+                <TableHead>Hiệu suất</TableHead>
+                <TableHead>Lần chạy</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRules.map((rule) => {
+                const messageStats = groupedMessages[rule.id] ?? {
+                  sent: 0,
+                  failed: 0,
+                  lastSentAt: null,
+                  recent: [],
+                };
+                const ChannelIcon = getChannelIcon(rule.channel);
 
-            <div className="grid gap-4 md:grid-cols-[1fr,160px]">
-              <label className="flex flex-col gap-2 text-sm">
-                <span className="font-medium">Điều kiện kích hoạt</span>
-                <Select {...form.register("trigger_type")}>
-                  <option value="birthday">Sinh nhật khách hàng</option>
-                  <option value="inactive_days">Không hoạt động X ngày</option>
-                  <option value="after_purchase">Sau khi mua hàng X ngày</option>
-                  <option value="new_customer">Khi có khách hàng mới</option>
-                </Select>
-              </label>
-
-              {triggerType === "inactive_days" || triggerType === "after_purchase" ? (
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium">Số ngày</span>
-                  <Input type="number" min={1} max={365} {...form.register("trigger_days", { valueAsNumber: true })} />
-                </label>
-              ) : null}
-            </div>
-
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="font-medium">Kênh gửi</span>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant={channel === "email" ? "default" : "secondary"}
-                  onClick={() => form.setValue("channel", "email")}
-                >
-                  Email
-                </Button>
-                <Button
-                  type="button"
-                  variant={channel === "sms" ? "default" : "secondary"}
-                  onClick={() => form.setValue("channel", "sms")}
-                >
-                  SMS
-                </Button>
-              </div>
-            </label>
-
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="font-medium">Tóm tắt hành động</span>
-              <Input
-                {...form.register("summary")}
-                placeholder="Ví dụ: Gửi voucher 10% cho khách quay lại"
-              />
-            </label>
-
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="font-medium">Nội dung tin nhắn</span>
-              <Textarea {...form.register("content", { required: true })} rows={8} />
-            </label>
-
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Chèn biến nhanh</div>
-              <div className="flex flex-wrap gap-2">
-                {VARIABLE_TOKENS.map((token) => (
-                  <Button key={token} type="button" variant="secondary" size="sm" onClick={() => appendVariable(token)}>
-                    {token}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-                Hủy
-              </Button>
-              <Button type="submit" disabled={createRule.isPending || !form.watch("name").trim()}>
-                {createRule.isPending ? "Đang tạo..." : "Tạo quy tắc"}
-              </Button>
-            </div>
+                return (
+                  <TableRow key={rule.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={rule.is_active}
+                          onChange={(event) =>
+                            void toggleRule.mutateAsync({ id: rule.id, isActive: event.target.checked })
+                          }
+                          aria-label={`Bật tắt quy tắc ${rule.name}`}
+                        />
+                        <StatusBadge
+                          label={rule.is_active ? "Đang bật" : "Đã tắt"}
+                          className={getRuleStatusColor(rule.is_active)}
+                          dotClassName="bg-current"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <button type="button" onClick={() => setDetailRule(rule)} className="min-w-0 text-left">
+                        <div className="text-sm font-medium text-foreground">{rule.name}</div>
+                        <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                          {rule.description || rule.action_summary || "Chưa có mô tả chi tiết"}
+                        </div>
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">{rule.trigger}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {rule.trigger_days ? `${rule.trigger_days} ngày` : "Kích hoạt tức thời"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <ChannelIcon className="size-4 text-primary" />
+                        {formatChannel(rule.channel)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{rule.action_summary || "--"}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">{messageStats.sent} gửi thành công</div>
+                      <div className="text-xs text-muted-foreground">{messageStats.failed} lỗi gần đây</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{rule.last_run_at ? timeAgo(rule.last_run_at) : "Chưa chạy"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {messageStats.lastSentAt ? `Outbound ${timeAgo(messageStats.lastSentAt)}` : "Chưa có outbound"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setDetailRule(rule)}>
+                          Xem
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openRuleEditor(rule)}>
+                          <Pencil className="size-4" />
+                          Sửa
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => runRule.mutate(rule.id)}
+                          disabled={runRule.isPending || !rule.is_active}
+                        >
+                          <Play className="size-4" />
+                          Chạy
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-4">
+            <EmptyState
+              icon={Zap}
+              title="Không có quy tắc phù hợp"
+              description="Thử bộ lọc khác hoặc tạo quy tắc mới để bắt đầu automation."
+              className="min-h-[220px] border-dashed bg-transparent shadow-none"
+            />
           </div>
+        )}
+      </DataTableShell>
 
+      <Sheet
+        open={Boolean(detailRule)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setDetailRule(null);
+          }
+        }}
+        title={detailRule?.name ?? "Chi tiết quy tắc"}
+        // description={detailRule ? "Inspector vận hành cho trigger, nội dung, recent delivery và các action chính của rule." : undefined}
+        className="w-[min(100vw,720px)]"
+        footer={
+          detailRule ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Button variant="secondary" onClick={() => setDetailRule(null)}>
+                Đóng
+              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => openRuleEditor(detailRule)}>
+                  <Pencil className="size-4" />
+                  Chỉnh sửa
+                </Button>
+                <Button variant="outline" onClick={() => duplicateRule.mutate(detailRule.id)} disabled={duplicateRule.isPending}>
+                  <Copy className="size-4" />
+                  Nhân bản
+                </Button>
+                <Button variant="destructive" onClick={() => setDeleteTarget(detailRule)}>
+                  <Trash2 className="size-4" />
+                  Xóa
+                </Button>
+                <Button onClick={() => runRule.mutate(detailRule.id)} disabled={runRule.isPending || !detailRule.is_active}>
+                  <Play className="size-4" />
+                  Chạy ngay
+                </Button>
+              </div>
+            </div>
+          ) : null
+        }
+      >
+        {detailRule ? (
           <div className="space-y-4">
-            <Card className="overflow-hidden">
-              <div className={cn("border-b border-border bg-gradient-to-br p-5", getRuleTone(channel))}>
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <SectionPanel title="Tổng quan vận hành" /* description="Các thông tin quyết định để bật, tắt hoặc chạy rule." */>
+              <InspectorList
+                items={[
+                  { label: "Trigger", value: detailRule.trigger },
+                  { label: "Kênh", value: formatChannel(detailRule.channel) },
+                  { label: "Trạng thái", value: detailRule.is_active ? "Đang bật" : "Đã tắt" },
+                  { label: "Lần chạy", value: detailRule.last_run_at ? timeAgo(detailRule.last_run_at) : "Chưa chạy" },
+                ]}
+              />
+            </SectionPanel>
+
+            <SectionPanel title="Nội dung gửi" /* description="Body mẫu cùng các token cá nhân hóa được dùng bởi rule." */>
+              <div className={cn("rounded-lg border border-border/70 bg-gradient-to-br p-4", getRuleTone(detailRule.channel))}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <CalendarClock className="size-4 text-primary" />
                   Preview
                 </div>
-                <div className="mt-3 font-display text-2xl font-semibold">
-                  {form.watch("name") || "Tên quy tắc sẽ hiển thị ở đây"}
+                <div className="mt-3 text-sm font-medium text-foreground">
+                  {detailRule.action_summary || detailRule.name}
+                </div>
+                <div className="mt-3 rounded-lg bg-card/70 p-3 text-sm text-muted-foreground">
+                  {detailRule.content || "Chưa có nội dung."}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {detailRule.variables.map((variable) => (
+                    <StatusBadge
+                      key={variable}
+                      label={variable}
+                      className="bg-card/60 text-muted-foreground ring-border"
+                      dotClassName="bg-primary/70"
+                    />
+                  ))}
+                </div>
+              </div>
+            </SectionPanel>
+
+            <SectionPanel title="Recent delivery" /* description="5 lần gửi gần nhất để đọc provider và trạng thái." */>
+              {detailStats?.recent.length ? (
+                <div className="space-y-3">
+                  {detailStats.recent.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/20 p-3 text-sm">
+                      <div>
+                        <div className="font-medium text-foreground">{item.recipient}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.channel.toUpperCase()} · {item.provider}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-foreground">{item.status}</div>
+                        <div className="text-xs text-muted-foreground">{timeAgo(item.created_at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Chưa có log outbound cho quy tắc này.</div>
+              )}
+            </SectionPanel>
+          </div>
+        ) : null}
+      </Sheet>
+
+      <Modal
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) {
+            setEditingRule(null);
+            form.reset(getRuleDraft());
+          }
+        }}
+        title={editingRule ? "Chỉnh sửa quy tắc tự động" : "Tạo Quy Tắc Tự Động"}
+        description={
+          editingRule
+            ? undefined // "Cập nhật trigger, nội dung và summary trong cùng một modal chỉnh sửa."
+            : undefined // "Thiết lập trigger, nội dung và preview trong một modal ngắn gọn hơn cho team vận hành."
+        }
+        className="max-w-4xl"
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="secondary" onClick={() => setOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={form.handleSubmit((values) => saveRule.mutate(values))}
+              disabled={saveRule.isPending || !ruleName.trim()}
+            >
+              {saveRule.isPending ? "Đang lưu…" : editingRule ? "Lưu thay đổi" : "Tạo quy tắc"}
+            </Button>
+          </div>
+        }
+      >
+        <form className="grid gap-6 lg:grid-cols-[1.05fr,0.95fr]" onSubmit={form.handleSubmit((values) => saveRule.mutate(values))}>
+          <div className="space-y-4">
+            {saveRule.actionError ? (
+              <ActionErrorAlert
+                error={saveRule.actionError}
+                onDismiss={saveRule.clearActionError}
+                onRetry={saveRule.canRetry ? () => void saveRule.retryLast() : undefined}
+              />
+            ) : null}
+
+            <FormSection title="Thông tin quy tắc" /* description="Đặt tên rõ ràng để đội vận hành biết rule này xử lý tình huống nào." */>
+              <div className="grid gap-4">
+                <FormField label="Tên quy tắc">
+                  <Input {...form.register("name", { required: true })} placeholder="Ví dụ: Chúc mừng sinh nhật VIP" />
+                </FormField>
+                <FormField label="Mô tả ngắn">
+                  <Textarea
+                    {...form.register("description")}
+                    placeholder="Mô tả mục tiêu của quy tắc để đội vận hành dễ theo dõi."
+                    rows={4}
+                  />
+                </FormField>
+                <div className="grid gap-4 md:grid-cols-[1fr,150px]">
+                  <FormField label="Điều kiện kích hoạt">
+                    <Select {...form.register("trigger_type")}>
+                      <option value="birthday">Sinh nhật khách hàng</option>
+                      <option value="inactive_days">Không hoạt động X ngày</option>
+                      <option value="after_purchase">Sau khi mua hàng X ngày</option>
+                      <option value="new_customer">Khi có khách hàng mới</option>
+                    </Select>
+                  </FormField>
+                  {triggerType === "inactive_days" || triggerType === "after_purchase" ? (
+                    <FormField label="Số ngày">
+                      <Input type="number" min={1} max={365} {...form.register("trigger_days", { valueAsNumber: true })} />
+                    </FormField>
+                  ) : null}
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Hành động gửi" /* description="Giữ summary, channel và body sát nhau để chỉnh rule nhanh hơn." */>
+              <div className="grid gap-4">
+                <FormField label="Kênh gửi">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: "Email", value: "email" as const },
+                      { label: "SMS", value: "sms" as const },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => form.setValue("channel", option.value)}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 text-sm font-medium transition",
+                          channel === option.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:bg-muted/40",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </FormField>
+                <FormField label="Tóm tắt hành động">
+                  <Input {...form.register("summary")} placeholder="Ví dụ: Gửi voucher 10% cho khách quay lại" />
+                </FormField>
+                <FormField label="Nội dung tin nhắn">
+                  <Textarea {...form.register("content", { required: true })} rows={8} />
+                </FormField>
+                <FormField label="Chèn biến nhanh">
+                  <div className="flex flex-wrap gap-2">
+                    {VARIABLE_TOKENS.map((token) => (
+                      <Button key={token} type="button" variant="secondary" size="sm" onClick={() => appendVariable(token)}>
+                        {token}
+                      </Button>
+                    ))}
+                  </div>
+                </FormField>
+              </div>
+            </FormSection>
+          </div>
+
+          <div className="space-y-4">
+            <SectionPanel title="Preview" /* description="Bản xem nhanh của trigger và nội dung sau khi cá nhân hóa." */>
+              <div className={cn("rounded-lg border border-border/70 bg-gradient-to-br p-4", getRuleTone(channel))}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <CalendarClock className="size-4 text-primary" />
+                  Preview
+                </div>
+                <div className="mt-3 font-display text-2xl font-semibold text-foreground">
+                  {ruleName || "Tên quy tắc sẽ hiển thị ở đây"}
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   {triggerType === "birthday"
                     ? "Kích hoạt vào đúng ngày sinh nhật của khách hàng."
                     : triggerType === "inactive_days"
-                      ? `Kích hoạt khi khách hàng không mua hàng trong ${form.watch("trigger_days") || 30} ngày.`
+                      ? `Kích hoạt khi khách hàng không mua hàng trong ${triggerDays || 30} ngày.`
                       : triggerType === "after_purchase"
-                        ? `Kích hoạt sau ${form.watch("trigger_days") || 7} ngày kể từ lần mua gần nhất.`
+                        ? `Kích hoạt sau ${triggerDays || 7} ngày kể từ lần mua gần nhất.`
                         : "Kích hoạt khi có khách hàng mới vào hệ thống."}
                 </div>
-              </div>
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {channel === "email" ? <Mail className="size-4 text-primary" /> : <MessageSquare className="size-4 text-primary" />}
-                  {form.watch("summary") || "Tóm tắt hành động sẽ hiển thị ở đây"}
-                </div>
-                <div className="rounded-2xl bg-muted/40 p-4 text-sm text-muted-foreground">
+                <div className="mt-4 rounded-lg bg-card/75 p-4 text-sm text-muted-foreground">
                   {previewContent}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {VARIABLE_TOKENS.map((token) => (
-                    <span key={token} className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                      {token}
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </SectionPanel>
+
+            <SectionPanel title="Tóm tắt vận hành" /* description="Các thông tin cuối cùng trước khi lưu rule mới." */>
+              <InspectorList
+                items={[
+                  { label: "Kênh", value: formatChannel(channel) },
+                  { label: "Trigger", value: triggerType },
+                  { label: "Số ngày", value: String(triggerDays || 0) },
+                  { label: "Action", value: ruleSummary || "--" },
+                ]}
+              />
+            </SectionPanel>
           </div>
         </form>
       </Modal>
-    </div>
-  );
-}
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Mail;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border p-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon className="size-4 text-primary" />
-        {label}
-      </div>
-      <div className="mt-3 text-xl font-semibold">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setDeleteTarget(null);
+          }
+        }}
+        title="Xóa quy tắc tự động"
+        description="Quy tắc này sẽ bị xóa khỏi hệ thống và không thể hoàn tác."
+        confirmLabel="Xóa quy tắc"
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteRule.mutate(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        {deleteTarget ? (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm">
+            <div className="font-medium text-foreground">{deleteTarget.name}</div>
+            <div className="mt-1 text-muted-foreground">
+              {deleteTarget.trigger} · {formatChannel(deleteTarget.channel)}
+            </div>
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 }

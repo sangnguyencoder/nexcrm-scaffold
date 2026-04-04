@@ -4,6 +4,7 @@ import type { Ticket, TicketComment } from "@/types";
 import { notificationService } from "@/services/notificationService";
 import {
   type AuditLogRow,
+  type ServiceRequestOptions,
   type TicketCommentRow,
   type TicketFilters,
   type TicketRow,
@@ -14,6 +15,7 @@ import {
   toTicket,
   toTicketComment,
   toTicketSystemComment,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -39,12 +41,14 @@ export type TicketUpdateInput = Partial<{
   resolved_at: string | null;
 }>;
 
-async function fetchTicketRow(id: string) {
-  const { data, error } = await supabase
-    .from("support_tickets")
-    .select("*")
-    .eq("id", id)
-    .single();
+async function fetchTicketRow(id: string, options: ServiceRequestOptions = {}) {
+  const { data, error } = await withAbortSignal(
+    supabase
+      .from("support_tickets")
+      .select("*")
+      .eq("id", id),
+    options.signal,
+  ).single();
 
   if (error) {
     throw error;
@@ -54,14 +58,14 @@ async function fetchTicketRow(id: string) {
 }
 
 export const ticketService = {
-  getList(filters: TicketFilters = {}) {
+  getList(filters: TicketFilters = {}, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let query = supabase
-          .from("support_tickets")
-          .select("*")
-          .order("created_at", { ascending: false });
+        let query = withAbortSignal(
+          supabase.from("support_tickets").select("*"),
+          options.signal,
+        ).order("created_at", { ascending: false });
 
         if (filters.customerId) {
           query = query.eq("customer_id", filters.customerId);
@@ -83,6 +87,11 @@ export const ticketService = {
           query = query.eq("status", filters.status);
         }
 
+        if (filters.search?.trim()) {
+          const keyword = filters.search.trim().replaceAll("%", "");
+          query = query.or(`title.ilike.%${keyword}%,ticket_code.ilike.%${keyword}%`);
+        }
+
         const { data, error } = await query;
 
         if (error) {
@@ -94,24 +103,23 @@ export const ticketService = {
     );
   },
 
-  getById(id: string) {
+  getById(id: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        const row = await fetchTicketRow(id);
+        const row = await fetchTicketRow(id, options);
         return toTicket(row);
       })(),
     );
   },
 
-  create(payload: TicketCreateInput) {
+  create(payload: TicketCreateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("support_tickets")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("support_tickets").insert({
             customer_id: payload.customer_id,
             title: payload.title,
             description: payload.description || null,
@@ -122,7 +130,9 @@ export const ticketService = {
             status: payload.status ?? "open",
             due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             created_by: currentUserId,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 
@@ -162,22 +172,23 @@ export const ticketService = {
     );
   },
 
-  update(id: string, payload: TicketUpdateInput) {
+  update(id: string, payload: TicketUpdateInput, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
         if (payload.status) {
-          return ticketService.updateStatus(id, payload.status);
+          return ticketService.updateStatus(id, payload.status, options);
         }
 
-        const previous = await fetchTicketRow(id);
+        const previous = await fetchTicketRow(id, options);
         const currentUserId = await getCurrentProfileId();
-        const { data, error } = await supabase
-          .from("support_tickets")
-          .update({
+        const { data, error } = await withAbortSignal(
+          supabase.from("support_tickets").update({
             ...payload,
             updated_at: new Date().toISOString(),
-          })
+          }),
+          options.signal,
+        )
           .eq("id", id)
           .select("*")
           .single();
@@ -205,22 +216,27 @@ export const ticketService = {
     );
   },
 
-  async updateStatus(id: string, status: Ticket["status"]) {
+  async updateStatus(
+    id: string,
+    status: Ticket["status"],
+    options: ServiceRequestOptions = {},
+  ) {
     ensureSupabaseConfigured();
-    const previous = await fetchTicketRow(id);
+    const previous = await fetchTicketRow(id, options);
     const currentUserId = await getCurrentProfileId();
     const resolvedAt =
       status === "resolved" || status === "closed"
         ? previous.resolved_at ?? new Date().toISOString()
         : null;
 
-    const { data, error } = await supabase
-      .from("support_tickets")
-      .update({
+    const { data, error } = await withAbortSignal(
+      supabase.from("support_tickets").update({
         status,
         resolved_at: resolvedAt,
         updated_at: new Date().toISOString(),
-      })
+      }),
+      options.signal,
+    )
       .eq("id", id)
       .select("*")
       .single();
@@ -264,7 +280,12 @@ export const ticketService = {
     return toTicket(data);
   },
 
-  addComment(ticketId: string, content: string, isInternal = false) {
+  addComment(
+    ticketId: string,
+    content: string,
+    isInternal = false,
+    options: ServiceRequestOptions = {},
+  ) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
@@ -273,14 +294,15 @@ export const ticketService = {
           throw new Error("Không tìm thấy người dùng hiện tại để ghi nhận bình luận.");
         }
 
-        const { data, error } = await supabase
-          .from("ticket_comments")
-          .insert({
+        const { data, error } = await withAbortSignal(
+          supabase.from("ticket_comments").insert({
             ticket_id: ticketId,
             author_id: currentUserId,
             content,
             is_internal: isInternal,
-          })
+          }),
+          options.signal,
+        )
           .select("*")
           .single();
 
@@ -305,19 +327,21 @@ export const ticketService = {
     );
   },
 
-  getComments(ticketId?: string) {
+  getComments(ticketId?: string, options: ServiceRequestOptions = {}) {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
-        let commentsQuery = supabase
-          .from("ticket_comments")
-          .select("*")
-          .order("created_at", { ascending: true });
-        let auditsQuery = supabase
-          .from("audit_logs")
-          .select("*")
-          .eq("entity_type", "ticket_status")
-          .order("created_at", { ascending: true });
+        let commentsQuery = withAbortSignal(
+          supabase.from("ticket_comments").select("*"),
+          options.signal,
+        ).order("created_at", { ascending: true });
+        let auditsQuery = withAbortSignal(
+          supabase
+            .from("audit_logs")
+            .select("*")
+            .eq("entity_type", "ticket_status"),
+          options.signal,
+        ).order("created_at", { ascending: true });
 
         if (ticketId) {
           commentsQuery = commentsQuery.eq("ticket_id", ticketId);

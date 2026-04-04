@@ -15,6 +15,8 @@ import {
   ensureSupabaseConfigured,
   isMissingRpcFunctionError,
   normalizeNumber,
+  type ServiceRequestOptions,
+  withAbortSignal,
   withLatency,
 } from "@/services/shared";
 
@@ -157,10 +159,16 @@ function normalizeSnapshot(row: DashboardSnapshotRow): DashboardStats {
   };
 }
 
-async function fetchDashboardSnapshot(range: "today" | "7days" | "30days") {
-  const { data, error } = await supabase.rpc("get_dashboard_snapshot", {
-    p_range: range,
-  });
+async function fetchDashboardSnapshot(
+  range: "today" | "7days" | "30days",
+  options: ServiceRequestOptions = {},
+) {
+  const { data, error } = await withAbortSignal(
+    supabase.rpc("get_dashboard_snapshot", {
+      p_range: range,
+    }),
+    options.signal,
+  );
 
   if (error) {
     throw error;
@@ -176,6 +184,7 @@ async function fetchDashboardSnapshot(range: "today" | "7days" | "30days") {
 
 async function buildFallbackDashboardStats(
   range: "today" | "7days" | "30days",
+  options: ServiceRequestOptions = {},
 ): Promise<DashboardStats> {
   const rangeStart = getRangeStart(range).getTime();
   const monthStart = startOfMonth().getTime();
@@ -183,22 +192,28 @@ async function buildFallbackDashboardStats(
 
   const [{ data: customers, error: customersError }, { data: tickets, error: ticketsError }, { data: transactions, error: transactionsError }] =
     await Promise.all([
-      supabase
-        .from("customers")
-        .select("id, full_name, customer_code, customer_type, total_spent, created_at")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .order("total_spent", { ascending: false }),
-      supabase
-        .from("support_tickets")
-        .select("id, title, priority, customer_id, status, resolved_at, created_at")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("transactions")
-        .select("created_at, total_amount, status")
-        .gte("created_at", transactionStart)
-        .order("created_at", { ascending: false }),
+      withAbortSignal(
+        supabase
+          .from("customers")
+          .select("id, full_name, customer_code, customer_type, total_spent, created_at")
+          .eq("is_active", true)
+          .is("deleted_at", null),
+        options.signal,
+      ).order("total_spent", { ascending: false }),
+      withAbortSignal(
+        supabase
+          .from("support_tickets")
+          .select("id, title, priority, customer_id, status, resolved_at, created_at")
+          .is("deleted_at", null),
+        options.signal,
+      ).order("created_at", { ascending: false }),
+      withAbortSignal(
+        supabase
+          .from("transactions")
+          .select("created_at, total_amount, status")
+          .gte("created_at", transactionStart),
+        options.signal,
+      ).order("created_at", { ascending: false }),
     ]);
 
   if (customersError) {
@@ -308,19 +323,22 @@ async function buildFallbackDashboardStats(
 }
 
 export const dashboardService = {
-  getStats(range: "today" | "7days" | "30days" = "7days") {
+  getStats(
+    range: "today" | "7days" | "30days" = "7days",
+    options: ServiceRequestOptions = {},
+  ) {
     return withLatency(
       (async (): Promise<DashboardStats> => {
         ensureSupabaseConfigured();
 
         try {
-          return await fetchDashboardSnapshot(range);
+          return await fetchDashboardSnapshot(range, options);
         } catch (error) {
           if (!isMissingRpcFunctionError(error)) {
             throw error;
           }
 
-          return buildFallbackDashboardStats(range);
+          return buildFallbackDashboardStats(range, options);
         }
       })(),
     );

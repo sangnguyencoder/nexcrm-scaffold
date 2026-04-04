@@ -269,6 +269,7 @@ export type TicketFilters = {
   assignedTo?: string;
   category?: string;
   status?: string;
+  search?: string;
 };
 
 export type CampaignFilters = {
@@ -301,6 +302,11 @@ export type CustomerNoteFilters = {
 
 export type TicketCommentFilters = {
   ticketId?: string;
+};
+
+export type ServiceRequestOptions = {
+  signal?: AbortSignal;
+  [key: string]: unknown;
 };
 
 const PROFILE_EMAIL_CACHE_KEY = "nexcrm_profile_email_cache";
@@ -388,17 +394,46 @@ export function ensureSupabaseConfigured() {
   }
 }
 
-export function getAppErrorMessage(error: unknown, fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.") {
-  if (!error) {
-    return fallback;
-  }
+export type AppErrorKind =
+  | "validation"
+  | "network"
+  | "timeout"
+  | "permission"
+  | "conflict"
+  | "not_found"
+  | "unknown";
 
+export type AppErrorDetails = {
+  kind: AppErrorKind;
+  message: string;
+  technicalMessage: string;
+  retryable: boolean;
+};
+
+type AppError = Error & {
+  appKind?: AppErrorKind;
+  retryable?: boolean;
+  technicalMessage?: string;
+  originalError?: unknown;
+};
+
+type AsyncActionOptions = {
+  scope: string;
+  action: string;
+  timeoutMs?: number;
+  timeoutMessage?: string;
+  meta?: Record<string, unknown>;
+};
+
+const DEFAULT_ASYNC_ACTION_TIMEOUT_MS = 15_000;
+
+function readErrorParts(error: unknown) {
   const message =
     error instanceof Error
       ? error.message
       : typeof error === "object" && error !== null && "message" in error
         ? String(error.message ?? "")
-        : String(error);
+        : String(error ?? "");
   const details =
     typeof error === "object" && error !== null && "details" in error
       ? String(error.details ?? "")
@@ -407,8 +442,75 @@ export function getAppErrorMessage(error: unknown, fallback = "Đã có lỗi x�
     typeof error === "object" && error !== null && "code" in error
       ? String(error.code ?? "")
       : "";
+  const name =
+    typeof error === "object" && error !== null && "name" in error
+      ? String(error.name ?? "")
+      : "";
 
-  const normalized = `${message} ${details} ${code}`.toLowerCase();
+  return { message, details, code, name };
+}
+
+export function createAppError({
+  kind,
+  message,
+  technicalMessage,
+  retryable = kind === "network" || kind === "timeout",
+  originalError,
+}: {
+  kind: AppErrorKind;
+  message: string;
+  technicalMessage?: string;
+  retryable?: boolean;
+  originalError?: unknown;
+}) {
+  const error = new Error(message) as AppError;
+  error.name = "AppError";
+  error.appKind = kind;
+  error.retryable = retryable;
+  error.technicalMessage = technicalMessage ?? message;
+  error.originalError = originalError;
+  return error;
+}
+
+export function getAppErrorDetails(
+  error: unknown,
+  fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.",
+): AppErrorDetails {
+  if (!error) {
+    return {
+      kind: "unknown",
+      message: fallback,
+      technicalMessage: fallback,
+      retryable: false,
+    };
+  }
+
+  if (typeof error === "object" && error !== null && "appKind" in error) {
+    const typed = error as AppError;
+    return {
+      kind: typed.appKind ?? "unknown",
+      message: typed.message || fallback,
+      technicalMessage: typed.technicalMessage ?? typed.message ?? fallback,
+      retryable: typed.retryable ?? false,
+    };
+  }
+
+  const { message, details, code, name } = readErrorParts(error);
+  const technicalMessage = `${name} ${message} ${details} ${code}`.trim() || fallback;
+  const normalized = technicalMessage.toLowerCase();
+
+  if (
+    normalized.includes("timeout") ||
+    normalized.includes("timed out") ||
+    normalized.includes("mất quá lâu")
+  ) {
+    return {
+      kind: "timeout",
+      message: "Yêu cầu đang mất quá lâu để hoàn tất. Vui lòng thử lại.",
+      technicalMessage,
+      retryable: true,
+    };
+  }
 
   if (
     normalized.includes("duplicate") ||
@@ -417,25 +519,176 @@ export function getAppErrorMessage(error: unknown, fallback = "Đã có lỗi x�
     normalized.includes("23505")
   ) {
     if (normalized.includes("phone") || normalized.includes("số điện thoại")) {
-      return "Số điện thoại đã tồn tại trong hệ thống.";
+      return {
+        kind: "conflict",
+        message: "Số điện thoại đã tồn tại trong hệ thống.",
+        technicalMessage,
+        retryable: false,
+      };
     }
 
     if (normalized.includes("email")) {
-      return "Email đã tồn tại trong hệ thống.";
+      return {
+        kind: "conflict",
+        message: "Email đã tồn tại trong hệ thống.",
+        technicalMessage,
+        retryable: false,
+      };
     }
 
-    return "Dữ liệu đã tồn tại trong hệ thống.";
+    return {
+      kind: "conflict",
+      message: "Dữ liệu đã tồn tại trong hệ thống.",
+      technicalMessage,
+      retryable: false,
+    };
   }
 
-  if (normalized.includes("network") || normalized.includes("fetch") || normalized.includes("failed to fetch")) {
-    return "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.";
+  if (
+    normalized.includes("failed to fetch") ||
+    normalized.includes("network") ||
+    normalized.includes("fetch") ||
+    normalized.includes("load failed") ||
+    normalized.includes("offline")
+  ) {
+    return {
+      kind: "network",
+      message: "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.",
+      technicalMessage,
+      retryable: true,
+    };
   }
 
-  if (normalized.includes("jwt") || normalized.includes("permission") || normalized.includes("not authorized")) {
-    return "Bạn không có quyền thực hiện thao tác này.";
+  if (
+    normalized.includes("jwt") ||
+    normalized.includes("permission") ||
+    normalized.includes("not authorized") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("403")
+  ) {
+    return {
+      kind: "permission",
+      message: "Bạn không có quyền thực hiện thao tác này.",
+      technicalMessage,
+      retryable: false,
+    };
   }
 
-  return message || fallback;
+  if (
+    normalized.includes("not found") ||
+    normalized.includes("404") ||
+    normalized.includes("không tìm thấy")
+  ) {
+    return {
+      kind: "not_found",
+      message: "Dữ liệu bạn đang thao tác không còn tồn tại hoặc đã thay đổi.",
+      technicalMessage,
+      retryable: false,
+    };
+  }
+
+  if (
+    normalized.includes("validation") ||
+    normalized.includes("invalid") ||
+    normalized.includes("required") ||
+    normalized.includes("zod") ||
+    normalized.includes("không hợp lệ") ||
+    normalized.includes("vui lòng") ||
+    normalized.includes("tối thiểu") ||
+    normalized.includes("tối đa")
+  ) {
+    return {
+      kind: "validation",
+      message: message || fallback,
+      technicalMessage,
+      retryable: false,
+    };
+  }
+
+  return {
+    kind: "unknown",
+    message: message || fallback,
+    technicalMessage,
+    retryable: false,
+  };
+}
+
+export function getAppErrorMessage(
+  error: unknown,
+  fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.",
+) {
+  return getAppErrorDetails(error, fallback).message;
+}
+
+export function isRetryableAppError(error: unknown) {
+  return getAppErrorDetails(error).retryable;
+}
+
+export async function runAsyncAction<T>(
+  {
+    scope,
+    action,
+    timeoutMs = DEFAULT_ASYNC_ACTION_TIMEOUT_MS,
+    timeoutMessage = "Yêu cầu đang mất quá lâu để hoàn tất. Vui lòng thử lại.",
+    meta,
+  }: AsyncActionOptions,
+  run: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  const startedAt = Date.now();
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
+
+  try {
+    const result = await Promise.race([
+      run(controller.signal),
+      new Promise<T>((_, reject) => {
+        timeoutHandle = globalThis.setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+          reject(
+            createAppError({
+              kind: "timeout",
+              message: timeoutMessage,
+              technicalMessage: `Async action timed out after ${timeoutMs}ms`,
+            }),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+
+    return result;
+  } catch (error) {
+    const normalized = timedOut
+      ? createAppError({
+          kind: "timeout",
+          message: timeoutMessage,
+          technicalMessage: `Async action timed out after ${timeoutMs}ms`,
+          originalError: error,
+        })
+      : createAppError({
+          kind: getAppErrorDetails(error, timeoutMessage).kind,
+          message: getAppErrorDetails(error, timeoutMessage).message,
+          technicalMessage: getAppErrorDetails(error, timeoutMessage).technicalMessage,
+          retryable: getAppErrorDetails(error, timeoutMessage).retryable,
+          originalError: error,
+        });
+
+    console.error(`[async-action:${scope}.${action}]`, {
+      scope,
+      action,
+      timeoutMs,
+      durationMs: Date.now() - startedAt,
+      meta,
+      error,
+      normalized,
+    });
+    throw normalized;
+  } finally {
+    if (timeoutHandle) {
+      globalThis.clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 export async function runBestEffort<T>(
@@ -472,10 +725,22 @@ export function isMissingRpcFunctionError(error: unknown) {
 export async function withLatency<T>(promise: Promise<T>, minMs = 500) {
   const [result] = await Promise.all([
     promise,
-    new Promise((resolve) => window.setTimeout(resolve, minMs)),
+    new Promise((resolve) => globalThis.setTimeout(resolve, minMs)),
   ]);
 
   return result;
+}
+
+export function withAbortSignal<T>(query: T, signal?: AbortSignal): T {
+  const abortable = query as T & {
+    abortSignal?: (abortSignal: AbortSignal) => T;
+  };
+
+  if (!signal || typeof abortable.abortSignal !== "function") {
+    return query;
+  }
+
+  return abortable.abortSignal(signal);
 }
 
 function readJsonStorage<T>(key: string, fallback: T): T {
