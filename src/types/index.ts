@@ -108,6 +108,7 @@ export interface User {
   department: string;
   is_active: boolean;
   avatar_url: string | null;
+  has_profile?: boolean;
 }
 
 export interface Customer {

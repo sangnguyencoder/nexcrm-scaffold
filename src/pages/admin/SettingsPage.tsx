@@ -115,7 +115,7 @@ export function SettingsPage() {
       toast.info("Đang tạo dữ liệu demo...");
       return seedService.createDemoData();
     },
-    onSuccess: async (count) => {
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["customers"] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),

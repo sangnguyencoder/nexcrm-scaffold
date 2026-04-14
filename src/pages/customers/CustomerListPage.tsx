@@ -46,10 +46,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useCustomersQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
+import { queryKeys, useCustomersQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
 import {
   cn,
-  formatCurrency,
   formatCurrencyCompact,
   formatCustomerType,
   formatDate,
@@ -196,8 +195,17 @@ function CustomerFormModal({
         tags: [],
       });
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (savedCustomer) => {
+      queryClient.setQueriesData<Customer[]>({ queryKey: ["customers"] }, (current = []) => {
+        const existingIndex = current.findIndex((item) => item.id === savedCustomer.id);
+        if (existingIndex === -1) {
+          return [savedCustomer, ...current];
+        }
+
+        return current.map((item) => (item.id === savedCustomer.id ? savedCustomer : item));
+      });
+      queryClient.setQueryData(queryKeys.customer(savedCustomer.id), savedCustomer);
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
       toast.success(isEdit ? "Đã cập nhật khách hàng" : "Đã thêm khách hàng mới");
       onOpenChange(false);
     },
@@ -387,15 +395,22 @@ export function CustomerListPage() {
     setPage(1);
   }, [assignedFilter, serverSearch, selectedType, showInactive, sortDirection, sortKey]);
 
-  const pagedCustomers = filteredCustomers.slice((page - 1) * 10, page * 10);
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / 10));
+  const currentPage = Math.min(page, totalPages);
+  const pagedCustomers = filteredCustomers.slice((currentPage - 1) * 10, currentPage * 10);
 
   const deleteMutation = useAppMutation({
     action: "customer.soft-delete",
     errorMessage: "Không thể xóa mềm khách hàng.",
     mutationFn: customerService.softDelete,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (updatedCustomer) => {
+      queryClient.setQueriesData<Customer[]>({ queryKey: ["customers"] }, (current = []) =>
+        current.map((customer) =>
+          customer.id === updatedCustomer.id ? updatedCustomer : customer,
+        ),
+      );
+      queryClient.setQueryData(queryKeys.customer(updatedCustomer.id), updatedCustomer);
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
       toast.success("Đã chuyển khách hàng sang trạng thái không hoạt động");
     },
   });
@@ -404,8 +419,15 @@ export function CustomerListPage() {
     action: "customer.bulk-soft-delete",
     errorMessage: "Không thể cập nhật danh sách đã chọn.",
     mutationFn: customerService.softDeleteMany,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (updatedCustomers) => {
+      const updatedById = new Map(updatedCustomers.map((customer) => [customer.id, customer]));
+      queryClient.setQueriesData<Customer[]>({ queryKey: ["customers"] }, (current = []) =>
+        current.map((customer) => updatedById.get(customer.id) ?? customer),
+      );
+      for (const customer of updatedCustomers) {
+        queryClient.setQueryData(queryKeys.customer(customer.id), customer);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
       setSelectedIds([]);
       toast.success("Đã cập nhật trạng thái không hoạt động cho danh sách đã chọn");
     },
@@ -416,8 +438,15 @@ export function CustomerListPage() {
     errorMessage: "Không thể đổi phân loại khách hàng.",
     mutationFn: ({ ids, type }: { ids: string[]; type: Customer["customer_type"] }) =>
       customerService.bulkChangeType(ids, type),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (updatedCustomers) => {
+      const updatedById = new Map(updatedCustomers.map((customer) => [customer.id, customer]));
+      queryClient.setQueriesData<Customer[]>({ queryKey: ["customers"] }, (current = []) =>
+        current.map((customer) => updatedById.get(customer.id) ?? customer),
+      );
+      for (const customer of updatedCustomers) {
+        queryClient.setQueryData(queryKeys.customer(customer.id), customer);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
       toast.success("Đã cập nhật phân loại khách hàng");
     },
   });
@@ -514,7 +543,7 @@ export function CustomerListPage() {
         created += 1;
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
       toast.dismiss(loadingId);
       toast.success(`Đã nhập ${created} khách hàng${skipped ? `, bỏ qua ${skipped} bản ghi trùng/không hợp lệ` : ""}`);
     } catch (error) {
@@ -640,10 +669,16 @@ export function CustomerListPage() {
               variant="secondary"
               size="sm"
               onClick={() => bulkChangeTypeMutation.mutate({ ids: selectedIds, type: bulkType })}
+              disabled={bulkChangeTypeMutation.isPending || bulkDeleteMutation.isPending}
             >
               Đổi phân loại
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkDeleteMutation.isPending || bulkChangeTypeMutation.isPending}
+            >
               Xóa mềm
             </Button>
           </div>
@@ -653,11 +688,11 @@ export function CustomerListPage() {
       <DataTableShell
         footer={
           <CompactPagination
-            page={page}
+            page={currentPage}
             totalPages={totalPages}
             label={`${filteredCustomers.length} kết quả`}
-            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
-            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+            onPrevious={() => setPage(Math.max(1, currentPage - 1))}
+            onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
           />
         }
       >

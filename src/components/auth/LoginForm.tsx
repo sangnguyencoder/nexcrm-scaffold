@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ export function LoginForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isResetPending, setIsResetPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
+  const resetRequestLockedRef = useRef(false);
 
   const {
     register,
@@ -183,16 +184,22 @@ export function LoginForm({
               type="button"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={async () => {
-                const isIdentifierValid = await trigger("identifier");
-                if (!isIdentifierValid) {
+                if (resetRequestLockedRef.current) {
                   return;
                 }
 
-                setSubmitError(null);
-                clearErrors("identifier");
+                resetRequestLockedRef.current = true;
                 setIsResetPending(true);
 
                 try {
+                  const isIdentifierValid = await trigger("identifier");
+                  if (!isIdentifierValid) {
+                    return;
+                  }
+
+                  setSubmitError(null);
+                  clearErrors("identifier");
+
                   const email = await onForgotPassword(getValues("identifier"));
                   toast.success(`Đã gửi liên kết đặt lại mật khẩu đến ${email}.`);
                 } catch (error) {
@@ -208,6 +215,7 @@ export function LoginForm({
                   }
                 } finally {
                   setIsResetPending(false);
+                  resetRequestLockedRef.current = false;
                 }
               }}
               disabled={isBusy}

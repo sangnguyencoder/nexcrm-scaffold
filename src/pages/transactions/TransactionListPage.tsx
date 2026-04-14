@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useCustomersQuery, useTransactionsQuery } from "@/hooks/useNexcrmQueries";
+import { queryKeys, useCustomersQuery, useTransactionsQuery } from "@/hooks/useNexcrmQueries";
 import {
   formatCurrencyCompact,
   formatCurrency,
@@ -48,6 +48,7 @@ import {
   formatTicketStatus,
 } from "@/lib/utils";
 import { transactionService } from "@/services/transactionService";
+import type { Transaction } from "@/types";
 
 const itemSchema = z.object({
   name: z.string().min(1, "Nhập tên sản phẩm"),
@@ -148,12 +149,22 @@ function AddTransactionModal({
         status: "completed",
         notes: values.notes || "",
       }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
-        queryClient.invalidateQueries({ queryKey: ["customers"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      ]);
+    onSuccess: (createdTransaction) => {
+      queryClient.setQueriesData<Transaction[]>({ queryKey: ["transactions"] }, (current = []) => {
+        const exists = current.some((item) => item.id === createdTransaction.id);
+        if (exists) {
+          return current.map((item) =>
+            item.id === createdTransaction.id ? createdTransaction : item,
+          );
+        }
+
+        return [createdTransaction, ...current];
+      });
+      void queryClient.invalidateQueries({ queryKey: ["transactions"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("7days"), refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("today"), refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("30days"), refetchType: "active" });
       toast.success("Đã tạo giao dịch mới");
       form.reset();
       onOpenChange(false);
@@ -401,11 +412,12 @@ export function TransactionListPage() {
     [customerMap, deferredSearch, transactions],
   );
 
-  const pagedTransactions = useMemo(
-    () => filteredTransactions.slice((page - 1) * 20, page * 20),
-    [filteredTransactions, page],
-  );
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / 20));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTransactions = useMemo(
+    () => filteredTransactions.slice((currentPage - 1) * 20, currentPage * 20),
+    [currentPage, filteredTransactions],
+  );
 
   const selectedTransaction = filteredTransactions.find((item) => item.id === selectedTransactionId);
 
@@ -518,11 +530,11 @@ export function TransactionListPage() {
         footer={
           filteredTransactions.length ? (
             <CompactPagination
-              page={page}
+              page={currentPage}
               totalPages={totalPages}
               label={`${filteredTransactions.length} giao dịch`}
-              onPrevious={() => setPage((value) => Math.max(1, value - 1))}
-              onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+              onPrevious={() => setPage(Math.max(1, currentPage - 1))}
+              onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
             />
           ) : (
             <div className="text-sm text-muted-foreground">0 giao dịch</div>

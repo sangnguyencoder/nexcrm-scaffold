@@ -309,6 +309,12 @@ export type ServiceRequestOptions = {
   [key: string]: unknown;
 };
 
+const parsedServiceLatency = Number(import.meta.env.VITE_SERVICE_MIN_LATENCY_MS ?? "");
+const DEFAULT_SERVICE_LATENCY_MS =
+  Number.isFinite(parsedServiceLatency) && parsedServiceLatency > 0
+    ? parsedServiceLatency
+    : 0;
+
 const PROFILE_EMAIL_CACHE_KEY = "nexcrm_profile_email_cache";
 const SETTINGS_STORAGE_KEY = "nexcrm_settings";
 
@@ -722,7 +728,11 @@ export function isMissingRpcFunctionError(error: unknown) {
   );
 }
 
-export async function withLatency<T>(promise: Promise<T>, minMs = 500) {
+export async function withLatency<T>(promise: Promise<T>, minMs = DEFAULT_SERVICE_LATENCY_MS) {
+  if (minMs <= 0) {
+    return promise;
+  }
+
   const [result] = await Promise.all([
     promise,
     new Promise((resolve) => globalThis.setTimeout(resolve, minMs)),
@@ -822,7 +832,11 @@ export function normalizeTransactionItems(raw: unknown): TransactionItem[] {
   });
 }
 
-export function toUser(profile: ProfileRow, email = ""): User {
+export function toUser(
+  profile: ProfileRow,
+  email = "",
+  options: { hasProfile?: boolean } = {},
+): User {
   return {
     id: profile.id,
     full_name: profile.full_name,
@@ -831,6 +845,7 @@ export function toUser(profile: ProfileRow, email = ""): User {
     department: profile.department ?? "",
     is_active: profile.is_active ?? true,
     avatar_url: profile.avatar_url ?? null,
+    has_profile: options.hasProfile ?? true,
   };
 }
 

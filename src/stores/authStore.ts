@@ -35,6 +35,19 @@ type AuthState = {
 };
 
 let authSubscriptionInitialized = false;
+let authInitializePromise: Promise<void> | null = null;
+
+function isAuthTokenLockRaceError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const message = "message" in error ? String(error.message ?? "") : "";
+  const details = "details" in error ? String(error.details ?? "") : "";
+  const haystack = `${message} ${details}`.toLowerCase();
+
+  return haystack.includes("lock:sb-") && haystack.includes("stole it");
+}
 
 async function updateLastLogin(profileId: string) {
   await supabase
@@ -89,6 +102,29 @@ async function resolveProfile(authUser: SupabaseUser | null) {
   };
 }
 
+async function syncAuthState(
+  set: (state: Partial<AuthState>) => void,
+  authUser: SupabaseUser | null,
+) {
+  try {
+    const resolved = await enforceActiveProfile(await resolveProfile(authUser));
+    set({
+      ...resolved,
+      isLoading: false,
+      isInitializing: false,
+      initialized: true,
+    });
+  } catch {
+    set({
+      authUser: null,
+      user: null,
+      isLoading: false,
+      isInitializing: false,
+      initialized: true,
+    });
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
   user: null,
@@ -97,59 +133,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialized: false,
 
   initialize: async () => {
+    if (authInitializePromise) {
+      await authInitializePromise;
+      return;
+    }
+
     if (get().initialized && authSubscriptionInitialized) {
       return;
     }
 
-    set({ isInitializing: true });
+    authInitializePromise = (async () => {
+      set({ isInitializing: true });
 
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        throw error;
+      if (!authSubscriptionInitialized) {
+        authSubscriptionInitialized = true;
+
+        supabase.auth.onAuthStateChange((_event, session) => {
+          // Không await trực tiếp trong callback auth để tránh race/deadlock nội bộ token lock.
+          globalThis.setTimeout(() => {
+            void syncAuthState(set, session?.user ?? null);
+          }, 0);
+        });
       }
 
-      const resolved = await enforceActiveProfile(
-        await resolveProfile(data.session?.user ?? null),
-      );
-      set({
-        ...resolved,
-        isInitializing: false,
-        initialized: true,
-      });
-    } catch {
-      set({
-        authUser: null,
-        user: null,
-        isInitializing: false,
-        initialized: true,
-      });
-    }
-
-    if (!authSubscriptionInitialized) {
-      authSubscriptionInitialized = true;
-
-      supabase.auth.onAuthStateChange(async (_event, session) => {
-        try {
-          const resolved = await enforceActiveProfile(
-            await resolveProfile(session?.user ?? null),
-          );
-          set({
-            ...resolved,
-            isLoading: false,
-            isInitializing: false,
-            initialized: true,
-          });
-        } catch {
-          set({
-            authUser: null,
-            user: null,
-            isLoading: false,
-            isInitializing: false,
-            initialized: true,
-          });
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
         }
-      });
+
+        await syncAuthState(set, data.session?.user ?? null);
+      } catch {
+        set({
+          authUser: null,
+          user: null,
+          isLoading: false,
+          isInitializing: false,
+          initialized: true,
+        });
+      }
+    })();
+
+    try {
+      await authInitializePromise;
+    } finally {
+      authInitializePromise = null;
     }
   },
 
@@ -227,6 +255,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         initialized: true,
       });
     } catch (error) {
+      if (isAuthTokenLockRaceError(error)) {
+        try {
+          const { data, error: sessionError } = await supabase.auth.getSession();
+          if (!sessionError && data.session?.user) {
+            await syncAuthState(set, data.session.user);
+            return;
+          }
+        } catch {
+          // noop: fallback về luồng throw lỗi chuẩn bên dưới.
+        }
+      }
+
       set({ isLoading: false, initialized: true });
       throw error;
     }

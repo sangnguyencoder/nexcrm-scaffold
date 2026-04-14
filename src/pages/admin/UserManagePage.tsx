@@ -30,15 +30,29 @@ import { getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
 import { profileService } from "@/services/profileService";
 import type { User } from "@/types";
 
-const addUserSchema = z.object({
+const baseUserSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
   full_name: z.string().min(1, "Vui lòng nhập họ tên"),
   role: z.enum(["super_admin", "admin", "sales", "cskh", "marketing", "director"]),
   department: z.string().min(1, "Vui lòng nhập phòng ban"),
-  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  password: z.string(),
 });
 
-type AddUserValues = z.infer<typeof addUserSchema>;
+type UserFormValues = z.infer<typeof baseUserSchema>;
+
+const resetPasswordSchema = z
+  .object({
+    password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+    confirmPassword: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Mật khẩu xác nhận không khớp",
+  });
+
+type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
+const DEFAULT_MEMBER_PASSWORD = "12345678";
 
 function UserModal({
   open,
@@ -52,22 +66,44 @@ function UserModal({
   const queryClient = useQueryClient();
   const { data: users = [] } = useUsersQuery();
   const isEdit = Boolean(initialUser);
-  const form = useForm<AddUserValues>({
-    resolver: zodResolver(addUserSchema.superRefine((value, ctx) => {
-      const duplicatedUser = users.find(
-        (user) =>
-          user.email.toLowerCase() === value.email.toLowerCase() &&
-          (!isEdit || user.id !== initialUser?.id),
-      );
+  const formSchema = useMemo(
+    () =>
+      baseUserSchema.superRefine((value, ctx) => {
+        const duplicatedUser = users.find(
+          (user) =>
+            user.email.toLowerCase() === value.email.toLowerCase() &&
+            (!isEdit || user.id !== initialUser?.id),
+        );
 
-      if (duplicatedUser) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["email"],
-          message: "Email đã tồn tại trong danh sách người dùng",
-        });
-      }
-    })),
+        if (duplicatedUser) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["email"],
+            message: "Email đã tồn tại trong danh sách người dùng",
+          });
+        }
+
+        const password = value.password.trim();
+        if (!isEdit && password.length < 6) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "Mật khẩu tối thiểu 6 ký tự",
+          });
+        }
+
+        if (isEdit && password.length > 0 && password.length < 6) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "Mật khẩu tối thiểu 6 ký tự",
+          });
+        }
+      }),
+    [initialUser?.id, isEdit, users],
+  );
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       full_name: "",
@@ -84,7 +120,7 @@ function UserModal({
         full_name: initialUser?.full_name ?? "",
         role: initialUser?.role ?? "sales",
         department: initialUser?.department ?? "",
-        password: "******",
+        password: "",
       });
     }
   }, [form, initialUser, open]);
@@ -92,19 +128,44 @@ function UserModal({
   const mutation = useAppMutation({
     action: isEdit ? "admin.user.update" : "admin.user.create",
     errorMessage: isEdit ? "Không thể cập nhật thành viên." : "Không thể thêm thành viên.",
-    mutationFn: (values: AddUserValues) => {
+    mutationFn: async (values: UserFormValues) => {
       if (isEdit && initialUser) {
-        return profileService.update(initialUser.id, {
+        const updated = await profileService.update(initialUser.id, {
           email: values.email,
           full_name: values.full_name,
           role: values.role,
           department: values.department,
         });
+
+        const nextPassword = values.password?.trim();
+        if (nextPassword) {
+          await profileService.resetPassword(initialUser.id, nextPassword);
+        }
+
+        return updated;
       }
-      return profileService.create(values);
+
+      return profileService.create({
+        email: values.email,
+        full_name: values.full_name,
+        role: values.role,
+        department: values.department,
+        password: values.password,
+      });
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+    onSuccess: (savedUser) => {
+      queryClient.setQueryData<User[]>(queryKeys.profiles, (current = []) => {
+        const existingIndex = current.findIndex((user) => user.id === savedUser.id);
+        if (existingIndex === -1) {
+          return [savedUser, ...current];
+        }
+
+        return current.map((user) => (user.id === savedUser.id ? savedUser : user));
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.profiles,
+        refetchType: "active",
+      });
       toast.success(isEdit ? "Đã cập nhật thành viên" : "Đã thêm thành viên mới");
       onOpenChange(false);
     },
@@ -147,8 +208,11 @@ function UserModal({
               <Input {...form.register("department")} />
             </FormField>
           </div>
-          <FormField label="Mật khẩu" error={form.formState.errors.password?.message}>
-            <Input type="password" autoComplete={isEdit ? "current-password" : "new-password"} {...form.register("password")} />
+          <FormField
+            label={isEdit ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu"}
+            error={form.formState.errors.password?.message}
+          >
+            <Input type="password" autoComplete="new-password" {...form.register("password")} />
           </FormField>
         </FormSection>
         <div className="flex justify-end gap-3">
@@ -173,13 +237,36 @@ export function UserManagePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<User | null>(null);
+  const resetPasswordForm = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  useEffect(() => {
+    if (!resetPasswordTarget) return;
+
+    resetPasswordForm.reset({
+      password: "",
+      confirmPassword: "",
+    });
+  }, [resetPasswordForm, resetPasswordTarget]);
 
   const toggleStatus = useAppMutation({
     action: "admin.user.toggle-status",
     errorMessage: "Không thể cập nhật trạng thái thành viên.",
     mutationFn: profileService.toggleActive,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData<User[]>(queryKeys.profiles, (current = []) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user)),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.profiles,
+        refetchType: "active",
+      });
       toast.success("Đã cập nhật trạng thái thành viên");
     },
   });
@@ -189,23 +276,60 @@ export function UserManagePage() {
     errorMessage: "Không thể cập nhật vai trò.",
     mutationFn: ({ id, role }: { id: string; role: User["role"] }) =>
       profileService.update(id, { role }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData<User[]>(queryKeys.profiles, (current = []) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user)),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.profiles,
+        refetchType: "active",
+      });
       toast.success("Đã cập nhật vai trò");
     },
   });
 
   const deleteUser = useAppMutation({
-    action: "admin.user.delete",
-    errorMessage: "Không thể xóa thành viên.",
+    action: "admin.user.account-lifecycle",
+    errorMessage: "Không thể xử lý vòng đời tài khoản thành viên.",
     mutationFn: profileService.delete,
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+    onSuccess: (result) => {
+      queryClient.setQueryData<User[]>(queryKeys.profiles, (current = []) => {
+        if (result.outcome === "deactivated") {
+          return current.map((user) =>
+            user.id === result.user.id ? result.user : user,
+          );
+        }
+
+        return current.filter((user) => user.id !== result.user.id);
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.profiles,
+        refetchType: "active",
+      });
       toast.success(
-        result.softDeleted
-          ? "Thành viên đã được vô hiệu hóa vì còn dữ liệu liên quan"
-          : "Đã xóa thành viên",
+        result.outcome === "deactivated"
+          ? "Tài khoản đã được vô hiệu hóa vì còn dữ liệu liên kết"
+          : "Đã xóa tài khoản thành viên",
       );
+    },
+  });
+
+  const resetPassword = useAppMutation({
+    action: "admin.user.reset-password",
+    errorMessage: "Không thể đặt lại mật khẩu thành viên.",
+    mutationFn: ({ id, password }: { id: string; password: string; fullName: string }) =>
+      profileService.resetPassword(id, password),
+    successMessage: (_, variables) => `Đã đặt lại mật khẩu cho ${variables.fullName}`,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.profiles,
+        refetchType: "active",
+      });
+      setResetPasswordTarget(null);
+      resetPasswordForm.reset({
+        password: "",
+        confirmPassword: "",
+      });
     },
   });
 
@@ -319,12 +443,18 @@ export function UserManagePage() {
                       <div>
                         <div className="font-medium">{user.full_name}</div>
                         <div className="text-xs text-muted-foreground">{user.email}</div>
+                        {user.has_profile === false ? (
+                          <div className="mt-1 text-xs text-amber-600">
+                            Hồ sơ profile chưa hoàn thiện
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <Select
                       value={user.role}
+                      disabled={user.has_profile === false || updateRole.isPending}
                       onChange={(event) => updateRole.mutate({ id: user.id, role: event.target.value as User["role"] })}
                       className={getRoleBadgeColor(user.role)}
                     >
@@ -339,7 +469,11 @@ export function UserManagePage() {
                   <TableCell>{user.department}</TableCell>
                   <TableCell>
                     <label className="flex items-center gap-3">
-                      <Switch checked={user.is_active} onChange={() => toggleStatus.mutate(user.id)} />
+                      <Switch
+                        checked={user.is_active}
+                        disabled={user.has_profile === false || toggleStatus.isPending}
+                        onChange={() => toggleStatus.mutate(user.id)}
+                      />
                       <span className="text-sm">{user.is_active ? "Active" : "Inactive"}</span>
                     </label>
                   </TableCell>
@@ -352,17 +486,24 @@ export function UserManagePage() {
                           setEditingUser(user);
                           setModalOpen(true);
                         }}
+                        disabled={user.has_profile === false}
                       >
                         <UserCog className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => toast.success(`Đã đặt lại mật khẩu cho ${user.full_name}`)}
+                        onClick={() => setResetPasswordTarget(user)}
+                        disabled={resetPassword.isPending}
                       >
                         <KeyRound className="size-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(user)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={user.has_profile === false || deleteUser.isPending}
+                        onClick={() => setDeleteTarget(user)}
+                      >
                         <Trash2 className="size-4 text-rose-500" />
                       </Button>
                     </div>
@@ -384,14 +525,107 @@ export function UserManagePage() {
       </DataTableShell>
 
       <UserModal open={modalOpen} onOpenChange={setModalOpen} initialUser={editingUser} />
+
+      <Modal
+        open={Boolean(resetPasswordTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResetPasswordTarget(null);
+            resetPasswordForm.reset({
+              password: "",
+              confirmPassword: "",
+            });
+          }
+        }}
+        title={`Đặt lại mật khẩu${resetPasswordTarget ? `: ${resetPasswordTarget.full_name}` : ""}`}
+      >
+        <form
+          className="space-y-4"
+          onSubmit={resetPasswordForm.handleSubmit((values) => {
+            if (!resetPasswordTarget) return;
+            resetPassword.mutate({
+              id: resetPasswordTarget.id,
+              password: values.password,
+              fullName: resetPasswordTarget.full_name,
+            });
+          })}
+        >
+          {resetPassword.actionError ? (
+            <ActionErrorAlert
+              error={resetPassword.actionError}
+              onDismiss={resetPassword.clearActionError}
+              onRetry={resetPassword.canRetry ? () => void resetPassword.retryLast() : undefined}
+            />
+          ) : null}
+          <FormSection title="Mật khẩu tạm thời">
+            <FormField
+              label="Mật khẩu mới"
+              error={resetPasswordForm.formState.errors.password?.message}
+            >
+              <Input
+                type="password"
+                autoComplete="new-password"
+                {...resetPasswordForm.register("password")}
+              />
+            </FormField>
+            <FormField
+              label="Xác nhận mật khẩu"
+              error={resetPasswordForm.formState.errors.confirmPassword?.message}
+            >
+              <Input
+                type="password"
+                autoComplete="new-password"
+                {...resetPasswordForm.register("confirmPassword")}
+              />
+            </FormField>
+          </FormSection>
+          <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            Mật khẩu mặc định của hệ thống hiện tại: <span className="font-semibold text-foreground">{DEFAULT_MEMBER_PASSWORD}</span>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resetPassword.isPending || !resetPasswordTarget}
+              onClick={() => {
+                if (!resetPasswordTarget) return;
+                resetPassword.mutate({
+                  id: resetPasswordTarget.id,
+                  password: DEFAULT_MEMBER_PASSWORD,
+                  fullName: resetPasswordTarget.full_name,
+                });
+              }}
+            >
+              Đặt về mặc định
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setResetPasswordTarget(null);
+                resetPasswordForm.reset({
+                  password: "",
+                  confirmPassword: "",
+                });
+              }}
+            >
+              Hủy
+            </Button>
+            <Button type="submit" disabled={resetPassword.isPending}>
+              {resetPassword.isPending ? "Đang đặt lại..." : "Xác nhận đặt lại"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
-        title={`Xóa người dùng ${deleteTarget?.full_name ?? ""}?`}
-        description="Tài khoản này sẽ bị xóa khỏi dữ liệu demo."
-        confirmLabel="Xóa"
+        title={`Gỡ tài khoản ${deleteTarget?.full_name ?? ""}?`}
+        description="Hệ thống sẽ thử xóa tài khoản khỏi Auth. Nếu tài khoản còn liên kết dữ liệu CRM, hệ thống sẽ tự chuyển sang vô hiệu hóa để giữ toàn vẹn dữ liệu."
+        confirmLabel="Xác nhận"
         onConfirm={() => {
           if (deleteTarget) {
             deleteUser.mutate(deleteTarget.id);

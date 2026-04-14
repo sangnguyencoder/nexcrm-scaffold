@@ -181,8 +181,9 @@ export function CampaignListPage() {
     [campaigns, search, statusFilter],
   );
 
-  const pagedCampaigns = filteredCampaigns.slice((page - 1) * 10, page * 10);
   const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / 10));
+  const currentPage = Math.min(page, totalPages);
+  const pagedCampaigns = filteredCampaigns.slice((currentPage - 1) * 10, currentPage * 10);
 
   const summary = useMemo(() => {
     const sent = filteredCampaigns.reduce((sum, item) => sum + item.sent_count, 0);
@@ -221,18 +222,33 @@ export function CampaignListPage() {
         : await campaignService.create(payload);
 
       if (wizard.scheduleMode === "now") {
-        await communicationService.dispatchCampaign(campaign.id);
+        const dispatchResult = await communicationService.dispatchCampaign(campaign.id);
+        return dispatchResult.campaign;
       }
 
       return campaign;
     },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
-        queryClient.invalidateQueries({ queryKey: ["outbound-messages"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (savedCampaign) => {
+      queryClient.setQueriesData<Campaign[]>({ queryKey: ["campaigns"] }, (current = []) => {
+        const existingIndex = current.findIndex((campaign) => campaign.id === savedCampaign.id);
+        if (existingIndex === -1) {
+          return [savedCampaign, ...current];
+        }
+
+        return current.map((campaign) =>
+          campaign.id === savedCampaign.id ? savedCampaign : campaign,
+        );
+      });
+      if (detailCampaign?.id === savedCampaign.id) {
+        setDetailCampaign(savedCampaign);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
+      void queryClient.invalidateQueries({
+        queryKey: ["outbound-messages"],
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success(editingCampaign ? "Đã cập nhật chiến dịch" : "Đã tạo chiến dịch mới");
       setComposerOpen(false);
       setEditingCampaign(null);
@@ -245,13 +261,22 @@ export function CampaignListPage() {
     action: "campaign.send",
     errorMessage: "Không thể gửi chiến dịch.",
     mutationFn: (campaignId: string) => communicationService.dispatchCampaign(campaignId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
-        queryClient.invalidateQueries({ queryKey: ["outbound-messages"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (result) => {
+      queryClient.setQueriesData<Campaign[]>({ queryKey: ["campaigns"] }, (current = []) =>
+        current.map((campaign) =>
+          campaign.id === result.campaign.id ? result.campaign : campaign,
+        ),
+      );
+      if (detailCampaign?.id === result.campaign.id) {
+        setDetailCampaign(result.campaign);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
+      void queryClient.invalidateQueries({
+        queryKey: ["outbound-messages"],
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success("Đã khởi động chiến dịch");
     },
   });
@@ -260,8 +285,12 @@ export function CampaignListPage() {
     action: "campaign.duplicate",
     errorMessage: "Không thể nhân bản chiến dịch.",
     mutationFn: campaignService.duplicate,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    onSuccess: (newCampaign) => {
+      queryClient.setQueriesData<Campaign[]>({ queryKey: ["campaigns"] }, (current = []) => [
+        newCampaign,
+        ...current.filter((campaign) => campaign.id !== newCampaign.id),
+      ]);
+      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
       toast.success("Đã nhân bản chiến dịch");
     },
   });
@@ -270,8 +299,14 @@ export function CampaignListPage() {
     action: "campaign.delete",
     errorMessage: "Không thể xóa chiến dịch.",
     mutationFn: campaignService.delete,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    onSuccess: (_, deletedCampaignId) => {
+      queryClient.setQueriesData<Campaign[]>({ queryKey: ["campaigns"] }, (current = []) =>
+        current.filter((campaign) => campaign.id !== deletedCampaignId),
+      );
+      if (detailCampaign?.id === deletedCampaignId) {
+        setDetailCampaign(null);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
       toast.success("Đã xóa chiến dịch");
     },
   });
@@ -361,11 +396,11 @@ export function CampaignListPage() {
       <DataTableShell
         footer={
           <CompactPagination
-            page={page}
+            page={currentPage}
             totalPages={totalPages}
             label={`${filteredCampaigns.length} chiến dịch`}
-            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
-            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+            onPrevious={() => setPage(Math.max(1, currentPage - 1))}
+            onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
           />
         }
       >
@@ -445,10 +480,22 @@ export function CampaignListPage() {
                       <Button variant="ghost" size="icon" aria-label={`Sửa ${campaign.name}`} onClick={() => openComposer(campaign)}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" aria-label={`Nhân bản ${campaign.name}`} onClick={() => duplicateCampaign.mutate(campaign.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Nhân bản ${campaign.name}`}
+                        onClick={() => duplicateCampaign.mutate(campaign.id)}
+                        disabled={duplicateCampaign.isPending}
+                      >
                         <Copy className="size-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" aria-label={`Xóa ${campaign.name}`} onClick={() => setDeleteTarget(campaign)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Xóa ${campaign.name}`}
+                        onClick={() => setDeleteTarget(campaign)}
+                        disabled={deleteCampaign.isPending}
+                      >
                         <Trash2 className="size-4 text-rose-500" />
                       </Button>
                     </div>
@@ -700,7 +747,11 @@ export function CampaignListPage() {
                     Chạy ngay
                   </Button>
                 ) : null}
-                <Button variant="outline" onClick={() => duplicateCampaign.mutate(detailCampaign.id)} disabled={duplicateCampaign.isPending}>
+                <Button
+                  variant="outline"
+                  onClick={() => duplicateCampaign.mutate(detailCampaign.id)}
+                  disabled={duplicateCampaign.isPending}
+                >
                   <Copy className="size-4" />
                   Nhân bản
                 </Button>
@@ -720,6 +771,7 @@ export function CampaignListPage() {
                     setDeleteTarget(detailCampaign);
                     setDetailCampaign(null);
                   }}
+                  disabled={deleteCampaign.isPending}
                 >
                   <Trash2 className="size-4" />
                   Xóa

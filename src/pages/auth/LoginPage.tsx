@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -23,6 +24,7 @@ export function LoginPage() {
     requestPasswordReset,
     updatePassword,
     isLoading,
+    authUser,
     user,
     initialized,
   } = useAuthStore();
@@ -49,10 +51,11 @@ export function LoginPage() {
     <AuthLayout>
       {isRecoveryMode ? (
         <PasswordRecoveryForm
-          canReset={Boolean(user)}
+          canReset={Boolean(authUser)}
           isSubmitting={isLoading}
           onSubmit={async (password) => {
             await updatePassword(password);
+            toast.success("Đặt lại mật khẩu thành công.");
             navigate(nextPath, { replace: true });
           }}
           onBackToLogin={() => {

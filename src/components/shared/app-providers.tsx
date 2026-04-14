@@ -54,10 +54,11 @@ export function AppProviders({ children }: Props) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 120_000,
-            gcTime: 600_000,
-            retry: 0,
-            refetchOnWindowFocus: false,
+            staleTime: 15_000,
+            gcTime: 300_000,
+            retry: 1,
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
           },
           mutations: {
             retry: 0,

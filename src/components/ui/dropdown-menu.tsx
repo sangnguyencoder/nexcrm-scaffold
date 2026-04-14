@@ -4,9 +4,24 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-export const DropdownMenu = DropdownMenuPrimitive.Root;
-export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
-export const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
+export function DropdownMenu({
+  ...props
+}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
+  return <DropdownMenuPrimitive.Root {...props} />;
+}
+
+export const DropdownMenuTrigger = React.forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ ...props }, ref) => <DropdownMenuPrimitive.Trigger ref={ref} {...props} />);
+
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName;
+
+export function DropdownMenuPortal({
+  ...props
+}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Portal>) {
+  return <DropdownMenuPrimitive.Portal {...props} />;
+}
 
 export const DropdownMenuContent = React.forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Content>,

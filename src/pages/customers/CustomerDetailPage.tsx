@@ -53,6 +53,7 @@ import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import type { Customer } from "@/types";
 
 const noteSchema = z.object({
   note_type: z.enum(["general", "call", "meeting", "internal"]),
@@ -92,7 +93,10 @@ export function CustomerDetailPage() {
     Boolean(id),
   );
   const { data: deals = [] } = useDealsQuery(id ? { customerId: id } : undefined, Boolean(id));
-  const { data: tasks = [] } = useTasksQuery(id ? { entityType: "customer", entityId: id } : undefined);
+  const { data: tasks = [] } = useTasksQuery(
+    id ? { entityType: "customer", entityId: id } : undefined,
+    Boolean(id),
+  );
   const { data: notes = [] } = useNotesQuery(id, Boolean(id));
   const { data: users = [] } = useUsersQuery();
   const [activeTab, setActiveTab] = useState("history");
@@ -117,11 +121,18 @@ export function CustomerDetailPage() {
       id: string;
       payload: Parameters<typeof customerService.update>[1];
     }) => customerService.update(customerId, payload),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["customers"] }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.customer(id ?? "") }),
-      ]);
+    onSuccess: (updatedCustomer) => {
+      queryClient.setQueriesData<Customer[]>({ queryKey: ["customers"] }, (current = []) =>
+        current.map((customer) =>
+          customer.id === updatedCustomer.id ? updatedCustomer : customer,
+        ),
+      );
+      queryClient.setQueryData(queryKeys.customer(updatedCustomer.id), updatedCustomer);
+      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.customer(updatedCustomer.id),
+        refetchType: "active",
+      });
       toast.success("Đã cập nhật hồ sơ khách hàng");
     },
   });
@@ -131,8 +142,11 @@ export function CustomerDetailPage() {
     errorMessage: "Không thể thêm ghi chú.",
     mutationFn: (values: NoteValues) =>
       customerService.addNote(id ?? "", values.content, values.note_type),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notes(id ? { customerId: id } : undefined),
+        refetchType: "active",
+      });
       noteForm.reset();
       toast.success("Đã thêm ghi chú mới");
     },
@@ -164,11 +178,9 @@ export function CustomerDetailPage() {
         priority: values.priority,
         due_at: values.due_at ? new Date(`${values.due_at}T09:00:00`).toISOString() : null,
       }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       taskForm.reset({
         title: "",
         description: "",

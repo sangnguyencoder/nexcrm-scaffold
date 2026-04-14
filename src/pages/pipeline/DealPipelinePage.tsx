@@ -38,7 +38,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCustomersQuery, useDealsQuery, useTasksQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
 import {
   cn,
-  formatCurrency,
   formatCurrencyCompact,
   formatDate,
   formatDateTime,
@@ -166,11 +165,17 @@ function DealFormModal({
 
       return dealService.create(payload);
     },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["deals"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (savedDeal) => {
+      queryClient.setQueriesData<Deal[]>({ queryKey: ["deals"] }, (current = []) => {
+        const existingIndex = current.findIndex((deal) => deal.id === savedDeal.id);
+        if (existingIndex === -1) {
+          return [savedDeal, ...current];
+        }
+
+        return current.map((deal) => (deal.id === savedDeal.id ? savedDeal : deal));
+      });
+      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success(isEdit ? "Đã cập nhật cơ hội" : "Đã tạo cơ hội mới");
       form.reset();
       onOpenChange(false);
@@ -333,11 +338,17 @@ function TaskForm({ dealId }: { dealId: string }) {
         priority: values.priority,
         due_at: values.due_at ? new Date(`${values.due_at}T09:00:00`).toISOString() : null,
       }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (createdTask) => {
+      queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) => {
+        const exists = current.some((task) => task.id === createdTask.id);
+        if (exists) {
+          return current.map((task) => (task.id === createdTask.id ? createdTask : task));
+        }
+
+        return [createdTask, ...current];
+      });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success("Đã tạo nhiệm vụ follow-up");
       form.reset({
         title: "",
@@ -495,11 +506,12 @@ export function DealPipelinePage() {
     action: "deal.update-stage",
     errorMessage: "Không thể cập nhật giai đoạn cơ hội.",
     mutationFn: ({ id, stage }: { id: string; stage: DealStage }) => dealService.updateStage(id, stage),
-    onSuccess: async (_, variables) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["deals"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (updatedDeal, variables) => {
+      queryClient.setQueriesData<Deal[]>({ queryKey: ["deals"] }, (current = []) =>
+        current.map((deal) => (deal.id === updatedDeal.id ? updatedDeal : deal)),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success(`Đã chuyển cơ hội sang ${formatDealStage(variables.stage)}`);
     },
   });
@@ -508,12 +520,16 @@ export function DealPipelinePage() {
     action: "deal.delete",
     errorMessage: "Không thể xóa cơ hội.",
     mutationFn: (id: string) => dealService.delete(id),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["deals"] }),
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (_, deletedDealId) => {
+      queryClient.setQueriesData<Deal[]>({ queryKey: ["deals"] }, (current = []) =>
+        current.filter((deal) => deal.id !== deletedDealId),
+      );
+      queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
+        current.filter((task) => !(task.entity_type === "deal" && task.entity_id === deletedDealId)),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       setSelectedDealId(null);
       toast.success("Đã xóa cơ hội");
     },
@@ -523,11 +539,12 @@ export function DealPipelinePage() {
     action: "deal.task.complete",
     errorMessage: "Không thể cập nhật nhiệm vụ.",
     mutationFn: (id: string) => taskService.complete(id),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (updatedTask) => {
+      queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
+        current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success("Đã đánh dấu hoàn thành nhiệm vụ");
     },
   });
@@ -536,11 +553,12 @@ export function DealPipelinePage() {
     action: "deal.task.delete",
     errorMessage: "Không thể xóa nhiệm vụ.",
     mutationFn: (id: string) => taskService.delete(id),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] }),
-      ]);
+    onSuccess: (_, deletedTaskId) => {
+      queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
+        current.filter((task) => task.id !== deletedTaskId),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       toast.success("Đã xóa nhiệm vụ");
     },
   });
@@ -627,7 +645,7 @@ export function DealPipelinePage() {
                   className={`border-t-4 ${column.borderClass}`}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
-                    if (!draggedDealId) return;
+                    if (!draggedDealId || updateStage.isPending) return;
                     updateStage.mutate({ id: draggedDealId, stage: column.value });
                     setDraggedDealId(null);
                   }}
@@ -844,12 +862,20 @@ export function DealPipelinePage() {
                           </div>
                           <div className="flex gap-2">
                             {task.status !== "done" ? (
-                              <Button variant="secondary" onClick={() => completeTask.mutate(task.id)}>
+                              <Button
+                                variant="secondary"
+                                onClick={() => completeTask.mutate(task.id)}
+                                disabled={completeTask.isPending || deleteTask.isPending}
+                              >
                                 <CheckCircle2 className="size-4" />
                                 Hoàn thành
                               </Button>
                             ) : null}
-                            <Button variant="ghost" onClick={() => setDeleteTaskTarget(task)}>
+                            <Button
+                              variant="ghost"
+                              onClick={() => setDeleteTaskTarget(task)}
+                              disabled={deleteTask.isPending || completeTask.isPending}
+                            >
                               <Trash2 className="size-4 text-rose-500" />
                             </Button>
                           </div>

@@ -116,7 +116,8 @@ export function getAuthErrorState(
 
   if (action === "password_reset" && details.kind === "validation") {
     return {
-      message: "Nhập email công việc hợp lệ để nhận liên kết đặt lại mật khẩu.",
+      message:
+        details.message || "Nhập email công việc hợp lệ để nhận liên kết đặt lại mật khẩu.",
       field: "identifier",
     };
   }

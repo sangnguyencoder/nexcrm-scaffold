@@ -9,6 +9,10 @@ import {
   isMissingRpcFunctionError,
 } from "@/services/shared";
 
+const PASSWORD_RESET_CLIENT_COOLDOWN_MS = 15_000;
+const passwordResetInFlight = new Map<string, Promise<string>>();
+const passwordResetLastSentAt = new Map<string, number>();
+
 export async function resolveLoginIdentifier(identifier: string) {
   ensureSupabaseConfigured();
 
@@ -84,6 +88,23 @@ export async function requestPasswordReset(identifier: string) {
     });
   }
 
+  const previousSentAt = passwordResetLastSentAt.get(resolvedEmail);
+  if (previousSentAt) {
+    const elapsedMs = Date.now() - previousSentAt;
+    if (elapsedMs < PASSWORD_RESET_CLIENT_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((PASSWORD_RESET_CLIENT_COOLDOWN_MS - elapsedMs) / 1000);
+      throw createAppError({
+        kind: "validation",
+        message: `Yêu cầu đặt lại mật khẩu vừa được gửi. Vui lòng chờ khoảng ${waitSeconds}s rồi thử lại.`,
+      });
+    }
+  }
+
+  const inFlightRequest = passwordResetInFlight.get(resolvedEmail);
+  if (inFlightRequest) {
+    return inFlightRequest;
+  }
+
   if (typeof window === "undefined") {
     throw createAppError({
       kind: "unknown",
@@ -91,13 +112,24 @@ export async function requestPasswordReset(identifier: string) {
     });
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
-    redirectTo: new URL("/login?mode=recovery", window.location.origin).toString(),
-  });
+  const request = (async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(resolvedEmail, {
+      redirectTo: new URL("/login?mode=recovery", window.location.origin).toString(),
+    });
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+
+    passwordResetLastSentAt.set(resolvedEmail, Date.now());
+    return resolvedEmail;
+  })();
+
+  passwordResetInFlight.set(resolvedEmail, request);
+
+  try {
+    return await request;
+  } finally {
+    passwordResetInFlight.delete(resolvedEmail);
   }
-
-  return resolvedEmail;
 }

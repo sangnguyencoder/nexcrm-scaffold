@@ -69,7 +69,6 @@ export function TicketDetailPage() {
       ),
     [assignedSearch, users],
   );
-  const assignedUser = users.find((user) => user.id === ticket?.assigned_to);
   const isOverdue = ticket ? new Date(ticket.due_at).getTime() < currentTimestamp : false;
 
   const updateTicket = useAppMutation({

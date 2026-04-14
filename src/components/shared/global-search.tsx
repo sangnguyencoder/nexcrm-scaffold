@@ -58,12 +58,6 @@ export function GlobalSearch({
   const { data: campaigns = [] } = useCampaignsQuery(undefined, searchEnabled);
 
   useEffect(() => {
-    if (!open) {
-      setSelectedIndex(0);
-    }
-  }, [open]);
-
-  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -119,9 +113,8 @@ export function GlobalSearch({
     ];
   }, [campaigns, customers, keyword, tickets]);
 
-  useEffect(() => {
-    setSelectedIndex((current) => Math.min(current, Math.max(results.length - 1, 0)));
-  }, [results.length]);
+  const maxSelectableIndex = Math.max(results.length - 1, 0);
+  const activeIndex = open ? Math.min(selectedIndex, maxSelectableIndex) : 0;
 
   useEffect(() => {
     if (!open) return;
@@ -129,7 +122,7 @@ export function GlobalSearch({
     const handler = (event: KeyboardEvent) => {
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSelectedIndex((value) => Math.min(value + 1, Math.max(results.length - 1, 0)));
+        setSelectedIndex((value) => Math.min(value + 1, maxSelectableIndex));
       }
 
       if (event.key === "ArrowUp") {
@@ -137,15 +130,15 @@ export function GlobalSearch({
         setSelectedIndex((value) => Math.max(value - 1, 0));
       }
 
-      if (event.key === "Enter" && results[selectedIndex]) {
-        navigate(results[selectedIndex].href);
+      if (event.key === "Enter" && results[activeIndex]) {
+        navigate(results[activeIndex].href);
         onOpenChange(false);
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [navigate, onOpenChange, open, results, selectedIndex]);
+  }, [activeIndex, maxSelectableIndex, navigate, onOpenChange, open, results]);
 
   return (
     <Modal
@@ -241,7 +234,7 @@ export function GlobalSearch({
                               onOpenChange(false);
                             }}
                             className={
-                              absoluteIndex === selectedIndex
+                              absoluteIndex === activeIndex
                                 ? "command-row command-row-active"
                                 : "command-row command-row-idle"
                             }
