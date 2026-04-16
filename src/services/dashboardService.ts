@@ -196,7 +196,6 @@ async function buildFallbackDashboardStats(
         supabase
           .from("customers")
           .select("id, full_name, customer_code, customer_type, total_spent, created_at")
-          .eq("is_active", true)
           .is("deleted_at", null),
         options.signal,
       ).order("total_spent", { ascending: false }),
@@ -211,6 +210,7 @@ async function buildFallbackDashboardStats(
         supabase
           .from("transactions")
           .select("created_at, total_amount, status")
+          .is("deleted_at", null)
           .gte("created_at", transactionStart),
         options.signal,
       ).order("created_at", { ascending: false }),

@@ -135,7 +135,7 @@ type TicketReportRow = {
 
 type TaskReportRow = {
   created_at: string;
-  due_at: string | null;
+  due_date: string | null;
   assigned_to: string | null;
   status: string | null;
 };
@@ -326,7 +326,6 @@ async function getCustomersSnapshot(
       client
         .from<CustomerReportRow[]>("customers")
         .select("created_at, customer_type, source")
-        .eq("is_active", true)
         .is("deleted_at", null)
         .gte("created_at", bounds.startIso)
         .lte("created_at", bounds.endIso),
@@ -352,6 +351,7 @@ async function getCustomersSnapshot(
       { name: "Giới thiệu", value: customers.filter((item) => item.source === "referral").length, color: "#f59e0b" },
       { name: "POS", value: customers.filter((item) => item.source === "pos").length, color: "#8b92a5" },
       { name: "Online", value: customers.filter((item) => item.source === "online").length, color: "#ef4444" },
+      { name: "Khác", value: customers.filter((item) => item.source === "other").length, color: "#6366f1" },
     ],
     customerTypeRows: ["vip", "loyal", "potential", "new", "inactive"].map((type) => {
       const total = customers.filter((customer) => customer.customer_type === type).length;
@@ -387,8 +387,8 @@ async function getTicketsSnapshot(
       withAbortSignal(
         client
           .from<TaskReportRow[]>("tasks")
-          .select("created_at, due_at, assigned_to, status")
-          .eq("entity_type", "deal")
+          .select("created_at, due_date, assigned_to, status")
+          .is("deleted_at", null)
           .gte("created_at", bounds.startIso)
           .lte("created_at", bounds.endIso),
         deps.signal,
@@ -397,7 +397,7 @@ async function getTicketsSnapshot(
     ),
     resolveQuery<UserRow[]>(
       withAbortSignal(
-        client.from<UserRow[]>("profiles").select("id, full_name"),
+        client.from<UserRow[]>("profiles").select("id, full_name").is("deleted_at", null),
         deps.signal,
       ).order("full_name", { ascending: true }),
       { request, stage: "profiles", ...deps },
@@ -411,7 +411,17 @@ async function getTicketsSnapshot(
     return sum + (end - start) / (1000 * 60 * 60);
   }, 0);
   const completedTasks = tasks.filter((task) => task.status === "done").length;
-  const overdueTasks = tasks.filter((task) => task.status === "overdue").length;
+  const nowMs = Date.now();
+  const overdueTasks = tasks.filter((task) => {
+    if (!task.due_date) {
+      return false;
+    }
+    const due = new Date(task.due_date).getTime();
+    if (Number.isNaN(due)) {
+      return false;
+    }
+    return due < nowMs && task.status !== "done" && task.status !== "cancelled";
+  }).length;
 
   return {
     tab: "tickets",
@@ -432,7 +442,16 @@ async function getTicketsSnapshot(
       );
       const assignedTasks = tasks.filter((task) => task.assigned_to === user.id);
       const completed = assignedTasks.filter((task) => task.status === "done").length;
-      const overdue = assignedTasks.filter((task) => task.status === "overdue").length;
+      const overdue = assignedTasks.filter((task) => {
+        if (!task.due_date) {
+          return false;
+        }
+        const due = new Date(task.due_date).getTime();
+        if (Number.isNaN(due)) {
+          return false;
+        }
+        return due < nowMs && task.status !== "done" && task.status !== "cancelled";
+      }).length;
 
       return {
         id: user.id,
@@ -456,7 +475,10 @@ async function getMarketingSnapshot(
   const [campaigns, messages] = await Promise.all([
     resolveQuery<CampaignRow[]>(
       withAbortSignal(
-        client.from<CampaignRow[]>("campaigns").select("id, name, channel, status"),
+        client
+          .from<CampaignRow[]>("campaigns")
+          .select("id, name, channel, status")
+          .is("deleted_at", null),
         deps.signal,
       ).order("created_at", { ascending: false }),
       { request, stage: "campaigns", ...deps },
@@ -466,6 +488,7 @@ async function getMarketingSnapshot(
         client
           .from<OutboundMessageRow[]>("outbound_messages")
           .select("campaign_id, status, created_at")
+          .is("deleted_at", null)
           .gte("created_at", bounds.startIso)
           .lte("created_at", bounds.endIso),
         deps.signal,
