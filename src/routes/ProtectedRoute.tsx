@@ -1,15 +1,24 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { PageLoader } from "@/components/shared/page-loader";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/hooks/useAuth";
+import type { UserRole } from "@/types";
 
-export function ProtectedRoute() {
+type ProtectedRouteProps = {
+  allowedRoles?: UserRole[];
+};
+
+export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const location = useLocation();
-  const user = useAuthStore((state) => state.user);
-  const initialized = useAuthStore((state) => state.initialized);
-  const isInitializing = useAuthStore((state) => state.isInitializing);
+  const {
+    initialized,
+    isInitializing,
+    isLoading,
+    isAuthenticated,
+    role,
+  } = useAuth();
 
-  if (!initialized || isInitializing) {
+  if (!initialized || isInitializing || isLoading) {
     return (
       <div className="p-6">
         <PageLoader panels={1} />
@@ -17,8 +26,28 @@ export function ProtectedRoute() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!isAuthenticated) {
+    const nextPath = `${location.pathname}${location.search}${location.hash}`;
+    const next = nextPath.startsWith("/") ? nextPath : "/dashboard";
+    const loginPath = `/login?next=${encodeURIComponent(next)}`;
+
+    return (
+      <Navigate
+        to={loginPath}
+        replace
+        state={{
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash,
+          },
+        }}
+      />
+    );
+  }
+
+  if (allowedRoles?.length && (!role || !allowedRoles.includes(role))) {
+    return <Navigate to="/403" replace />;
   }
 
   return <Outlet />;

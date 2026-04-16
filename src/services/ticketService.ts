@@ -1,23 +1,15 @@
 import { supabase } from "@/lib/supabase";
+import { ticketService as dataLayerTicketService } from "@/services/data-layer";
 import type { Ticket, TicketComment } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 
-import { notificationService } from "@/services/notificationService";
-import {
-  type AuditLogRow,
-  type ServiceRequestOptions,
-  type TicketCommentRow,
-  type TicketFilters,
-  type TicketRow,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getCurrentProfileId,
-  runBestEffort,
-  toTicket,
-  toTicketComment,
-  toTicketSystemComment,
-  withAbortSignal,
-  withLatency,
-} from "@/services/shared";
+import type { ServiceRequestOptions, TicketFilters } from "@/services/shared";
+
+type DataLayerResult<T> = {
+  data: T | null;
+  error: { message?: string } | null;
+  page?: { nextCursor: string | null; hasMore: boolean };
+};
 
 export type TicketCreateInput = {
   customer_id: string;
@@ -39,181 +31,207 @@ export type TicketUpdateInput = Partial<{
   assigned_to: string;
   status: Ticket["status"];
   resolved_at: string | null;
+  due_at: string | null;
 }>;
 
-async function fetchTicketRow(id: string, options: ServiceRequestOptions = {}) {
-  const { data, error } = await withAbortSignal(
-    supabase
-      .from("support_tickets")
-      .select("*")
-      .eq("id", id),
-    options.signal,
-  ).single();
+function unwrap<T>(result: DataLayerResult<T>, fallbackMessage: string): T {
+  if (result.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  if (result.data == null) {
+    throw new Error(fallbackMessage);
+  }
+  return result.data;
+}
 
-  if (error) {
-    throw error;
+function requireOrgContext() {
+  const state = useAuthStore.getState();
+  const orgId = state.orgId;
+  const userId = state.profile?.id ?? state.user?.id ?? null;
+  if (!orgId) {
+    throw new Error("Thiếu ngữ cảnh tổ chức. Vui lòng đăng nhập lại.");
+  }
+  return { orgId, userId };
+}
+
+function mapTicket(row: Record<string, unknown>): Ticket {
+  return {
+    id: String(row.id ?? ""),
+    ticket_code: row.ticket_code ? String(row.ticket_code) : "",
+    customer_id: String(row.customer_id ?? ""),
+    title: String(row.title ?? ""),
+    description: row.description ? String(row.description) : "",
+    category:
+      row.category === "complaint" ||
+      row.category === "feedback" ||
+      row.category === "inquiry" ||
+      row.category === "return" ||
+      row.category === "other"
+        ? row.category
+        : "other",
+    priority:
+      row.priority === "low" ||
+      row.priority === "medium" ||
+      row.priority === "high" ||
+      row.priority === "urgent"
+        ? row.priority
+        : "medium",
+    channel:
+      row.channel === "phone" ||
+      row.channel === "email" ||
+      row.channel === "direct" ||
+      row.channel === "chat" ||
+      row.channel === "social" ||
+      row.channel === "other"
+        ? row.channel
+        : "direct",
+    assigned_to: row.assigned_to ? String(row.assigned_to) : "",
+    status:
+      row.status === "open" ||
+      row.status === "in_progress" ||
+      row.status === "pending" ||
+      row.status === "resolved" ||
+      row.status === "closed"
+        ? row.status
+        : "open",
+    created_at: String(row.created_at ?? ""),
+    updated_at: row.updated_at ? String(row.updated_at) : undefined,
+    resolved_at: row.resolved_at ? String(row.resolved_at) : null,
+    due_at: row.due_at ? String(row.due_at) : "",
+  };
+}
+
+function mapTicketComment(row: Record<string, unknown>): TicketComment {
+  const isInternal = Boolean(row.is_internal);
+  return {
+    id: String(row.id ?? ""),
+    ticket_id: String(row.ticket_id ?? ""),
+    author_id: row.author_id ? String(row.author_id) : null,
+    content: String(row.content ?? ""),
+    created_at: String(row.created_at ?? ""),
+    type: isInternal ? "internal" : "comment",
+    system_label: undefined,
+  };
+}
+
+async function collectTickets(filters: TicketFilters = {}) {
+  const rows: Ticket[] = [];
+  let cursor: string | null = null;
+  const maxIterations = 8;
+  const pageLimit = 100;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const result = await dataLayerTicketService.getList({
+      customerId: filters.customerId,
+      status:
+        filters.status &&
+        filters.status !== "all" &&
+        (filters.status === "open" ||
+          filters.status === "in_progress" ||
+          filters.status === "pending" ||
+          filters.status === "resolved" ||
+          filters.status === "closed")
+          ? filters.status
+          : undefined,
+      priority:
+        filters.priority &&
+        filters.priority !== "all" &&
+        (filters.priority === "low" ||
+          filters.priority === "medium" ||
+          filters.priority === "high" ||
+          filters.priority === "urgent")
+          ? filters.priority
+          : undefined,
+      assignedTo: filters.assignedTo && filters.assignedTo !== "all" ? filters.assignedTo : undefined,
+      search: filters.search,
+      limit: pageLimit,
+      cursor,
+    });
+
+    const pageRows = unwrap(
+      result as DataLayerResult<Array<Record<string, unknown>>>,
+      "Không thể tải danh sách ticket.",
+    ).map(mapTicket);
+    rows.push(...pageRows);
+    if (!result.page?.hasMore || !result.page.nextCursor) {
+      break;
+    }
+    cursor = result.page.nextCursor;
   }
 
-  return data;
+  return rows;
 }
 
 export const ticketService = {
-  getList(filters: TicketFilters = {}, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = withAbortSignal(
-          supabase.from("support_tickets").select("*"),
-          options.signal,
-        ).order("created_at", { ascending: false });
+  async getList(filters: TicketFilters = {}, options: ServiceRequestOptions = {}) {
+    void options;
+    return collectTickets(filters);
+  },
 
-        if (filters.customerId) {
-          query = query.eq("customer_id", filters.customerId);
-        }
-
-        if (filters.priority && filters.priority !== "all") {
-          query = query.eq("priority", filters.priority);
-        }
-
-        if (filters.assignedTo && filters.assignedTo !== "all") {
-          query = query.eq("assigned_to", filters.assignedTo);
-        }
-
-        if (filters.category && filters.category !== "all") {
-          query = query.eq("category", filters.category);
-        }
-
-        if (filters.status && filters.status !== "all") {
-          query = query.eq("status", filters.status);
-        }
-
-        if (filters.search?.trim()) {
-          const keyword = filters.search.trim().replaceAll("%", "");
-          query = query.or(`title.ilike.%${keyword}%,ticket_code.ilike.%${keyword}%`);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as TicketRow[]).map(toTicket);
-      })(),
+  async getById(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTicketService.getById(id);
+    return mapTicket(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không tìm thấy ticket."),
     );
   },
 
-  getById(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const row = await fetchTicketRow(id, options);
-        return toTicket(row);
-      })(),
+  async create(payload: TicketCreateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTicketService.create({
+      customer_id: payload.customer_id,
+      title: payload.title,
+      description: payload.description,
+      category: payload.category,
+      priority: payload.priority,
+      channel: payload.channel,
+      assigned_to: payload.assigned_to || undefined,
+      status: payload.status || undefined,
+    });
+
+    return mapTicket(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể tạo ticket."),
     );
   },
 
-  create(payload: TicketCreateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("support_tickets").insert({
-            customer_id: payload.customer_id,
-            title: payload.title,
-            description: payload.description || null,
-            category: payload.category,
-            priority: payload.priority,
-            channel: payload.channel,
-            assigned_to: payload.assigned_to || currentUserId,
-            status: payload.status ?? "open",
-            due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            created_by: currentUserId,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
+  async update(id: string, payload: TicketUpdateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTicketService.update(id, {
+      title: payload.title,
+      description: payload.description,
+      category: payload.category,
+      priority: payload.priority,
+      channel: payload.channel,
+      assigned_to: payload.assigned_to || undefined,
+      status: payload.status,
+      satisfaction_score: undefined,
+    });
 
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("ticket.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "ticket",
-            entityId: data.id,
-            newData: {
-              message: `Tạo ticket ${data.ticket_code ?? payload.title}`,
-              title: payload.title,
-              status: payload.status ?? "open",
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        if (data.assigned_to) {
-          void runBestEffort("ticket.create.notification", () =>
-            notificationService.createUnique({
-              user_id: data.assigned_to,
-              title: `Ticket mới: ${data.title}`,
-              message: `Bạn vừa được giao ${data.ticket_code ?? payload.title}.`,
-              type: "info",
-              entity_type: "ticket",
-              entity_id: data.id,
-            }),
-          );
-        }
-
-        return toTicket(data);
-      })(),
+    const ticket = mapTicket(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể cập nhật ticket."),
     );
-  },
 
-  update(id: string, payload: TicketUpdateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        if (payload.status) {
-          return ticketService.updateStatus(id, payload.status, options);
-        }
+    if (payload.due_at !== undefined) {
+      const { orgId } = requireOrgContext();
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .update({
+          due_at: payload.due_at,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("org_id", orgId)
+        .eq("id", id)
+        .select("*")
+        .single();
 
-        const previous = await fetchTicketRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("support_tickets").update({
-            ...payload,
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .eq("id", id)
-          .select("*")
-          .single();
+      if (error) {
+        throw error;
+      }
 
-        if (error) {
-          throw error;
-        }
+      return mapTicket((data ?? {}) as Record<string, unknown>);
+    }
 
-        void runBestEffort("ticket.update.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "ticket",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Cập nhật ticket ${data.ticket_code ?? data.title}`,
-              ...payload,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toTicket(data);
-      })(),
-    );
+    return ticket;
   },
 
   async updateStatus(
@@ -221,153 +239,68 @@ export const ticketService = {
     status: Ticket["status"],
     options: ServiceRequestOptions = {},
   ) {
-    ensureSupabaseConfigured();
-    const previous = await fetchTicketRow(id, options);
-    const currentUserId = await getCurrentProfileId();
-    const resolvedAt =
-      status === "resolved" || status === "closed"
-        ? previous.resolved_at ?? new Date().toISOString()
-        : null;
-
-    const { data, error } = await withAbortSignal(
-      supabase.from("support_tickets").update({
-        status,
-        resolved_at: resolvedAt,
-        updated_at: new Date().toISOString(),
-      }),
-      options.signal,
-    )
-      .eq("id", id)
-      .select("*")
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    void runBestEffort("ticket.updateStatus.audit", () =>
-      createAuditLog({
-        action: "update",
-        entityType: "ticket_status",
-        entityId: id,
-        oldData: {
-          ticket_id: id,
-          from_status: previous.status,
-        },
-        newData: {
-          ticket_id: id,
-          from_status: previous.status,
-          to_status: status,
-          message: `Trạng thái đổi từ ${previous.status} sang ${status}`,
-        },
-        userId: currentUserId,
-      }),
-    );
-
-    if (data.assigned_to) {
-      void runBestEffort("ticket.updateStatus.notification", () =>
-        notificationService.createUnique({
-          user_id: data.assigned_to,
-          title: `Ticket cập nhật: ${data.title}`,
-          message: `Trạng thái đã đổi sang ${status}.`,
-          type: status === "resolved" || status === "closed" ? "success" : "info",
-          entity_type: "ticket",
-          entity_id: id,
-        }),
-      );
-    }
-
-    return toTicket(data);
+    void options;
+    return ticketService.update(id, { status });
   },
 
-  addComment(
+  async addComment(
     ticketId: string,
     content: string,
     isInternal = false,
     options: ServiceRequestOptions = {},
   ) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        if (!currentUserId) {
-          throw new Error("Không tìm thấy người dùng hiện tại để ghi nhận bình luận.");
-        }
+    void options;
+    const { orgId, userId } = requireOrgContext();
+    if (!userId) {
+      throw new Error("Không xác định được người dùng hiện tại để thêm comment.");
+    }
 
-        const { data, error } = await withAbortSignal(
-          supabase.from("ticket_comments").insert({
-            ticket_id: ticketId,
-            author_id: currentUserId,
-            content,
-            is_internal: isInternal,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
+    const result = await dataLayerTicketService.addComment({
+      ticket_id: ticketId,
+      content,
+      is_internal: isInternal,
+    });
 
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("ticket.addComment.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "ticket_comment",
-            entityId: ticketId,
-            newData: {
-              message: isInternal ? "Thêm ghi chú nội bộ cho ticket" : "Thêm phản hồi ticket",
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toTicketComment(data);
-      })(),
+    const inserted = unwrap(
+      result as DataLayerResult<{
+        id: string;
+        ticket_id: string;
+        content: string;
+        is_internal: boolean;
+      }>,
+      "Không thể thêm bình luận ticket.",
     );
+
+    return {
+      id: inserted.id,
+      ticket_id: inserted.ticket_id,
+      author_id: userId,
+      content: inserted.content,
+      created_at: new Date().toISOString(),
+      type: inserted.is_internal ? "internal" : "comment",
+      system_label: undefined,
+    } satisfies TicketComment;
   },
 
-  getComments(ticketId?: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let commentsQuery = withAbortSignal(
-          supabase.from("ticket_comments").select("*"),
-          options.signal,
-        ).order("created_at", { ascending: true });
-        let auditsQuery = withAbortSignal(
-          supabase
-            .from("audit_logs")
-            .select("*")
-            .eq("entity_type", "ticket_status"),
-          options.signal,
-        ).order("created_at", { ascending: true });
+  async getComments(ticketId?: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const { orgId } = requireOrgContext();
+    let query = supabase
+      .from("ticket_comments")
+      .select("id, ticket_id, author_id, content, is_internal, created_at")
+      .eq("org_id", orgId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
-        if (ticketId) {
-          commentsQuery = commentsQuery.eq("ticket_id", ticketId);
-          auditsQuery = auditsQuery.eq("entity_id", ticketId);
-        }
+    if (ticketId) {
+      query = query.eq("ticket_id", ticketId);
+    }
 
-        const [{ data: comments, error: commentsError }, { data: audits, error: auditsError }] =
-          await Promise.all([commentsQuery, auditsQuery]);
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
 
-        if (commentsError) {
-          throw commentsError;
-        }
-
-        if (auditsError) {
-          throw auditsError;
-        }
-
-        const commentItems = ((comments ?? []) as TicketCommentRow[]).map(toTicketComment);
-        const systemItems = ((audits ?? []) as AuditLogRow[])
-          .map(toTicketSystemComment)
-          .filter((item): item is TicketComment => Boolean(item));
-
-        return [...commentItems, ...systemItems].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-        );
-      })(),
-    );
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapTicketComment);
   },
 };

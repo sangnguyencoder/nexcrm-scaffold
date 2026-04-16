@@ -11,12 +11,17 @@ type RequestBody =
       email: string;
       password: string;
       full_name: string;
+      role?: string;
+      department?: string;
     }
   | {
       action: "update";
       id: string;
       email?: string;
       full_name?: string;
+      role?: string;
+      department?: string;
+      is_active?: boolean;
     }
   | {
       action: "reset_password";
@@ -37,17 +42,53 @@ type AuthUserLite = {
   email: string | null;
   user_metadata?: {
     full_name?: string;
+    role?: string;
+    org_id?: string;
+    department?: string;
   } | null;
 };
 
 type ProfileRow = {
   id: string;
+  org_id: string;
+  email: string | null;
   full_name: string;
   role: "super_admin" | "admin" | "director" | "sales" | "cskh" | "marketing";
   department: string | null;
   avatar_url: string | null;
   is_active: boolean | null;
 };
+
+const USER_ROLES = [
+  "super_admin",
+  "admin",
+  "director",
+  "sales",
+  "cskh",
+  "marketing",
+] as const;
+
+type UserRole = (typeof USER_ROLES)[number];
+
+function normalizeRole(role: string | undefined | null, fallback: UserRole = "sales"): UserRole {
+  const normalized = (role ?? "").trim().toLowerCase();
+  return (USER_ROLES as readonly string[]).includes(normalized)
+    ? (normalized as UserRole)
+    : fallback;
+}
+
+function normalizeDepartment(department: string | undefined | null) {
+  return (department ?? "").trim() || "Chưa phân bổ";
+}
+
+function extractUserOrgId(user: AuthUserLite) {
+  const raw = user.user_metadata?.org_id;
+  if (typeof raw !== "string" || !raw.trim()) {
+    return null;
+  }
+
+  return raw.trim();
+}
 
 function readBearerToken(header: string | null) {
   if (!header) {
@@ -118,6 +159,45 @@ async function listAllAuthUsers(
   return users;
 }
 
+async function getProfileInOrg(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+  orgId: string,
+) {
+  const { data, error } = await adminClient
+    .from("profiles")
+    .select("id, org_id, email, full_name, role, department, avatar_url, is_active")
+    .eq("id", userId)
+    .eq("org_id", orgId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ProfileRow | null;
+}
+
+async function countActiveSuperAdminsInOrg(
+  adminClient: ReturnType<typeof createClient>,
+  orgId: string,
+) {
+  const { count, error } = await adminClient
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("role", "super_admin")
+    .eq("is_active", true)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -172,12 +252,17 @@ Deno.serve(async (request) => {
 
     const { data: actorProfile, error: profileError } = await adminClient
       .from("profiles")
-      .select("role")
+      .select("role, org_id")
       .eq("id", authData.user.id)
       .maybeSingle();
 
     if (profileError || !actorProfile) {
       return Response.json({ error: "Không đủ quyền để quản lý tài khoản người dùng." }, { status: 403, headers: corsHeaders });
+    }
+
+    const actorOrgId = typeof actorProfile.org_id === "string" ? actorProfile.org_id : "";
+    if (!actorOrgId) {
+      return Response.json({ error: "Không xác định được tổ chức của tài khoản quản trị." }, { status: 400, headers: corsHeaders });
     }
 
     const isManager = ["super_admin", "admin"].includes(actorProfile.role);
@@ -188,28 +273,40 @@ Deno.serve(async (request) => {
         return Response.json({ error: "Không đủ quyền để xem danh sách tài khoản người dùng." }, { status: 403, headers: corsHeaders });
       }
 
-      const syncMissingProfiles = body.sync_missing_profiles !== false;
+      const syncMissingProfiles = isManager && body.sync_missing_profiles !== false;
       const authUsers = await listAllAuthUsers(adminClient);
+      const orgAuthUsers = authUsers.filter((user) => {
+        const userOrgFromMetadata = extractUserOrgId(user);
+        return userOrgFromMetadata === actorOrgId;
+      });
+
+      const loadProfiles = async () => adminClient
+        .from("profiles")
+        .select("id,org_id,email,full_name,role,department,avatar_url,is_active")
+        .eq("org_id", actorOrgId)
+        .is("deleted_at", null);
+
+      const { data: profilesBeforeSync, error: profilesBeforeSyncError } = await loadProfiles();
+
+      if (profilesBeforeSyncError) {
+        return Response.json({ error: profilesBeforeSyncError.message }, { status: 400, headers: corsHeaders });
+      }
+
+      let profiles = (profilesBeforeSync ?? []) as ProfileRow[];
+      const profileMap = new Map(
+        profiles.map((profile) => [profile.id, profile]),
+      );
 
       if (syncMissingProfiles) {
-        const authUserIds = new Set(authUsers.map((user) => user.id));
-        const { data: existingProfiles, error: existingProfilesError } = await adminClient
-          .from("profiles")
-          .select("id")
-          .in("id", Array.from(authUserIds));
-
-        if (existingProfilesError) {
-          return Response.json({ error: existingProfilesError.message }, { status: 400, headers: corsHeaders });
-        }
-
-        const existingIds = new Set((existingProfiles ?? []).map((item) => String(item.id)));
-        const missingProfiles = authUsers
-          .filter((user) => !existingIds.has(user.id))
+        const missingProfiles = orgAuthUsers
+          .filter((user) => !profileMap.has(user.id))
           .map((user) => ({
             id: user.id,
+            org_id: actorOrgId,
+            email: user.email ? user.email.toLowerCase() : null,
             full_name: deriveFallbackName(user),
-            role: "sales",
-            department: "Chưa phân bổ",
+            role: normalizeRole(user.user_metadata?.role),
+            department: normalizeDepartment(user.user_metadata?.department),
             avatar_url: null,
             is_active: true,
             created_at: new Date().toISOString(),
@@ -224,35 +321,32 @@ Deno.serve(async (request) => {
           if (syncError) {
             return Response.json({ error: syncError.message }, { status: 400, headers: corsHeaders });
           }
+
+          const { data: profilesAfterSync, error: profilesAfterSyncError } = await loadProfiles();
+          if (profilesAfterSyncError) {
+            return Response.json({ error: profilesAfterSyncError.message }, { status: 400, headers: corsHeaders });
+          }
+
+          profiles = (profilesAfterSync ?? []) as ProfileRow[];
         }
       }
 
-      const { data: profiles, error: profilesError } = await adminClient
-        .from("profiles")
-        .select("id,full_name,role,department,avatar_url,is_active");
-
-      if (profilesError) {
-        return Response.json({ error: profilesError.message }, { status: 400, headers: corsHeaders });
-      }
-
-      const profileMap = new Map(
-        ((profiles ?? []) as ProfileRow[]).map((profile) => [profile.id, profile]),
-      );
-
-      const users = authUsers
-        .map((authUser) => {
-          const profile = profileMap.get(authUser.id);
-          const fullName = profile?.full_name?.trim() || deriveFallbackName(authUser);
+      const authUserMap = new Map(orgAuthUsers.map((authUser) => [authUser.id, authUser]));
+      const users = profiles
+        .map((profile) => {
+          const authUser = authUserMap.get(profile.id);
+          const fullName = profile.full_name?.trim() || deriveFallbackName(authUser ?? { id: profile.id, email: profile.email });
+          const email = (authUser?.email ?? profile.email ?? "").toLowerCase();
 
           return {
-            id: authUser.id,
-            email: authUser.email ?? "",
+            id: profile.id,
+            email,
             full_name: fullName,
-            role: profile?.role ?? "sales",
-            department: profile?.department ?? "",
-            avatar_url: profile?.avatar_url ?? null,
-            is_active: profile?.is_active ?? true,
-            has_profile: Boolean(profile),
+            role: profile.role,
+            department: profile.department ?? "",
+            avatar_url: profile.avatar_url ?? null,
+            is_active: profile.is_active ?? true,
+            has_profile: true,
           };
         })
         .sort((left, right) => left.full_name.localeCompare(right.full_name, "vi"));
@@ -269,12 +363,20 @@ Deno.serve(async (request) => {
         return Response.json({ error: "Mật khẩu tối thiểu 6 ký tự." }, { status: 400, headers: corsHeaders });
       }
 
+      const role = normalizeRole(body.role);
+      const department = normalizeDepartment(body.department);
+      const normalizedEmail = body.email.trim().toLowerCase();
+
       const { data, error } = await adminClient.auth.admin.createUser({
-        email: body.email,
+        email: normalizedEmail,
         password: body.password,
         email_confirm: true,
         user_metadata: {
           full_name: body.full_name,
+          org_id: actorOrgId,
+          role,
+          department,
+          allow_org_autocreate: false,
         },
       });
 
@@ -282,11 +384,39 @@ Deno.serve(async (request) => {
         return Response.json({ error: error?.message ?? "Không tạo được user." }, { status: 400, headers: corsHeaders });
       }
 
+      const { data: syncedProfile, error: profileSyncError } = await adminClient
+        .from("profiles")
+        .upsert(
+          {
+            id: data.user.id,
+            org_id: actorOrgId,
+            email: normalizedEmail,
+            full_name: body.full_name,
+            role,
+            department,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        )
+        .select("id,email,full_name,role,department,avatar_url,is_active")
+        .maybeSingle();
+
+      if (profileSyncError) {
+        return Response.json({ error: profileSyncError.message }, { status: 400, headers: corsHeaders });
+      }
+
       return Response.json(
         {
           user: {
             id: data.user.id,
-            email: data.user.email,
+            email: data.user.email?.toLowerCase() ?? normalizedEmail,
+            full_name: syncedProfile?.full_name ?? body.full_name,
+            role: normalizeRole(syncedProfile?.role ?? role),
+            department: syncedProfile?.department ?? department,
+            avatar_url: syncedProfile?.avatar_url ?? null,
+            is_active: syncedProfile?.is_active ?? true,
+            has_profile: true,
           },
         },
         { headers: corsHeaders },
@@ -294,34 +424,104 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "update") {
+      const targetProfile = await getProfileInOrg(adminClient, body.id, actorOrgId);
+      if (!targetProfile) {
+        return Response.json({ error: "Không tìm thấy thành viên trong tổ chức hiện tại." }, { status: 404, headers: corsHeaders });
+      }
+
+      const targetRole = normalizeRole(targetProfile.role);
+      const nextRole = normalizeRole(body.role, targetRole);
+      const nextDepartment = normalizeDepartment(body.department ?? targetProfile.department);
+      const nextIsActive = typeof body.is_active === "boolean" ? body.is_active : (targetProfile.is_active ?? true);
+
+      if (body.id === authData.user.id && targetRole === "super_admin" && nextRole !== "super_admin") {
+        return Response.json(
+          { error: "Super Admin không thể tự hạ quyền của chính mình." },
+          { status: 400, headers: corsHeaders },
+        );
+      }
+
+      if (body.id === authData.user.id && nextIsActive === false) {
+        return Response.json(
+          { error: "Không thể tự vô hiệu hóa tài khoản đang đăng nhập." },
+          { status: 400, headers: corsHeaders },
+        );
+      }
+
+      if (targetRole === "super_admin" && (nextRole !== "super_admin" || nextIsActive === false)) {
+        const activeSuperAdmins = await countActiveSuperAdminsInOrg(adminClient, actorOrgId);
+        if (activeSuperAdmins <= 1) {
+          return Response.json(
+            { error: "Không thể hạ quyền hoặc vô hiệu hóa Super Admin cuối cùng của tổ chức." },
+            { status: 400, headers: corsHeaders },
+          );
+        }
+      }
+
       const updatePayload: {
         email?: string;
         user_metadata?: {
           full_name?: string;
+          role?: string;
+          department?: string;
         };
       } = {};
 
       if (body.email) {
-        updatePayload.email = body.email;
+        updatePayload.email = body.email.trim().toLowerCase();
       }
 
-      if (body.full_name) {
+      if (body.full_name || body.role || body.department) {
         updatePayload.user_metadata = {
-          full_name: body.full_name,
+          full_name: body.full_name ?? targetProfile.full_name,
+          role: nextRole,
+          department: nextDepartment,
         };
       }
 
-      const { data, error } = await adminClient.auth.admin.updateUserById(body.id, updatePayload);
+      let updatedAuthEmail: string | null = targetProfile.email;
+      if (Object.keys(updatePayload).length > 0) {
+        const { data, error } = await adminClient.auth.admin.updateUserById(body.id, updatePayload);
+        if (error || !data.user) {
+          return Response.json({ error: error?.message ?? "Không cập nhật được user." }, { status: 400, headers: corsHeaders });
+        }
 
-      if (error || !data.user) {
-        return Response.json({ error: error?.message ?? "Không cập nhật được user." }, { status: 400, headers: corsHeaders });
+        updatedAuthEmail = data.user.email?.toLowerCase() ?? targetProfile.email;
+      }
+
+      const profilePatch = {
+        email: body.email ? body.email.trim().toLowerCase() : updatedAuthEmail,
+        full_name: body.full_name ?? targetProfile.full_name,
+        role: nextRole,
+        department: nextDepartment,
+        is_active: nextIsActive,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updatedProfile, error: profileUpdateError } = await adminClient
+        .from("profiles")
+        .update(profilePatch)
+        .eq("id", body.id)
+        .eq("org_id", actorOrgId)
+        .is("deleted_at", null)
+        .select("id,email,full_name,role,department,avatar_url,is_active")
+        .maybeSingle();
+
+      if (profileUpdateError || !updatedProfile) {
+        return Response.json({ error: profileUpdateError?.message ?? "Không cập nhật được profile." }, { status: 400, headers: corsHeaders });
       }
 
       return Response.json(
         {
           user: {
-            id: data.user.id,
-            email: data.user.email,
+            id: updatedProfile.id,
+            email: updatedProfile.email?.toLowerCase() ?? "",
+            full_name: updatedProfile.full_name,
+            role: normalizeRole(updatedProfile.role),
+            department: updatedProfile.department ?? "",
+            avatar_url: updatedProfile.avatar_url ?? null,
+            is_active: updatedProfile.is_active ?? true,
+            has_profile: true,
           },
         },
         { headers: corsHeaders },
@@ -331,6 +531,11 @@ Deno.serve(async (request) => {
     if (body.action === "reset_password") {
       if (!body.password || body.password.length < 6) {
         return Response.json({ error: "Mật khẩu tối thiểu 6 ký tự." }, { status: 400, headers: corsHeaders });
+      }
+
+      const targetProfile = await getProfileInOrg(adminClient, body.id, actorOrgId);
+      if (!targetProfile) {
+        return Response.json({ error: "Không tìm thấy thành viên trong tổ chức hiện tại." }, { status: 404, headers: corsHeaders });
       }
 
       const { data, error } = await adminClient.auth.admin.updateUserById(body.id, {
@@ -355,6 +560,21 @@ Deno.serve(async (request) => {
     if (body.action === "delete") {
       if (body.id === authData.user.id) {
         return Response.json({ error: "Không thể tự xóa tài khoản đang đăng nhập." }, { status: 400, headers: corsHeaders });
+      }
+
+      const targetProfile = await getProfileInOrg(adminClient, body.id, actorOrgId);
+      if (!targetProfile) {
+        return Response.json({ error: "Không tìm thấy thành viên trong tổ chức hiện tại." }, { status: 404, headers: corsHeaders });
+      }
+
+      if (normalizeRole(targetProfile.role) === "super_admin") {
+        const activeSuperAdmins = await countActiveSuperAdminsInOrg(adminClient, actorOrgId);
+        if (activeSuperAdmins <= 1) {
+          return Response.json(
+            { error: "Không thể xóa Super Admin cuối cùng của tổ chức." },
+            { status: 400, headers: corsHeaders },
+          );
+        }
       }
 
       const { data: targetAuth, error: targetAuthError } = await adminClient.auth.admin.getUserById(body.id);
@@ -389,6 +609,8 @@ Deno.serve(async (request) => {
           updated_at: new Date().toISOString(),
         })
         .eq("id", body.id)
+        .eq("org_id", actorOrgId)
+        .is("deleted_at", null)
         .select("id,full_name,role,department,avatar_url,is_active")
         .maybeSingle();
 

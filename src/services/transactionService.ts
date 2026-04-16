@@ -1,19 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { transactionService as dataLayerTransactionService } from "@/services/data-layer";
 import type { Transaction } from "@/types";
 
-import {
-  type ServiceRequestOptions,
-  type TransactionFilters,
-  type TransactionRow,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getCurrentProfileId,
-  normalizeTransactionItems,
-  runBestEffort,
-  toTransaction,
-  withAbortSignal,
-  withLatency,
-} from "@/services/shared";
+import type { ServiceRequestOptions, TransactionFilters } from "@/services/shared";
+
+type DataLayerResult<T> = {
+  data: T | null;
+  error: { message?: string } | null;
+  page?: { nextCursor: string | null; hasMore: boolean };
+};
 
 export type TransactionCreateInput = {
   customer_id: string;
@@ -29,141 +23,189 @@ export type TransactionCreateInput = {
   notes?: string;
 };
 
-function generateInvoiceCode() {
-  return `HD-${new Date().getFullYear()}-${String(
-    Math.floor(1000 + Math.random() * 9000),
-  )}`;
+export type TransactionUpdateInput = Partial<TransactionCreateInput>;
+
+function unwrap<T>(result: DataLayerResult<T>, fallbackMessage: string): T {
+  if (result.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  if (result.data == null) {
+    throw new Error(fallbackMessage);
+  }
+  return result.data;
 }
 
-async function fetchTransactionRow(id: string, options: ServiceRequestOptions = {}) {
-  const { data, error } = await withAbortSignal(
-    supabase
-      .from("transactions")
-      .select("*")
-      .eq("id", id),
-    options.signal,
-  ).single();
+function mapTransaction(row: Record<string, unknown>): Transaction {
+  const items = Array.isArray(row.items)
+    ? row.items.map((item) => {
+        const raw = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        return {
+          name: String(raw.name ?? ""),
+          qty: Number(raw.qty ?? 0),
+          price: Number(raw.price ?? 0),
+          total: Number(raw.total ?? Number(raw.qty ?? 0) * Number(raw.price ?? 0)),
+        };
+      })
+    : [];
 
-  if (error) {
-    throw error;
+  const totalAmount = Number(row.total_amount ?? 0);
+
+  return {
+    id: String(row.id ?? ""),
+    customer_id: String(row.customer_id ?? ""),
+    invoice_code: row.invoice_code ? String(row.invoice_code) : "",
+    items,
+    subtotal: Number(row.subtotal ?? totalAmount),
+    discount: 0,
+    tax_amount: 0,
+    total_amount: totalAmount,
+    payment_method:
+      row.payment_method === "cash" ||
+      row.payment_method === "card" ||
+      row.payment_method === "transfer" ||
+      row.payment_method === "qr" ||
+      row.payment_method === "other"
+        ? row.payment_method
+        : "cash",
+    payment_status:
+      row.payment_status === "pending" ||
+      row.payment_status === "paid" ||
+      row.payment_status === "partial" ||
+      row.payment_status === "refunded" ||
+      row.payment_status === "cancelled"
+        ? row.payment_status
+        : "pending",
+    status:
+      row.status === "pending" ||
+      row.status === "processing" ||
+      row.status === "completed" ||
+      row.status === "cancelled" ||
+      row.status === "refunded"
+        ? row.status
+        : "pending",
+    created_at: String(row.created_at ?? ""),
+    notes: row.notes ? String(row.notes) : "",
+  };
+}
+
+async function collectTransactions(filters: TransactionFilters = {}) {
+  const rows: Transaction[] = [];
+  let cursor: string | null = null;
+  const maxIterations = 8;
+  const pageLimit = 100;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const result = await dataLayerTransactionService.getList({
+      customerId: filters.customerId,
+      status:
+        filters.status &&
+        filters.status !== "all" &&
+        (filters.status === "pending" ||
+          filters.status === "processing" ||
+          filters.status === "completed" ||
+          filters.status === "cancelled" ||
+          filters.status === "refunded")
+          ? filters.status
+          : undefined,
+      from: filters.dateFrom,
+      to: filters.dateTo,
+      limit: pageLimit,
+      cursor,
+    });
+
+    const pageRows = unwrap(
+      result as DataLayerResult<Array<Record<string, unknown>>>,
+      "Không thể tải danh sách giao dịch.",
+    ).map(mapTransaction);
+
+    rows.push(...pageRows);
+
+    if (!result.page?.hasMore || !result.page.nextCursor) {
+      break;
+    }
+    cursor = result.page.nextCursor;
   }
 
-  return data;
+  return rows.filter((item) => {
+    if (
+      filters.paymentMethod &&
+      filters.paymentMethod !== "all" &&
+      item.payment_method !== filters.paymentMethod
+    ) {
+      return false;
+    }
+
+    if (filters.search) {
+      const keyword = filters.search.trim().toLowerCase();
+      const haystack = [item.invoice_code, item.notes, item.id].join(" ").toLowerCase();
+      if (!haystack.includes(keyword)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 export const transactionService = {
-  getList(filters: TransactionFilters = {}, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = withAbortSignal(
-          supabase.from("transactions").select("*"),
-          options.signal,
-        ).order("created_at", {
-          ascending: false,
-        });
+  async getList(filters: TransactionFilters = {}, options: ServiceRequestOptions = {}) {
+    void options;
+    return collectTransactions(filters);
+  },
 
-        if (filters.customerId) {
-          query = query.eq("customer_id", filters.customerId);
-        }
-
-        if (filters.paymentMethod && filters.paymentMethod !== "all") {
-          query = query.eq("payment_method", filters.paymentMethod);
-        }
-
-        if (filters.status && filters.status !== "all") {
-          query = query.eq("status", filters.status);
-        }
-
-        if (filters.dateFrom) {
-          query = query.gte("created_at", `${filters.dateFrom}T00:00:00`);
-        }
-
-        if (filters.dateTo) {
-          query = query.lte("created_at", `${filters.dateTo}T23:59:59.999`);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as TransactionRow[]).map(toTransaction);
-      })(),
+  async getById(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTransactionService.getById(id);
+    return mapTransaction(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không tìm thấy giao dịch."),
     );
   },
 
-  getById(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const row = await fetchTransactionRow(id, options);
-        return toTransaction(row);
-      })(),
+  async create(payload: TransactionCreateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTransactionService.create({
+      customer_id: payload.customer_id,
+      invoice_code: payload.invoice_code,
+      items: payload.items,
+      payment_method: payload.payment_method,
+      payment_status: payload.payment_status,
+      status: payload.status,
+      notes: payload.notes,
+      source: "manual",
+    });
+    return mapTransaction(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể tạo giao dịch."),
     );
   },
 
-  create(payload: TransactionCreateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        const normalizedItems = normalizeTransactionItems(payload.items);
-        const subtotal = normalizedItems.reduce((sum, item) => sum + item.total, 0);
-        const discountAmount =
-          typeof payload.discount === "number"
-            ? payload.discount
-            : subtotal * ((payload.discount_rate ?? 0) / 100);
-        const taxableAmount = Math.max(subtotal - discountAmount, 0);
-        const taxAmount =
-          typeof payload.tax_amount === "number"
-            ? payload.tax_amount
-            : taxableAmount * ((payload.tax_rate ?? 0) / 100);
-        const totalAmount = taxableAmount + taxAmount;
-        const invoiceCode = payload.invoice_code?.trim() || generateInvoiceCode();
-
-        const { data, error } = await withAbortSignal(
-          supabase.from("transactions").insert({
-            customer_id: payload.customer_id,
-            invoice_code: invoiceCode,
-            items: normalizedItems,
-            subtotal,
-            discount: discountAmount,
-            tax: taxAmount,
-            total_amount: totalAmount,
-            payment_method: payload.payment_method,
-            payment_status: payload.payment_status ?? "paid",
-            status: payload.status ?? "completed",
-            notes: payload.notes || null,
-            created_by: currentUserId,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("transaction.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "transaction",
-            entityId: data.id,
-            newData: {
-              message: `Tạo giao dịch ${invoiceCode}`,
-              invoice_code: invoiceCode,
-              total_amount: totalAmount,
-              customer_id: payload.customer_id,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toTransaction(data);
-      })(),
+  async update(id: string, payload: TransactionUpdateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTransactionService.update(id, {
+      customer_id: payload.customer_id,
+      invoice_code: payload.invoice_code,
+      items: payload.items,
+      payment_method: payload.payment_method,
+      payment_status: payload.payment_status,
+      status: payload.status,
+      notes: payload.notes,
+      source: "manual",
+    });
+    return mapTransaction(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể cập nhật giao dịch."),
     );
+  },
+
+  async softDelete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const current = await transactionService.getById(id);
+    const result = await dataLayerTransactionService.softDelete(id);
+    unwrap(
+      result as DataLayerResult<{ id: string; deleted_at: string }>,
+      "Không thể xóa mềm giao dịch.",
+    );
+    return {
+      ...current,
+      status: "cancelled" as const,
+    };
   },
 };

@@ -1,3 +1,5 @@
+-- LEGACY (schema cũ): file này không còn phù hợp schema hiện tại.
+-- Dùng file mới: supabase/seeds/clear_large_demo_seed_v2.sql
 -- Clear the operational seed dataset created by large_demo_seed.sql.
 -- Safe to rerun: it removes only records that belong to the seeded batch or the legacy demo seed.
 

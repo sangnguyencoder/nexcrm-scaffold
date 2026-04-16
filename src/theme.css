@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,67 +6,67 @@
 
 @layer base {
   :root {
-    --background: 220 18% 97%;
-    --foreground: 222 36% 14%;
+    --background: 220 24% 97%;
+    --foreground: 225 23% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 36% 14%;
+    --card-foreground: 225 23% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 36% 14%;
-    --primary: 219 78% 53%;
-    --primary-foreground: 0 0% 100%;
-    --muted: 220 14% 95%;
-    --muted-foreground: 220 11% 42%;
-    --accent: 220 16% 94%;
-    --accent-foreground: 222 36% 14%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 88%;
-    --ring: 219 78% 53%;
-    --sidebar: 220 18% 96%;
-    --sidebar-foreground: 222 30% 20%;
-    --sidebar-border: 220 18% 88%;
-    --panel-subtle: 220 18% 96%;
+    --popover-foreground: 225 23% 12%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --muted: 220 20% 95%;
+    --muted-foreground: 222 12% 40%;
+    --accent: 218 73% 52%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 17% 86%;
+    --ring: 221 83% 53%;
+    --sidebar: 220 23% 96%;
+    --sidebar-foreground: 225 22% 14%;
+    --sidebar-border: 220 16% 84%;
+    --panel-subtle: 220 24% 93%;
     --panel-strong: 0 0% 100%;
-    --success: 148 62% 35%;
-    --success-soft: 148 52% 95%;
-    --warning: 38 92% 46%;
-    --warning-soft: 46 100% 95%;
-    --info: 219 78% 53%;
-    --info-soft: 214 100% 96%;
-    --radius-sm: 0.45rem;
-    --radius-md: 0.65rem;
-    --radius-lg: 0.85rem;
-    --radius-xl: 1rem;
+    --success: 154 67% 37%;
+    --success-soft: 154 46% 90%;
+    --warning: 35 89% 49%;
+    --warning-soft: 37 82% 89%;
+    --info: 226 72% 59%;
+    --info-soft: 226 66% 91%;
+    --radius-sm: 0.4rem;
+    --radius-md: 0.55rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 0.95rem;
   }
 
   .dark {
-    --background: 222 24% 7%;
-    --foreground: 210 24% 94%;
-    --card: 222 20% 10%;
-    --card-foreground: 210 24% 94%;
-    --popover: 222 20% 10%;
-    --popover-foreground: 210 24% 94%;
-    --primary: 216 92% 63%;
+    --background: 224 20% 8%;
+    --foreground: 210 33% 96%;
+    --card: 224 20% 11%;
+    --card-foreground: 210 33% 96%;
+    --popover: 224 20% 11%;
+    --popover-foreground: 210 33% 96%;
+    --primary: 221 86% 64%;
     --primary-foreground: 210 40% 98%;
-    --muted: 222 16% 14%;
-    --muted-foreground: 218 11% 65%;
-    --accent: 222 16% 14%;
-    --accent-foreground: 210 24% 94%;
-    --destructive: 0 68% 56%;
-    --destructive-foreground: 210 24% 94%;
-    --border: 220 12% 20%;
-    --ring: 216 92% 63%;
-    --sidebar: 222 24% 8%;
-    --sidebar-foreground: 210 24% 94%;
-    --sidebar-border: 220 12% 17%;
-    --panel-subtle: 222 18% 12%;
-    --panel-strong: 222 20% 10%;
-    --success: 148 64% 62%;
-    --success-soft: 148 54% 11%;
-    --warning: 44 86% 66%;
-    --warning-soft: 42 84% 11%;
-    --info: 216 92% 63%;
-    --info-soft: 216 72% 11%;
+    --muted: 223 16% 16%;
+    --muted-foreground: 217 14% 68%;
+    --accent: 221 76% 59%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 78% 62%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 14% 23%;
+    --ring: 221 86% 64%;
+    --sidebar: 224 20% 9%;
+    --sidebar-foreground: 210 33% 96%;
+    --sidebar-border: 220 14% 20%;
+    --panel-subtle: 223 16% 15%;
+    --panel-strong: 224 20% 11%;
+    --success: 154 62% 50%;
+    --success-soft: 154 45% 15%;
+    --warning: 35 86% 57%;
+    --warning-soft: 35 56% 16%;
+    --info: 226 77% 67%;
+    --info-soft: 226 46% 17%;
   }
 
   * {
@@ -92,7 +92,8 @@
 
 @layer components {
   .panel {
-    @apply rounded-xl border border-border/80 bg-card text-card-foreground shadow-xs;
+    @apply rounded-xl border bg-card text-card-foreground shadow-xs;
+    border-color: hsl(var(--border) / 0.72);
   }
 
   .panel-subtle {
@@ -100,23 +101,24 @@
   }
 
   .panel-elevated {
-    @apply rounded-2xl border border-border/80 bg-card text-card-foreground shadow-soft;
+    @apply rounded-xl border bg-card text-card-foreground shadow-soft;
+    border-color: hsl(var(--border) / 0.7);
   }
 
   .enterprise-grid {
-    @apply grid gap-4 lg:gap-6;
+    @apply grid gap-4 lg:gap-5;
   }
 
   .toolbar-shell {
     @apply flex min-h-11 flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5 shadow-xs;
-    border-color: hsl(var(--border) / 0.8);
-    background-color: hsl(var(--card) / 0.92);
+    border-color: hsl(var(--border) / 0.76);
+    background-color: hsl(var(--card) / 0.88);
   }
 
   .sticky-toolbar-shell {
-    @apply sticky top-[78px] z-10 rounded-xl border backdrop-blur;
-    border-color: hsl(var(--border) / 0.8);
-    background-color: hsl(var(--background) / 0.92);
+    @apply sticky top-[76px] z-10 rounded-xl border backdrop-blur;
+    border-color: hsl(var(--border) / 0.76);
+    background-color: hsl(var(--background) / 0.86);
   }
 
   .metric-strip {
@@ -124,15 +126,15 @@
   }
 
   .metric-card {
-    @apply min-h-[132px] overflow-hidden;
+    @apply min-h-[124px] overflow-hidden;
   }
 
   .metric-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground;
   }
 
   .metric-value {
-    @apply font-display text-[clamp(1.55rem,2.4vw,2.35rem)] font-semibold leading-[1.05] tracking-[-0.04em] text-foreground break-words;
+    @apply font-display text-[clamp(1.45rem,2.2vw,2.15rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-foreground break-words;
   }
 
   .metric-helper {
@@ -140,25 +142,26 @@
   }
 
   .compact-panel-header {
-    @apply flex items-start justify-between gap-3 border-b border-border/70 px-4 py-3.5 lg:px-5;
+    @apply flex items-start justify-between gap-3 border-b px-4 py-3 lg:px-5;
+    border-color: hsl(var(--border) / 0.65);
   }
 
   .form-section-shell {
     @apply rounded-xl border p-4 lg:p-5;
-    border-color: hsl(var(--border) / 0.8);
-    background-color: hsl(var(--card) / 0.65);
+    border-color: hsl(var(--border) / 0.72);
+    background-color: hsl(var(--card) / 0.74);
   }
 
   .detail-card {
     @apply rounded-xl border bg-card p-4 shadow-xs;
-    border-color: hsl(var(--border) / 0.8);
-    background-color: hsl(var(--card) / 0.8);
+    border-color: hsl(var(--border) / 0.72);
+    background-color: hsl(var(--card) / 0.86);
   }
 
   .settings-row {
     @apply flex items-start justify-between gap-4 rounded-xl border px-4 py-3.5;
-    border-color: hsl(var(--border) / 0.75);
-    background-color: hsl(var(--card) / 0.75);
+    border-color: hsl(var(--border) / 0.72);
+    background-color: hsl(var(--card) / 0.8);
   }
 
   .settings-row-content {
@@ -174,11 +177,12 @@
   }
 
   .command-shell {
-    @apply overflow-hidden rounded-2xl border border-border/80 bg-card shadow-panel;
+    @apply overflow-hidden rounded-xl border bg-card shadow-panel;
+    border-color: hsl(var(--border) / 0.72);
   }
 
   .command-row {
-    @apply flex w-full items-start gap-3 rounded-xl border border-transparent px-4 py-3 text-left transition-colors;
+    @apply flex w-full items-start gap-3 rounded-lg border border-transparent px-4 py-3 text-left transition-colors duration-150;
   }
 
   .command-row-active {
@@ -193,14 +197,14 @@
 
   .surface-subtle {
     @apply rounded-xl border;
-    border-color: hsl(var(--border) / 0.7);
-    background-color: hsl(var(--muted) / 0.3);
+    border-color: hsl(var(--border) / 0.68);
+    background-color: hsl(var(--muted) / 0.38);
   }
 
   .inspector-list {
     @apply divide-y divide-border/70 rounded-xl border bg-card;
-    border-color: hsl(var(--border) / 0.8);
-    background-color: hsl(var(--card) / 0.75);
+    border-color: hsl(var(--border) / 0.72);
+    background-color: hsl(var(--card) / 0.86);
   }
 
   .inspector-list-row {

@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   Pencil,
-  Search,
   Trash2,
   UserPlus,
   Users,
@@ -11,7 +10,7 @@ import {
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -23,13 +22,15 @@ import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
+import { Can } from "@/components/shared/Can";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
+import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { useAppMutation } from "@/hooks/useAppMutation";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePermission } from "@/hooks/usePermission";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CompactPagination } from "@/components/shared/compact-pagination";
@@ -46,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { queryKeys, useCustomersQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
+import { queryKeys, useCustomersQuery, useNotesQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
 import {
   cn,
   formatCurrencyCompact,
@@ -80,7 +81,7 @@ const customerSchema = z.object({
       message: "Email không hợp lệ",
     }),
   customer_type: z.enum(["new", "potential", "loyal", "vip", "inactive"]),
-  source: z.enum(["direct", "marketing", "referral", "pos", "online"]),
+  source: z.enum(["direct", "marketing", "referral", "pos", "online", "other"]),
   address: z.string().optional(),
   province: z.string().optional(),
   assigned_to: z.string().optional(),
@@ -143,8 +144,16 @@ function CustomerFormModal({
 }) {
   const queryClient = useQueryClient();
   const { data: users = [] } = useUsersQuery();
+  const { data: existingNotes = [] } = useNotesQuery(
+    initialCustomer?.id,
+    Boolean(open && initialCustomer?.id),
+  );
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const isEdit = Boolean(initialCustomer);
+  const latestInteractionNote = useMemo(
+    () => existingNotes[0]?.content?.trim() ?? "",
+    [existingNotes],
+  );
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
@@ -171,17 +180,42 @@ function CustomerFormModal({
         address: initialCustomer?.address ?? "",
         province: initialCustomer?.province ?? "",
         assigned_to: initialCustomer?.assigned_to ?? users[0]?.id ?? "",
-        notes: initialCustomer?.notes ?? "",
+        notes: "",
       });
     }
   }, [form, initialCustomer, open, users]);
+
+  useEffect(() => {
+    if (!open || !isEdit || !latestInteractionNote) {
+      return;
+    }
+
+    if ((form.getValues("notes") ?? "").trim()) {
+      return;
+    }
+
+    form.setValue("notes", latestInteractionNote, { shouldDirty: false });
+  }, [form, isEdit, latestInteractionNote, open]);
 
   const mutation = useAppMutation({
     action: isEdit ? "customer.update" : "customer.create",
     errorMessage: isEdit ? "Không thể cập nhật khách hàng." : "Không thể tạo khách hàng.",
     mutationFn: async (values: CustomerFormValues) => {
       if (isEdit && initialCustomer) {
-        return customerService.update(initialCustomer.id, values);
+        const updatedCustomer = await customerService.update(initialCustomer.id, values);
+        const normalizedNote = values.notes?.trim() ?? "";
+
+        if (normalizedNote && normalizedNote !== latestInteractionNote) {
+          try {
+            await customerService.addNote(initialCustomer.id, normalizedNote, "general");
+          } catch (error) {
+            toast.warning(
+              getAppErrorMessage(error, "Đã lưu hồ sơ nhưng chưa lưu được ghi chú tương tác."),
+            );
+          }
+        }
+
+        return updatedCustomer;
       }
 
       return customerService.create({
@@ -205,7 +239,15 @@ function CustomerFormModal({
         return current.map((item) => (item.id === savedCustomer.id ? savedCustomer : item));
       });
       queryClient.setQueryData(queryKeys.customer(savedCustomer.id), savedCustomer);
-      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" }),
+        isEdit && initialCustomer?.id
+          ? queryClient.invalidateQueries({
+              queryKey: queryKeys.notes({ customerId: initialCustomer.id }),
+              refetchType: "active",
+            })
+          : Promise.resolve(),
+      ]);
       toast.success(isEdit ? "Đã cập nhật khách hàng" : "Đã thêm khách hàng mới");
       onOpenChange(false);
     },
@@ -271,6 +313,7 @@ function CustomerFormModal({
                   <option value="referral">Giới thiệu</option>
                   <option value="pos">POS</option>
                   <option value="online">Online</option>
+                  <option value="other">Khác</option>
                 </Select>
               </FormField>
               <FormField label="Phụ trách">
@@ -293,8 +336,14 @@ function CustomerFormModal({
                 <Input {...form.register("province")} placeholder="TP. Hồ Chí Minh" />
               </FormField>
             </div>
-            <FormField label="Ghi chú">
-              <Textarea {...form.register("notes")} placeholder="Thông tin thêm về khách hàng" />
+            <FormField
+              label="Ghi chú tương tác gần nhất"
+              description="Lưu nội dung mới để bổ sung lịch sử tương tác. Nhật ký chi tiết xem trong tab Ghi chú của hồ sơ."
+            >
+              <Textarea
+                {...form.register("notes")}
+                placeholder="Ví dụ: Khách muốn được liên hệ lại vào tuần sau"
+              />
             </FormField>
           </FormSection>
           <div className="flex justify-end gap-3">
@@ -326,9 +375,12 @@ function CustomerFormModal({
 
 export function CustomerListPage() {
   const navigate = useNavigate();
+  const { canAccess } = usePermission();
+  const canDeleteCustomer = canAccess("customer:delete");
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const serverSearch = useDebouncedValue(search, 250);
+  const [serverSearch, setServerSearch] = useState("");
   const [selectedType, setSelectedType] = useState<Customer["customer_type"] | "all">("all");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showInactive, setShowInactive] = useState(false);
@@ -351,10 +403,19 @@ export function CustomerListPage() {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkType, setBulkType] = useState<Customer["customer_type"]>("potential");
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpenLocal, setFormOpenLocal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const requestedCreate = searchParams.get("create") === "1";
+  const formOpen = requestedCreate || formOpenLocal;
+
+  const clearCreateParam = () => {
+    if (!requestedCreate) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    setSearchParams(next, { replace: true });
+  };
 
   const customerMap = useMemo(
     () =>
@@ -394,6 +455,11 @@ export function CustomerListPage() {
   useEffect(() => {
     setPage(1);
   }, [assignedFilter, serverSearch, selectedType, showInactive, sortDirection, sortKey]);
+
+  useEffect(() => {
+    if (!requestedCreate) return;
+    setEditingCustomer(null);
+  }, [requestedCreate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / 10));
   const currentPage = Math.min(page, totalPages);
@@ -591,15 +657,14 @@ export function CustomerListPage() {
 
       <StickyFilterBar>
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <div className="relative min-w-[280px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm theo tên, số điện thoại hoặc email"
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            onDebouncedChange={setServerSearch}
+            delayMs={300}
+            placeholder="Tìm theo tên, số điện thoại hoặc email"
+            wrapperClassName="min-w-[280px] flex-1"
+          />
           <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)} className="w-[180px]">
             <option value="all">Tất cả phụ trách</option>
             {users.map((user) => (
@@ -620,16 +685,18 @@ export function CustomerListPage() {
           <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
             Xuất Excel
           </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditingCustomer(null);
-              setFormOpen(true);
-            }}
-          >
-            <UserPlus className="size-4" />
-            Thêm Khách Hàng
-          </Button>
+          <Can roles={["sales", "admin", "super_admin"]}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingCustomer(null);
+                setFormOpenLocal(true);
+              }}
+            >
+              <UserPlus className="size-4" />
+              Thêm Khách Hàng
+            </Button>
+          </Can>
         </div>
         <div className="flex basis-full flex-wrap gap-1">
           {chipConfig.map((chip) => (
@@ -677,6 +744,7 @@ export function CustomerListPage() {
               variant="destructive"
               size="sm"
               onClick={() => setBulkDeleteOpen(true)}
+              hidden={!canDeleteCustomer}
               disabled={bulkDeleteMutation.isPending || bulkChangeTypeMutation.isPending}
             >
               Xóa mềm
@@ -801,14 +869,16 @@ export function CustomerListPage() {
                         aria-label={`Chỉnh sửa ${customer.full_name}`}
                         onClick={() => {
                           setEditingCustomer(customer);
-                          setFormOpen(true);
+                          setFormOpenLocal(true);
                         }}
                       >
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" aria-label={`Xóa mềm ${customer.full_name}`} onClick={() => setDeleteTarget(customer)}>
-                        <Trash2 className="size-4 text-rose-500" />
-                      </Button>
+                      {canDeleteCustomer ? (
+                        <Button size="icon" variant="ghost" aria-label={`Xóa mềm ${customer.full_name}`} onClick={() => setDeleteTarget(customer)}>
+                          <Trash2 className="size-4 text-rose-500" />
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -829,12 +899,17 @@ export function CustomerListPage() {
 
       <CustomerFormModal
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpenLocal(open);
+          if (!open) {
+            clearCreateParam();
+          }
+        }}
         initialCustomer={editingCustomer}
       />
 
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
+        open={Boolean(deleteTarget) && canDeleteCustomer}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
@@ -842,7 +917,7 @@ export function CustomerListPage() {
         description="Xóa khách hàng không thể hoàn tác. Hệ thống sẽ chuyển trạng thái sang không hoạt động."
         confirmLabel="Xóa khách hàng"
         onConfirm={() => {
-          if (deleteTarget) {
+          if (deleteTarget && canDeleteCustomer) {
             deleteMutation.mutate(deleteTarget.id);
             setDeleteTarget(null);
           }
@@ -850,12 +925,17 @@ export function CustomerListPage() {
       />
 
       <ConfirmDialog
-        open={bulkDeleteOpen}
+        open={bulkDeleteOpen && canDeleteCustomer}
         onOpenChange={setBulkDeleteOpen}
         title="Xóa mềm danh sách đã chọn?"
         description="Các khách hàng này sẽ được chuyển sang trạng thái không hoạt động."
         confirmLabel="Xác nhận"
-        onConfirm={() => bulkDeleteMutation.mutate(selectedIds)}
+        onConfirm={() => {
+          if (!canDeleteCustomer) {
+            return;
+          }
+          bulkDeleteMutation.mutate(selectedIds);
+        }}
       />
     </div>
   );

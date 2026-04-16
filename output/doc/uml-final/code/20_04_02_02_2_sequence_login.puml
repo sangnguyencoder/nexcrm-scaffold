@@ -1,0 +1,63 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - Login Flow với Supabase Auth
+    actor User
+    participant Browser
+    participant "React App" as ReactApp
+    participant "Supabase Auth" as Auth
+    database "PostgreSQL RLS" as DB
+    participant "Zustand Store" as Store
+    participant "React Router" as Router
+
+    User -> Browser : Nhập email/password
+    Browser -> ReactApp : dispatch login action
+    ReactApp -> Auth : signInWithPassword(email, password)
+    Auth -> DB : validate credentials (bcrypt)
+    DB --> Auth : user confirmed / error
+
+    alt Đăng nhập thành công
+      Auth --> ReactApp : access_token, refresh_token, user
+      ReactApp -> Browser : supabase-js tự lưu session
+      ReactApp -> DB : SELECT * FROM profiles WHERE id = auth.uid()
+      note right of DB
+        RLS chỉ cho phép user
+        đọc profile của chính mình.
+      end note
+      DB --> ReactApp : profile(role, org_id, is_active)
+      alt Tài khoản active
+        ReactApp -> Store : setUser(user, profile, role, orgId)
+        Store -> Router : redirect /dashboard
+      else Bị vô hiệu hóa
+        ReactApp --> User : "Tài khoản đã bị vô hiệu hóa"
+      end
+    else Sai thông tin
+      Auth --> ReactApp : error
+      ReactApp --> User : "Email hoặc mật khẩu không đúng"
+    end
+    @enduml

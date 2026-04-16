@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -27,10 +28,12 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { queryKeys, useAutomationQuery, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
 import { cn, formatNumberCompact, timeAgo } from "@/lib/utils";
 import { automationService } from "@/services/automationService";
+import { communicationService } from "@/services/communicationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -49,6 +52,8 @@ type RuleForm = {
   channel: "email" | "sms";
   summary: string;
   content: string;
+  schedule_enabled: boolean;
+  schedule_interval_minutes: number;
 };
 
 const VARIABLE_TOKENS = [
@@ -89,7 +94,35 @@ function getRuleDraft(rule?: AutomationRule | null): RuleForm {
     content:
       rule?.content ??
       "Xin chào {ten_khach_hang}, NexCRM gửi bạn ưu đãi cá nhân hóa. Tổng chi tiêu gần nhất: {tong_chi_tieu}.",
+    schedule_enabled: rule?.schedule_enabled ?? false,
+    schedule_interval_minutes: rule?.schedule_interval_minutes ?? 60,
   };
+}
+
+function formatScheduleWindow(rule: AutomationRule) {
+  if (!rule.schedule_enabled) return "Chạy thủ công";
+  const interval = rule.schedule_interval_minutes ?? 60;
+  if (interval >= 1_440) {
+    const dayValue = Math.round(interval / 1_440);
+    return `Mỗi ${dayValue} ngày`;
+  }
+  if (interval >= 60) {
+    const hourValue = Math.round(interval / 60);
+    return `Mỗi ${hourValue} giờ`;
+  }
+  return `Mỗi ${interval} phút`;
+}
+
+function formatIntervalLabel(intervalMinutes: number) {
+  if (intervalMinutes >= 1_440) {
+    const dayValue = Math.round(intervalMinutes / 1_440);
+    return `Mỗi ${dayValue} ngày`;
+  }
+  if (intervalMinutes >= 60) {
+    const hourValue = Math.round(intervalMinutes / 60);
+    return `Mỗi ${hourValue} giờ`;
+  }
+  return `Mỗi ${intervalMinutes} phút`;
 }
 
 export function AutomationPage() {
@@ -178,6 +211,10 @@ export function AutomationPage() {
       ? "Đã cập nhật quy tắc tự động"
       : "Đã tạo quy tắc tự động mới",
     mutationFn: (values: RuleForm) => {
+      const scheduleEnabled = values.schedule_enabled === true;
+      const scheduleIntervalMinutes = Number.isFinite(values.schedule_interval_minutes)
+        ? Math.max(5, Math.round(values.schedule_interval_minutes))
+        : 60;
       const payload = {
         name: values.name,
         description: values.description,
@@ -186,6 +223,8 @@ export function AutomationPage() {
         channel: values.channel,
         summary: values.summary,
         content: values.content,
+        schedule_enabled: scheduleEnabled,
+        schedule_interval_minutes: scheduleEnabled ? scheduleIntervalMinutes : null,
       };
 
       return editingRule
@@ -197,6 +236,28 @@ export function AutomationPage() {
       form.reset(getRuleDraft());
       setEditingRule(null);
       setOpen(false);
+    },
+  });
+
+  const runScheduler = useAppMutation({
+    action: "scheduler.tick",
+    errorMessage: "Không thể chạy scheduler tự động.",
+    mutationFn: () => communicationService.runSchedulerTick(),
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.automation }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.outboundMessages() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
+
+      const processed = result.processedCampaigns + result.processedAutomationRules;
+      if (processed > 0) {
+        toast.success(`Scheduler đã xử lý ${processed} job đến hạn.`);
+      } else {
+        toast("Không có job đến hạn để chạy.");
+      }
     },
   });
 
@@ -268,6 +329,11 @@ export function AutomationPage() {
   const content = useWatch({ control: form.control, name: "content" });
   const ruleName = useWatch({ control: form.control, name: "name" });
   const ruleSummary = useWatch({ control: form.control, name: "summary" });
+  const scheduleEnabled = useWatch({ control: form.control, name: "schedule_enabled" });
+  const scheduleIntervalMinutes = useWatch({
+    control: form.control,
+    name: "schedule_interval_minutes",
+  });
 
   const previewContent = (content || "")
     .replaceAll("{ten_khach_hang}", "Nguyễn Minh Anh")
@@ -293,10 +359,22 @@ export function AutomationPage() {
         title="Chăm Sóc Tự Động"
         // subtitle="Rule list, trigger và kết quả gửi được gom vào cùng một workspace để team vận hành scan nhanh hơn."
         actions={
-          <Button onClick={() => openRuleEditor()}>
-            <Plus className="size-4" />
-            Tạo Quy Tắc
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => runScheduler.mutate()}
+              disabled={runScheduler.isPending}
+            >
+              <CalendarClock className="size-4" />
+              {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
+            </Button>
+            <Can roles={["super_admin", "admin", "director", "marketing", "cskh"]}>
+              <Button onClick={() => openRuleEditor()}>
+                <Plus className="size-4" />
+                Tạo Quy Tắc
+              </Button>
+            </Can>
+          </div>
         }
       />
 
@@ -396,6 +474,12 @@ export function AutomationPage() {
                       <div className="text-sm font-medium">{rule.trigger}</div>
                       <div className="text-xs text-muted-foreground">
                         {rule.trigger_days ? `${rule.trigger_days} ngày` : "Kích hoạt tức thời"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatScheduleWindow(rule)}
+                        {rule.schedule_enabled && rule.schedule_next_run_at
+                          ? ` · tiếp theo ${timeAgo(rule.schedule_next_run_at)}`
+                          : ""}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -498,9 +582,28 @@ export function AutomationPage() {
                   { label: "Trigger", value: detailRule.trigger },
                   { label: "Kênh", value: formatChannel(detailRule.channel) },
                   { label: "Trạng thái", value: detailRule.is_active ? "Đang bật" : "Đã tắt" },
+                  { label: "Lịch chạy", value: formatScheduleWindow(detailRule) },
+                  {
+                    label: "Lần chạy lịch kế tiếp",
+                    value: detailRule.schedule_next_run_at ? timeAgo(detailRule.schedule_next_run_at) : "Chưa bật lịch",
+                  },
+                  {
+                    label: "Trạng thái scheduler",
+                    value:
+                      detailRule.schedule_last_status === "failed"
+                        ? "Lỗi"
+                        : detailRule.schedule_last_status === "success"
+                          ? "Thành công"
+                          : "Chưa chạy",
+                  },
                   { label: "Lần chạy", value: detailRule.last_run_at ? timeAgo(detailRule.last_run_at) : "Chưa chạy" },
                 ]}
               />
+              {detailRule.schedule_last_error ? (
+                <div className="mt-3 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-200">
+                  Lỗi scheduler gần nhất: {detailRule.schedule_last_error}
+                </div>
+              ) : null}
             </SectionPanel>
 
             <SectionPanel title="Nội dung gửi" /* description="Body mẫu cùng các token cá nhân hóa được dùng bởi rule." */>
@@ -624,6 +727,58 @@ export function AutomationPage() {
               </div>
             </FormSection>
 
+            <FormSection title="Lịch chạy tự động" /* description="Cho phép bật chạy theo định kỳ thay vì chỉ chạy thủ công." */>
+              <div className="grid gap-4">
+                <FormField label="Chế độ chạy">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => form.setValue("schedule_enabled", false, { shouldDirty: true })}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm font-medium transition",
+                        !scheduleEnabled
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted/40",
+                      )}
+                    >
+                      Chạy thủ công
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => form.setValue("schedule_enabled", true, { shouldDirty: true })}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm font-medium transition",
+                        scheduleEnabled
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted/40",
+                      )}
+                    >
+                      Chạy theo lịch
+                    </button>
+                  </div>
+                </FormField>
+                {scheduleEnabled ? (
+                  <FormField label="Chu kỳ chạy">
+                    <Select
+                      value={String(scheduleIntervalMinutes || 60)}
+                      onChange={(event) =>
+                        form.setValue("schedule_interval_minutes", Number(event.target.value), {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <option value="15">Mỗi 15 phút</option>
+                      <option value="30">Mỗi 30 phút</option>
+                      <option value="60">Mỗi 1 giờ</option>
+                      <option value="180">Mỗi 3 giờ</option>
+                      <option value="360">Mỗi 6 giờ</option>
+                      <option value="1440">Mỗi 1 ngày</option>
+                    </Select>
+                  </FormField>
+                ) : null}
+              </div>
+            </FormSection>
+
             <FormSection title="Hành động gửi" /* description="Giữ summary, channel và body sát nhau để chỉnh rule nhanh hơn." */>
               <div className="grid gap-4">
                 <FormField label="Kênh gửi">
@@ -698,6 +853,10 @@ export function AutomationPage() {
                   { label: "Kênh", value: formatChannel(channel) },
                   { label: "Trigger", value: triggerType },
                   { label: "Số ngày", value: String(triggerDays || 0) },
+                  {
+                    label: "Lịch chạy",
+                    value: scheduleEnabled ? formatIntervalLabel(scheduleIntervalMinutes || 60) : "Thủ công",
+                  },
                   { label: "Action", value: ruleSummary || "--" },
                 ]}
               />

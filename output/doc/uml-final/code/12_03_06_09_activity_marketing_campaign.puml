@@ -1,0 +1,47 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.9] Biểu đồ hoạt động thiết lập chiến dịch Marketing
+    start
+    :Marketing mở /campaigns;
+    :Bước 1 - nhập thông tin chiến dịch;
+    :Bước 2 - chọn target segment;
+    :Hệ thống đếm recipient_count;
+    :Bước 3 - soạn nội dung với biến mẫu;
+    if (Gửi thử nội dung?) then (Có)
+      :Thực hiện test send tùy chọn;
+    endif
+    :Bước 4 - xem lại và xác nhận;
+    if (Gửi ngay?) then (Có)
+      :Gọi Edge Function dispatch-communication;
+    else (Không)
+      :Lưu scheduled_at và trạng thái scheduled;
+    endif
+    :Cập nhật sent_count/opened_count/failed_count;
+    stop
+    @enduml

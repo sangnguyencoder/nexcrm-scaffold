@@ -156,6 +156,12 @@ export const MOCK_AUTOMATION_RULES: AutomationRule[] = [
     created_at: "2026-02-10T08:00:00.000Z",
     updated_at: "2026-03-29T08:00:00.000Z",
     last_run_at: "2026-04-01T08:00:00.000Z",
+    schedule_enabled: true,
+    schedule_interval_minutes: 1440,
+    schedule_next_run_at: "2026-04-16T08:00:00.000Z",
+    schedule_last_status: "success",
+    schedule_last_error: null,
+    schedule_retry_count: 0,
   },
   {
     id: "a2",
@@ -175,6 +181,12 @@ export const MOCK_AUTOMATION_RULES: AutomationRule[] = [
     created_at: "2026-02-25T08:00:00.000Z",
     updated_at: "2026-03-30T10:00:00.000Z",
     last_run_at: "2026-03-31T09:15:00.000Z",
+    schedule_enabled: true,
+    schedule_interval_minutes: 60,
+    schedule_next_run_at: "2026-04-15T11:00:00.000Z",
+    schedule_last_status: "failed",
+    schedule_last_error: "Twilio trả về lỗi timeout ở lần chạy trước.",
+    schedule_retry_count: 1,
   },
 ];
 

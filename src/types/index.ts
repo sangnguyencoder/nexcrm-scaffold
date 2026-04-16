@@ -62,6 +62,7 @@ export type CampaignStatus =
   | "scheduled"
   | "sending"
   | "sent"
+  | "sent_with_errors"
   | "cancelled";
 
 export type DealStage =
@@ -94,6 +95,15 @@ export type OutboundMessageStatus =
   | "opened"
   | "clicked"
   | "failed";
+
+export type PosSyncStatus =
+  | "active"
+  | "received"
+  | "processing"
+  | "success"
+  | "failed"
+  | "error"
+  | "duplicate";
 
 export type EmailProviderType = "resend" | null;
 export type SmsProviderType = "twilio" | null;
@@ -313,6 +323,12 @@ export interface AutomationRule {
   created_at: string;
   updated_at?: string;
   last_run_at: string | null;
+  schedule_enabled: boolean;
+  schedule_interval_minutes: number | null;
+  schedule_next_run_at: string | null;
+  schedule_last_status: "idle" | "success" | "failed";
+  schedule_last_error: string | null;
+  schedule_retry_count: number;
 }
 
 export interface CustomerNote {
@@ -346,6 +362,23 @@ export interface AuditLogEntry {
   message: string;
 }
 
+export interface PosSyncLog {
+  id: string;
+  source: string;
+  event_id: string;
+  event_type: string;
+  order_external_id: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
+  status: "received" | "processing" | "success" | "failed" | "duplicate";
+  error_message: string | null;
+  customer_id: string | null;
+  transaction_id: string | null;
+  processed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface NotificationSetting {
   key: string;
   label: string;
@@ -361,7 +394,7 @@ export interface AppSettings {
   integrations: {
     pos_webhook_url: string;
     last_sync: string;
-    pos_status: "active";
+    pos_status: PosSyncStatus;
     email_provider: {
       provider: EmailProviderType;
       enabled: boolean;

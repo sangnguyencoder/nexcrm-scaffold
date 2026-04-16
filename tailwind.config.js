@@ -5,9 +5,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["IBM Plex Sans", "sans-serif"],
-        display: ["Manrope", "sans-serif"],
-        mono: ["IBM Plex Mono", "monospace"],
+        sans: ["DM Sans", "sans-serif"],
+        display: ["DM Sans", "sans-serif"],
+        mono: ["DM Mono", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -41,9 +41,9 @@ export default {
         },
       },
       boxShadow: {
-        xs: "0 1px 2px rgba(15, 23, 42, 0.04)",
-        soft: "0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 30px rgba(15, 23, 42, 0.05)",
-        panel: "0 18px 45px rgba(15, 23, 42, 0.08)",
+        xs: "0 1px 2px rgba(0, 0, 0, 0.22)",
+        soft: "0 1px 2px rgba(0, 0, 0, 0.28), 0 16px 36px rgba(0, 0, 0, 0.26)",
+        panel: "0 24px 56px rgba(0, 0, 0, 0.35)",
       },
       borderRadius: {
         sm: "var(--radius-sm)",
@@ -53,7 +53,8 @@ export default {
         "2xl": "calc(var(--radius-xl) + 0.1rem)",
       },
       transitionDuration: {
-        200: "200ms",
+        150: "150ms",
+        200: "150ms",
       },
     },
   },

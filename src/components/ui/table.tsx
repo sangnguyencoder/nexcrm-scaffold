@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-hidden rounded-lg bg-card">
+    <div className="overflow-hidden rounded-xl bg-card">
       <div className="overflow-x-auto">
         <table className={cn("w-full caption-bottom text-[13px]", className)} {...props} />
       </div>
@@ -13,7 +13,7 @@ export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElem
 }
 
 export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("bg-muted/45", className)} {...props} />;
+  return <thead className={cn("bg-muted/40", className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -24,7 +24,7 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
   return (
     <tr
       className={cn(
-        "h-11 border-b border-border/70 transition-colors hover:bg-muted/35",
+        "h-12 border-b border-border/65 transition-colors hover:bg-muted/28",
         className,
       )}
       {...props}

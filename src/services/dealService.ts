@@ -1,19 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { dealService as dataLayerDealService } from "@/services/data-layer";
 import type { Deal } from "@/types";
 
-import { notificationService } from "@/services/notificationService";
-import {
-  type DealFilters,
-  type DealRow,
-  type ServiceRequestOptions,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getCurrentProfileId,
-  runBestEffort,
-  toDeal,
-  withAbortSignal,
-  withLatency,
-} from "@/services/shared";
+import type { DealFilters, ServiceRequestOptions } from "@/services/shared";
+
+type DataLayerResult<T> = {
+  data: T | null;
+  error: { message?: string } | null;
+  page?: { nextCursor: string | null; hasMore: boolean };
+};
 
 export type DealCreateInput = {
   title: string;
@@ -28,229 +22,151 @@ export type DealCreateInput = {
 
 export type DealUpdateInput = Partial<DealCreateInput>;
 
-async function fetchDealRow(id: string, options: ServiceRequestOptions = {}) {
-  const { data, error } = await withAbortSignal(
-    supabase
-      .from("deals")
-      .select("*")
-      .eq("id", id),
-    options.signal,
-  ).single();
+function unwrap<T>(result: DataLayerResult<T>, fallbackMessage: string): T {
+  if (result.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  if (result.data == null) {
+    throw new Error(fallbackMessage);
+  }
+  return result.data;
+}
 
-  if (error) {
-    throw error;
+function mapDeal(row: Record<string, unknown>): Deal {
+  return {
+    id: String(row.id ?? ""),
+    title: String(row.title ?? ""),
+    customer_id: row.customer_id ? String(row.customer_id) : "",
+    owner_id: row.assigned_to ? String(row.assigned_to) : "",
+    stage:
+      row.stage === "lead" ||
+      row.stage === "qualified" ||
+      row.stage === "proposal" ||
+      row.stage === "negotiation" ||
+      row.stage === "won" ||
+      row.stage === "lost"
+        ? row.stage
+        : "lead",
+    value: Number(row.value ?? 0),
+    probability: Number(row.probability ?? 0),
+    expected_close_at:
+      (row.expected_close_date ? String(row.expected_close_date) : null) ??
+      (row.expected_close_at ? String(row.expected_close_at) : null),
+    description: row.description ? String(row.description) : "",
+    created_at: String(row.created_at ?? ""),
+    updated_at: row.updated_at ? String(row.updated_at) : undefined,
+  };
+}
+
+async function collectDeals(filters: DealFilters = {}) {
+  const rows: Deal[] = [];
+  let cursor: string | null = null;
+  const maxIterations = 8;
+  const pageLimit = 100;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const result = await dataLayerDealService.getList({
+      stage:
+        filters.stage &&
+        filters.stage !== "all" &&
+        (filters.stage === "lead" ||
+          filters.stage === "qualified" ||
+          filters.stage === "proposal" ||
+          filters.stage === "negotiation" ||
+          filters.stage === "won" ||
+          filters.stage === "lost")
+          ? filters.stage
+          : undefined,
+      assignedTo: filters.ownerId && filters.ownerId !== "all" ? filters.ownerId : undefined,
+      customerId: filters.customerId || undefined,
+      search: filters.search || undefined,
+      limit: pageLimit,
+      cursor,
+    });
+
+    const pageRows = unwrap(
+      result as DataLayerResult<Array<Record<string, unknown>>>,
+      "Không thể tải danh sách cơ hội.",
+    ).map(mapDeal);
+    rows.push(...pageRows);
+
+    if (!result.page?.hasMore || !result.page.nextCursor) {
+      break;
+    }
+    cursor = result.page.nextCursor;
   }
 
-  return data as DealRow;
+  return rows;
 }
 
 export const dealService = {
-  getList(filters: DealFilters = {}, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = withAbortSignal(
-          supabase.from("deals").select("*"),
-          options.signal,
-        ).order("created_at", { ascending: false });
+  async getList(filters: DealFilters = {}, options: ServiceRequestOptions = {}) {
+    void options;
+    return collectDeals(filters);
+  },
 
-        if (filters.stage && filters.stage !== "all") {
-          query = query.eq("stage", filters.stage);
-        }
-
-        if (filters.customerId) {
-          query = query.eq("customer_id", filters.customerId);
-        }
-
-        if (filters.ownerId && filters.ownerId !== "all") {
-          query = query.eq("owner_id", filters.ownerId);
-        }
-
-        if (filters.search) {
-          query = query.ilike("title", `%${filters.search.trim()}%`);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as DealRow[]).map(toDeal);
-      })(),
+  async getById(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.getById(id);
+    return mapDeal(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không tìm thấy cơ hội."),
     );
   },
 
-  getById(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        return toDeal(await fetchDealRow(id, options));
-      })(),
+  async create(payload: DealCreateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.create({
+      customer_id: payload.customer_id || null,
+      title: payload.title,
+      description: payload.description || "",
+      stage: payload.stage || "lead",
+      value: payload.value ?? 0,
+      probability: payload.probability ?? 0,
+      expected_close_date: payload.expected_close_at || null,
+      assigned_to: payload.owner_id || null,
+    });
+    return mapDeal(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể tạo cơ hội."),
     );
   },
 
-  create(payload: DealCreateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("deals").insert({
-            title: payload.title,
-            customer_id: payload.customer_id,
-            owner_id: payload.owner_id ?? currentUserId,
-            stage: payload.stage ?? "lead",
-            value: payload.value ?? 0,
-            probability: payload.probability ?? 20,
-            expected_close_at: payload.expected_close_at ?? null,
-            description: payload.description ?? null,
-            created_by: currentUserId,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("deal.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "deal",
-            entityId: data.id,
-            newData: {
-              message: `Tạo cơ hội ${payload.title}`,
-              stage: payload.stage ?? "lead",
-              value: payload.value ?? 0,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        if (data.owner_id) {
-          void runBestEffort("deal.create.notification", () =>
-            notificationService.createUnique({
-              user_id: data.owner_id,
-              title: `Cơ hội mới: ${data.title}`,
-              message: `Bạn vừa được giao cơ hội mới ở giai đoạn ${data.stage}.`,
-              type: "info",
-              entity_type: "deal",
-              entity_id: data.id,
-            }),
-          );
-        }
-
-        return toDeal(data as DealRow);
-      })(),
+  async update(id: string, payload: DealUpdateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.update(id, {
+      customer_id: payload.customer_id ?? undefined,
+      title: payload.title,
+      description: payload.description,
+      stage: payload.stage,
+      value: payload.value,
+      probability: payload.probability,
+      expected_close_date: payload.expected_close_at ?? undefined,
+      assigned_to: payload.owner_id ?? undefined,
+    });
+    return mapDeal(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể cập nhật cơ hội."),
     );
   },
 
-  update(id: string, payload: DealUpdateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchDealRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("deals").update({
-            title: payload.title ?? previous.title,
-            customer_id: payload.customer_id ?? previous.customer_id,
-            owner_id: payload.owner_id ?? previous.owner_id,
-            stage: payload.stage ?? previous.stage,
-            value: payload.value ?? previous.value,
-            probability: payload.probability ?? previous.probability,
-            expected_close_at:
-              payload.expected_close_at === undefined
-                ? previous.expected_close_at
-                : payload.expected_close_at,
-            description: payload.description ?? previous.description,
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .eq("id", id)
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("deal.update.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "deal",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Cập nhật cơ hội ${data.title}`,
-              stage: data.stage,
-              value: data.value,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        if (data.owner_id && previous.stage !== data.stage) {
-          void runBestEffort("deal.update.notification", () =>
-            notificationService.createUnique({
-              user_id: data.owner_id,
-              title: `Pipeline cập nhật: ${data.title}`,
-              message: `Cơ hội đã chuyển sang giai đoạn ${data.stage}.`,
-              type: data.stage === "won" ? "success" : data.stage === "lost" ? "warning" : "info",
-              entity_type: "deal",
-              entity_id: id,
-            }),
-          );
-        }
-
-        return toDeal(data as DealRow);
-      })(),
+  async updateStage(id: string, stage: Deal["stage"], options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.updateStage(id, stage);
+    return mapDeal(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể cập nhật giai đoạn cơ hội."),
     );
   },
 
-  updateStage(id: string, stage: Deal["stage"], options: ServiceRequestOptions = {}) {
-    const probabilityMap: Record<Deal["stage"], number> = {
-      lead: 20,
-      qualified: 35,
-      proposal: 55,
-      negotiation: 75,
-      won: 100,
-      lost: 0,
-    };
-
-    return dealService.update(id, { stage, probability: probabilityMap[stage] }, options);
+  async delete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.softDelete(id);
+    unwrap(result as DataLayerResult<{ id: string; deleted_at: string }>, "Không thể xóa cơ hội.");
   },
 
-  delete(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchDealRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const { error } = await withAbortSignal(
-          supabase.from("deals").delete(),
-          options.signal,
-        ).eq("id", id);
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("deal.delete.audit", () =>
-          createAuditLog({
-            action: "delete",
-            entityType: "deal",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: { message: `Xóa cơ hội ${previous.title}` },
-            userId: currentUserId,
-          }),
-        );
-      })(),
+  async softDelete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerDealService.softDelete(id);
+    return unwrap(
+      result as DataLayerResult<{ id: string; deleted_at: string }>,
+      "Không thể xóa mềm cơ hội.",
     );
   },
 };

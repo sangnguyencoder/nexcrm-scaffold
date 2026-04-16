@@ -24,11 +24,11 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="space-y-1">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="flex flex-col gap-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {eyebrow}
         </div>
-        <h1 className="font-display text-[30px] font-semibold tracking-[-0.04em] text-foreground">
+        <h1 className="font-display text-[28px] font-semibold tracking-[-0.035em] text-foreground">
           {title}
         </h1>
         {subtitle ? <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{subtitle}</p> : null}

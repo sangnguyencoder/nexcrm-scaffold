@@ -1,0 +1,65 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.1.3] Sơ đồ kiến trúc 3-Tier cho CRM SaaS
+    top to bottom direction
+
+    package "Presentation Layer" as Presentation {
+      [React Pages]
+      [Layouts]
+      [Reusable UI Components]
+      [React Router]
+    }
+
+    package "Application / Service Layer" as Service {
+      [Zustand Auth Store]
+      [TanStack Query Hooks]
+      [Business Services]
+      [Zod + React Hook Form]
+      [Supabase JS Client]
+    }
+
+    package "Data Layer" as Data {
+      database "Supabase PostgreSQL" as DB
+      [RLS Policies]
+      [Triggers]
+      [RPC Functions]
+      [Realtime Channels]
+      [Storage]
+    }
+
+    Presentation --> Service : UI events / route actions
+    Service --> Data : SQL / RPC / Auth / Realtime
+    [Business Services] --> [Supabase JS Client]
+    [TanStack Query Hooks] --> [Business Services]
+    [Zustand Auth Store] --> [Business Services]
+    [Supabase JS Client] --> DB
+    [Supabase JS Client] --> [RLS Policies]
+    [Supabase JS Client] --> [Realtime Channels]
+    @enduml

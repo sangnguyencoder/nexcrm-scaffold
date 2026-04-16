@@ -9,6 +9,7 @@ import { customerService } from "@/services/customerService";
 import { dashboardService } from "@/services/dashboardService";
 import { dealService } from "@/services/dealService";
 import { notificationService } from "@/services/notificationService";
+import { posSyncService } from "@/services/posSyncService";
 import { profileService } from "@/services/profileService";
 import { reportService, type ReportRequest } from "@/services/reportService";
 import { settingsService } from "@/services/settingsService";
@@ -45,6 +46,7 @@ export const queryKeys = {
   automation: ["automation-rules"] as const,
   settings: ["settings"] as const,
   audit: ["audit"] as const,
+  posSyncLogs: ["pos-sync-logs"] as const,
   notes: (filters?: CustomerNoteFilters) => ["customer-notes", filters ?? {}] as const,
   comments: (filters?: TicketCommentFilters) => ["ticket-comments", filters ?? {}] as const,
   reports: (request: ReportRequest) => ["reports", request] as const,
@@ -59,6 +61,7 @@ export function useDashboardStats(
     queryFn: ({ signal }) => dashboardService.getStats(range, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 120_000,
   });
 }
 
@@ -68,6 +71,7 @@ export function useCustomersQuery(filters?: CustomerFilters, enabled = true) {
     queryFn: ({ signal }) => customerService.getList(filters, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 90_000,
   });
 }
 
@@ -76,6 +80,7 @@ export function useCustomerDetailQuery(id?: string) {
     queryKey: queryKeys.customer(id ?? ""),
     queryFn: ({ signal }) => customerService.getById(id ?? "", { signal }),
     enabled: Boolean(id),
+    staleTime: 60_000,
   });
 }
 
@@ -85,6 +90,7 @@ export function useTransactionsQuery(filters?: TransactionFilters, enabled = tru
     queryFn: ({ signal }) => transactionService.getList(filters, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 90_000,
   });
 }
 
@@ -94,6 +100,7 @@ export function useTicketsQuery(filters?: TicketFilters, enabled = true) {
     queryFn: ({ signal }) => ticketService.getList(filters, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 90_000,
   });
 }
 
@@ -110,6 +117,7 @@ export function useCampaignsQuery(filters?: CampaignFilters, enabled = true) {
     queryKey: queryKeys.campaigns(filters),
     queryFn: () => campaignService.getList(filters),
     enabled,
+    staleTime: 90_000,
   });
 }
 
@@ -118,6 +126,7 @@ export function useOutboundMessagesQuery(filters?: OutboundMessageFilters, enabl
     queryKey: queryKeys.outboundMessages(filters),
     queryFn: () => communicationService.getOutboundMessages(filters),
     enabled,
+    staleTime: 90_000,
   });
 }
 
@@ -127,6 +136,7 @@ export function useDealsQuery(filters?: DealFilters, enabled = true) {
     queryFn: ({ signal }) => dealService.getList(filters, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 90_000,
   });
 }
 
@@ -136,6 +146,7 @@ export function useTasksQuery(filters?: TaskFilters, enabled = true) {
     queryFn: ({ signal }) => taskService.getList(filters, { signal }),
     enabled,
     placeholderData: keepPreviousData,
+    staleTime: 90_000,
   });
 }
 
@@ -175,6 +186,16 @@ export function useAuditQuery() {
   return useQuery({
     queryKey: queryKeys.audit,
     queryFn: auditService.getAll,
+    staleTime: 120_000,
+  });
+}
+
+export function usePosSyncLogsQuery(limit = 100, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.posSyncLogs, limit],
+    queryFn: () => posSyncService.getLogs(limit),
+    enabled,
+    staleTime: 120_000,
   });
 }
 
@@ -223,6 +244,7 @@ export function useInvalidateQueries() {
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles }),
       queryClient.invalidateQueries({ queryKey: queryKeys.automation }),
       queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.posSyncLogs }),
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] }),
       queryClient.invalidateQueries({ queryKey: ["ticket-comments"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
@@ -231,12 +253,16 @@ export function useInvalidateQueries() {
 }
 
 export function useMarkAllNotificationsRead(userId?: string) {
-  const invalidate = useInvalidateQueries();
+  const queryClient = useQueryClient();
 
   return useAppMutation({
     action: "notification.mark-all-read",
     errorMessage: "Không thể đánh dấu tất cả thông báo đã đọc.",
     mutationFn: () => notificationService.markAllRead(userId ?? ""),
-    onSuccess: () => invalidate(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(userId),
+        refetchType: "active",
+      }),
   });
 }

@@ -61,6 +61,19 @@ export function getAuthErrorState(
   }
 
   if (
+    raw.includes("lock:sb-") ||
+    raw.includes("stole it") ||
+    raw.includes("auth token lock")
+  ) {
+    return {
+      message:
+        action === "password_reset"
+          ? "Liên kết khôi phục vừa được xử lý ở phiên khác. Vui lòng thử lại sau vài giây."
+          : "Phiên đăng nhập đang đồng bộ. Vui lòng thử lại sau vài giây.",
+    };
+  }
+
+  if (
     raw.includes("bị khóa") ||
     raw.includes("đã bị khóa") ||
     raw.includes("account locked") ||

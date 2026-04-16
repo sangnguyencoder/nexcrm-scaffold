@@ -1,0 +1,53 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - Cập nhật dữ liệu khách hàng
+    actor Sales
+    participant Browser
+    participant "CustomerDetailPage" as UI
+    participant "React Hook Form + Zod" as Form
+    participant "customerService" as CustomerService
+    database "Supabase DB" as DB
+    participant "TanStack Query" as Query
+
+    Sales -> Browser : Chỉnh sửa thông tin khách hàng
+    Browser -> UI : Submit form
+    UI -> Form : validate()
+    alt Dữ liệu hợp lệ
+      UI -> CustomerService : update(customerId, payload)
+      CustomerService -> DB : UPDATE customers ... WHERE id = ?\n(RLS kiểm tra org và role)
+      DB -> DB : Trigger ghi audit_logs
+      DB --> CustomerService : updated customer
+      CustomerService --> UI : customer updated
+      UI -> Query : invalidateQueries(['customers','customer',id])
+      UI --> Browser : Thông báo cập nhật thành công
+    else Không hợp lệ
+      Form --> UI : validation errors
+      UI --> Browser : Hiển thị lỗi form
+    end
+    @enduml

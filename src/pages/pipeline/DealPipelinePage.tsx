@@ -26,8 +26,10 @@ import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,13 +54,30 @@ import { taskService } from "@/services/taskService";
 import type { Deal, DealStage, Task } from "@/types";
 
 const stageColumns: Array<{ label: string; value: DealStage; borderClass: string }> = [
-  { label: "Lead", value: "lead", borderClass: "border-slate-500" },
-  { label: "Đã xác thực", value: "qualified", borderClass: "border-blue-500" },
+  { label: "Tiếp cận", value: "lead", borderClass: "border-slate-500" },
+  { label: "Đủ điều kiện", value: "qualified", borderClass: "border-blue-500" },
   { label: "Đề xuất", value: "proposal", borderClass: "border-amber-500" },
   { label: "Đàm phán", value: "negotiation", borderClass: "border-orange-500" },
   { label: "Thành công", value: "won", borderClass: "border-emerald-500" },
   { label: "Thất bại", value: "lost", borderClass: "border-rose-500" },
 ];
+
+type StageFilter = DealStage | "all";
+
+function parseStageFilter(raw: string | null): StageFilter {
+  if (
+    raw === "lead" ||
+    raw === "qualified" ||
+    raw === "proposal" ||
+    raw === "negotiation" ||
+    raw === "won" ||
+    raw === "lost"
+  ) {
+    return raw;
+  }
+
+  return "all";
+}
 
 const dealSchema = z.object({
   title: z.string().min(3, "Tên cơ hội tối thiểu 3 ký tự"),
@@ -174,8 +193,10 @@ function DealFormModal({
 
         return current.map((deal) => (deal.id === savedDeal.id ? savedDeal : deal));
       });
-      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success(isEdit ? "Đã cập nhật cơ hội" : "Đã tạo cơ hội mới");
       form.reset();
       onOpenChange(false);
@@ -347,8 +368,10 @@ function TaskForm({ dealId }: { dealId: string }) {
 
         return [createdTask, ...current];
       });
-      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success("Đã tạo nhiệm vụ follow-up");
       form.reset({
         title: "",
@@ -410,13 +433,48 @@ function TaskForm({ dealId }: { dealId: string }) {
 export function DealPipelinePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canAccess } = usePermission();
+  const canUpdateDeal = canAccess("deal:update");
+  const canDeleteDeal = canAccess("deal:delete");
+  const canDeleteTask = canAccess("task:delete");
   const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [ownerFilter, setOwnerFilter] = useState(() => searchParams.get("owner") ?? "all");
+  const [stageFilter, setStageFilter] = useState<StageFilter>(() =>
+    parseStageFilter(searchParams.get("stage")),
+  );
   const deferredSearch = useDebouncedValue(search, 250);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const normalizedSearch = search.trim();
+
+    if (normalizedSearch) {
+      next.set("q", normalizedSearch);
+    } else {
+      next.delete("q");
+    }
+
+    if (ownerFilter !== "all") {
+      next.set("owner", ownerFilter);
+    } else {
+      next.delete("owner");
+    }
+
+    if (stageFilter !== "all") {
+      next.set("stage", stageFilter);
+    } else {
+      next.delete("stage");
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [ownerFilter, search, searchParams, setSearchParams, stageFilter]);
+
   const dealsQuery = useDealsQuery({
-    search: deferredSearch || undefined,
     ownerId: ownerFilter,
+    stage: stageFilter,
   });
   const customersQuery = useCustomersQuery();
   const usersQuery = useUsersQuery();
@@ -475,10 +533,39 @@ export function DealPipelinePage() {
     [tasks],
   );
 
-  const filteredDeals = useMemo(
-    () => deals,
-    [deals],
-  );
+  const filteredDeals = useMemo(() => {
+    const keyword = deferredSearch.trim().toLowerCase();
+
+    return deals.filter((deal) => {
+      if (ownerFilter !== "all" && deal.owner_id !== ownerFilter) {
+        return false;
+      }
+
+      if (stageFilter !== "all" && deal.stage !== stageFilter) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const customer = customerMap[deal.customer_id];
+      const owner = userMap[deal.owner_id];
+      const haystack = [
+        deal.title,
+        deal.description,
+        customer?.full_name,
+        customer?.customer_code,
+        owner?.full_name,
+        formatDealStage(deal.stage),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(keyword);
+    });
+  }, [customerMap, deals, deferredSearch, ownerFilter, stageFilter, userMap]);
 
   const selectedDeal =
     filteredDeals.find((deal) => deal.id === selectedDealId) ??
@@ -493,7 +580,10 @@ export function DealPipelinePage() {
   const summary = useMemo(() => {
     const totalValue = filteredDeals.reduce((sum, deal) => sum + deal.value, 0);
     const wonValue = filteredDeals.filter((deal) => deal.stage === "won").reduce((sum, deal) => sum + deal.value, 0);
-    const openTasks = tasks.filter((task) => task.status !== "done").length;
+    const filteredDealIds = new Set(filteredDeals.map((deal) => deal.id));
+    const openTasks = tasks.filter(
+      (task) => task.status !== "done" && filteredDealIds.has(task.entity_id),
+    ).length;
     return {
       totalValue,
       wonValue,
@@ -510,8 +600,10 @@ export function DealPipelinePage() {
       queryClient.setQueriesData<Deal[]>({ queryKey: ["deals"] }, (current = []) =>
         current.map((deal) => (deal.id === updatedDeal.id ? updatedDeal : deal)),
       );
-      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success(`Đã chuyển cơ hội sang ${formatDealStage(variables.stage)}`);
     },
   });
@@ -527,9 +619,11 @@ export function DealPipelinePage() {
       queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
         current.filter((task) => !(task.entity_type === "deal" && task.entity_id === deletedDealId)),
       );
-      void queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deals"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       setSelectedDealId(null);
       toast.success("Đã xóa cơ hội");
     },
@@ -543,8 +637,10 @@ export function DealPipelinePage() {
       queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
         current.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
       );
-      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success("Đã đánh dấu hoàn thành nhiệm vụ");
     },
   });
@@ -557,11 +653,16 @@ export function DealPipelinePage() {
       queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) =>
         current.filter((task) => task.id !== deletedTaskId),
       );
-      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success("Đã xóa nhiệm vụ");
     },
   });
+
+  const completingTaskId = completeTask.isPending ? completeTask.variables : null;
+  const deletingTaskId = deleteTask.isPending ? deleteTask.variables : null;
 
   if (dealsQuery.isLoading) {
     return <PageLoader panels={2} />;
@@ -570,8 +671,8 @@ export function DealPipelinePage() {
   if (dealsQuery.error || customersQuery.error || usersQuery.error || tasksQuery.error) {
     return (
       <PageErrorState
-        title="Không thể tải pipeline kinh doanh"
-        description="Danh sách deal, khách hàng hoặc nhiệm vụ follow-up chưa tải được. Vui lòng thử lại để đồng bộ dữ liệu mới nhất."
+        title="Không thể tải phễu cơ hội bán hàng"
+        description="Danh sách cơ hội, khách hàng hoặc nhiệm vụ follow-up chưa tải được. Vui lòng thử lại để đồng bộ dữ liệu mới nhất."
         onRetry={() => {
           void Promise.all([
             dealsQuery.refetch(),
@@ -587,18 +688,20 @@ export function DealPipelinePage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Pipeline Kinh Doanh"
-        // subtitle="Kanban compact để kéo thả nhanh, còn chi tiết rich context nằm trong inspector."
+        title="Phễu Cơ Hội Bán Hàng"
+        subtitle="Quản lý cơ hội theo giai đoạn xử lý, kết hợp bảng nhiệm vụ follow-up để theo sát tiến trình chốt deal."
         actions={
-          <Button
-            onClick={() => {
-              setEditingDeal(null);
-              setFormOpenLocal(true);
-            }}
-          >
-            <Plus className="size-4" />
-            Tạo Cơ Hội
-          </Button>
+          <Can roles={["super_admin", "admin", "director", "sales"]}>
+            <Button
+              onClick={() => {
+                setEditingDeal(null);
+                setFormOpenLocal(true);
+              }}
+            >
+              <Plus className="size-4" />
+              Tạo cơ hội
+            </Button>
+          </Can>
         }
       />
 
@@ -612,7 +715,12 @@ export function DealPipelinePage() {
       <StickyFilterBar>
         <div className="relative min-w-[260px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Tìm theo tên cơ hội hoặc khách hàng" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="pl-9"
+            placeholder="Tìm theo cơ hội, khách hàng hoặc người phụ trách"
+          />
         </div>
         <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} className="w-[220px]">
           <option value="all">Tất cả phụ trách</option>
@@ -622,14 +730,27 @@ export function DealPipelinePage() {
             </option>
           ))}
         </Select>
+        <Select
+          value={stageFilter}
+          onChange={(event) => setStageFilter(parseStageFilter(event.target.value))}
+          className="w-[190px]"
+        >
+          <option value="all">Tất cả giai đoạn</option>
+          {stageColumns.map((stage) => (
+            <option key={stage.value} value={stage.value}>
+              {stage.label}
+            </option>
+          ))}
+        </Select>
         <Button
           variant="secondary"
           onClick={() => {
             setSearch("");
             setOwnerFilter("all");
+            setStageFilter("all");
           }}
         >
-          Xóa bộ lọc
+          Xóa lọc
         </Button>
       </StickyFilterBar>
 
@@ -645,7 +766,7 @@ export function DealPipelinePage() {
                   className={`border-t-4 ${column.borderClass}`}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
-                    if (!draggedDealId || updateStage.isPending) return;
+                    if (!canUpdateDeal || !draggedDealId || updateStage.isPending) return;
                     updateStage.mutate({ id: draggedDealId, stage: column.value });
                     setDraggedDealId(null);
                   }}
@@ -669,8 +790,11 @@ export function DealPipelinePage() {
                           <button
                             key={deal.id}
                             type="button"
-                            draggable
-                            onDragStart={() => setDraggedDealId(deal.id)}
+                            draggable={canUpdateDeal}
+                            onDragStart={() => {
+                              if (!canUpdateDeal) return;
+                              setDraggedDealId(deal.id);
+                            }}
                             onClick={() => setSelectedDealId(deal.id)}
                             className="w-full rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5"
                           >
@@ -704,9 +828,9 @@ export function DealPipelinePage() {
       ) : (
         <EmptyState
           icon={Target}
-          title="Chưa có cơ hội nào"
-          description="Tạo cơ hội bán hàng mới để bắt đầu quản lý pipeline."
-          actionLabel="Tạo Cơ Hội"
+          title="Chưa có cơ hội phù hợp bộ lọc"
+          description="Thử đổi tiêu chí tìm kiếm/lọc hoặc tạo mới cơ hội bán hàng để bắt đầu theo dõi pipeline."
+          actionLabel="Tạo cơ hội"
           onAction={() => {
             setEditingDeal(null);
             setFormOpenLocal(true);
@@ -732,7 +856,7 @@ export function DealPipelinePage() {
         onOpenChange={(open) => {
           if (!open) setSelectedDealId(null);
         }}
-        title={selectedDeal?.title ?? "Chi tiết cơ hội"}
+        title={selectedDeal?.title ?? "Chi tiết cơ hội bán hàng"}
         // description={selectedDeal ? "Theo dõi thông tin chốt deal và các nhiệm vụ follow-up." : undefined}
         className="w-[min(100vw,760px)]"
         footer={
@@ -744,6 +868,7 @@ export function DealPipelinePage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
+                  disabled={!canUpdateDeal}
                   onClick={() => {
                     setEditingDeal(selectedDeal);
                     setFormOpenLocal(true);
@@ -751,10 +876,12 @@ export function DealPipelinePage() {
                 >
                   Cập nhật
                 </Button>
-                <Button variant="destructive" onClick={() => setDeleteDealTarget(selectedDeal)}>
-                  <Trash2 className="size-4" />
-                  Xóa cơ hội
-                </Button>
+                {canDeleteDeal ? (
+                  <Button variant="destructive" onClick={() => setDeleteDealTarget(selectedDeal)}>
+                    <Trash2 className="size-4" />
+                    Xóa cơ hội
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null
@@ -865,19 +992,21 @@ export function DealPipelinePage() {
                               <Button
                                 variant="secondary"
                                 onClick={() => completeTask.mutate(task.id)}
-                                disabled={completeTask.isPending || deleteTask.isPending}
+                                disabled={completingTaskId === task.id || deletingTaskId === task.id}
                               >
                                 <CheckCircle2 className="size-4" />
                                 Hoàn thành
                               </Button>
                             ) : null}
-                            <Button
-                              variant="ghost"
-                              onClick={() => setDeleteTaskTarget(task)}
-                              disabled={deleteTask.isPending || completeTask.isPending}
-                            >
-                              <Trash2 className="size-4 text-rose-500" />
-                            </Button>
+                            {canDeleteTask ? (
+                              <Button
+                                variant="ghost"
+                                onClick={() => setDeleteTaskTarget(task)}
+                                disabled={deletingTaskId === task.id || completingTaskId === task.id}
+                              >
+                                <Trash2 className="size-4 text-rose-500" />
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
                       </CardContent>
@@ -897,7 +1026,7 @@ export function DealPipelinePage() {
       </Sheet>
 
       <ConfirmDialog
-        open={Boolean(deleteDealTarget)}
+        open={Boolean(deleteDealTarget) && canDeleteDeal}
         onOpenChange={(open) => {
           if (!open) setDeleteDealTarget(null);
         }}
@@ -905,6 +1034,10 @@ export function DealPipelinePage() {
         description="Cơ hội sẽ bị xóa khỏi pipeline. Các follow-up liên quan cần được kiểm tra lại."
         confirmLabel="Xóa cơ hội"
         onConfirm={() => {
+          if (!canDeleteDeal) {
+            toast.error("Bạn không có quyền xóa cơ hội.");
+            return;
+          }
           if (deleteDealTarget) {
             deleteDeal.mutate(deleteDealTarget.id);
           }
@@ -912,7 +1045,7 @@ export function DealPipelinePage() {
       />
 
       <ConfirmDialog
-        open={Boolean(deleteTaskTarget)}
+        open={Boolean(deleteTaskTarget) && canDeleteTask}
         onOpenChange={(open) => {
           if (!open) setDeleteTaskTarget(null);
         }}
@@ -920,6 +1053,10 @@ export function DealPipelinePage() {
         description="Nhiệm vụ follow-up này sẽ bị xóa khỏi hệ thống."
         confirmLabel="Xóa nhiệm vụ"
         onConfirm={() => {
+          if (!canDeleteTask) {
+            toast.error("Bạn không có quyền xóa nhiệm vụ.");
+            return;
+          }
           if (deleteTaskTarget) {
             deleteTask.mutate(deleteTaskTarget.id);
           }

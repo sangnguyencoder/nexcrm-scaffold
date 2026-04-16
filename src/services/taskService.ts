@@ -1,19 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { taskService as dataLayerTaskService } from "@/services/data-layer";
 import type { Task } from "@/types";
 
-import { notificationService } from "@/services/notificationService";
-import {
-  type ServiceRequestOptions,
-  type TaskFilters,
-  type TaskRow,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getCurrentProfileId,
-  runBestEffort,
-  toTask,
-  withAbortSignal,
-  withLatency,
-} from "@/services/shared";
+import type { ServiceRequestOptions, TaskFilters } from "@/services/shared";
+
+type DataLayerResult<T> = {
+  data: T | null;
+  error: { message?: string } | null;
+  page?: { nextCursor: string | null; hasMore: boolean };
+};
 
 export type TaskCreateInput = {
   title: string;
@@ -30,228 +24,195 @@ export type TaskUpdateInput = Partial<TaskCreateInput> & {
   completed_at?: string | null;
 };
 
-async function fetchTaskRow(id: string, options: ServiceRequestOptions = {}) {
-  const { data, error } = await withAbortSignal(
-    supabase.from("tasks").select("*").eq("id", id),
-    options.signal,
-  ).single();
+function unwrap<T>(result: DataLayerResult<T>, fallbackMessage: string): T {
+  if (result.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  if (result.data == null) {
+    throw new Error(fallbackMessage);
+  }
+  return result.data;
+}
 
-  if (error) {
-    throw error;
+function mapStatus(status: string, dueAt: string | null): Task["status"] {
+  if (status === "done") {
+    return "done";
+  }
+  if (status === "in_progress") {
+    return "in_progress";
+  }
+  if (dueAt && new Date(dueAt).getTime() < Date.now()) {
+    return "overdue";
+  }
+  return "todo";
+}
+
+function toDbStatus(status?: Task["status"]) {
+  if (status === "done") return "done" as const;
+  if (status === "in_progress") return "in_progress" as const;
+  return "pending" as const;
+}
+
+function mapPriority(priority: string): Task["priority"] {
+  if (priority === "low" || priority === "medium" || priority === "high") {
+    return priority;
+  }
+  return "medium";
+}
+
+function mapTask(row: Record<string, unknown>): Task {
+  const dealId = row.deal_id ? String(row.deal_id) : null;
+  const customerId = row.customer_id ? String(row.customer_id) : null;
+  const ticketId = row.ticket_id ? String(row.ticket_id) : null;
+  const dueAt = row.due_date ? String(row.due_date) : null;
+  const rawStatus = String(row.status ?? "pending");
+
+  let entityType: Task["entity_type"] = "customer";
+  let entityId = "";
+  if (dealId) {
+    entityType = "deal";
+    entityId = dealId;
+  } else if (ticketId) {
+    entityType = "ticket";
+    entityId = ticketId;
+  } else if (customerId) {
+    entityType = "customer";
+    entityId = customerId;
   }
 
-  return data as TaskRow;
+  return {
+    id: String(row.id ?? ""),
+    title: String(row.title ?? ""),
+    description: row.description ? String(row.description) : "",
+    entity_type: entityType,
+    entity_id: entityId,
+    assigned_to: row.assigned_to ? String(row.assigned_to) : "",
+    status: mapStatus(rawStatus, dueAt),
+    priority: mapPriority(String(row.priority ?? "medium")),
+    due_at: dueAt,
+    completed_at: row.completed_at ? String(row.completed_at) : null,
+    created_at: String(row.created_at ?? ""),
+    updated_at: row.updated_at ? String(row.updated_at) : undefined,
+  };
+}
+
+function mapEntityToPayload(input: { entity_type?: Task["entity_type"]; entity_id?: string }) {
+  if (input.entity_type === "deal") {
+    return { deal_id: input.entity_id ?? null, customer_id: null, ticket_id: null };
+  }
+  if (input.entity_type === "ticket") {
+    return { deal_id: null, customer_id: null, ticket_id: input.entity_id ?? null };
+  }
+  if (input.entity_type === "transaction") {
+    return { deal_id: null, customer_id: null, ticket_id: null };
+  }
+  return { deal_id: null, customer_id: input.entity_id ?? null, ticket_id: null };
+}
+
+async function collectTasks(filters: TaskFilters = {}) {
+  const rows: Task[] = [];
+  let cursor: string | null = null;
+  const maxIterations = 8;
+  const pageLimit = 100;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const result = await dataLayerTaskService.getList({
+      dealId: filters.entityType === "deal" ? filters.entityId : undefined,
+      customerId: filters.entityType === "customer" ? filters.entityId : undefined,
+      ticketId: filters.entityType === "ticket" ? filters.entityId : undefined,
+      assignedTo: filters.assignedTo && filters.assignedTo !== "all" ? filters.assignedTo : undefined,
+      status:
+        filters.status === "done"
+          ? "done"
+          : filters.status === "in_progress"
+            ? "in_progress"
+            : undefined,
+      overdueOnly: filters.status === "overdue",
+      limit: pageLimit,
+      cursor,
+    });
+
+    const pageRows = unwrap(
+      result as DataLayerResult<Array<Record<string, unknown>>>,
+      "Không thể tải danh sách nhiệm vụ.",
+    ).map(mapTask);
+    rows.push(...pageRows);
+
+    if (!result.page?.hasMore || !result.page.nextCursor) {
+      break;
+    }
+    cursor = result.page.nextCursor;
+  }
+
+  return rows.filter((task) => {
+    if (!filters.status || filters.status === "all") {
+      return true;
+    }
+    return task.status === filters.status;
+  });
 }
 
 export const taskService = {
-  getList(filters: TaskFilters = {}, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = withAbortSignal(
-          supabase.from("tasks").select("*"),
-          options.signal,
-        ).order("created_at", { ascending: false });
+  async getList(filters: TaskFilters = {}, options: ServiceRequestOptions = {}) {
+    void options;
+    return collectTasks(filters);
+  },
 
-        if (filters.entityType) {
-          query = query.eq("entity_type", filters.entityType);
-        }
-
-        if (filters.entityId) {
-          query = query.eq("entity_id", filters.entityId);
-        }
-
-        if (filters.assignedTo && filters.assignedTo !== "all") {
-          query = query.eq("assigned_to", filters.assignedTo);
-        }
-
-        if (filters.status && filters.status !== "all") {
-          query = query.eq("status", filters.status);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as TaskRow[]).map(toTask).map((task) => {
-          if (
-            task.status !== "done" &&
-            task.due_at &&
-            new Date(task.due_at).getTime() < Date.now()
-          ) {
-            return {
-              ...task,
-              status: "overdue" as const,
-            };
-          }
-
-          return task;
-        });
-      })(),
+  async create(payload: TaskCreateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const entityPayload = mapEntityToPayload(payload);
+    const result = await dataLayerTaskService.create({
+      ...entityPayload,
+      title: payload.title,
+      description: payload.description || "",
+      task_type: payload.entity_type === "deal" ? "follow_up" : "other",
+      due_date: payload.due_at || null,
+      status: toDbStatus(payload.status),
+      priority: payload.priority === "low" || payload.priority === "high" ? payload.priority : "medium",
+      assigned_to: payload.assigned_to || undefined,
+    });
+    return mapTask(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể tạo nhiệm vụ."),
     );
   },
 
-  create(payload: TaskCreateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("tasks").insert({
-            title: payload.title,
-            description: payload.description ?? null,
-            entity_type: payload.entity_type,
-            entity_id: payload.entity_id,
-            assigned_to: payload.assigned_to ?? currentUserId,
-            status: payload.status ?? "todo",
-            priority: payload.priority ?? "medium",
-            due_at: payload.due_at ?? null,
-            created_by: currentUserId,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("task.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "task",
-            entityId: data.id,
-            newData: {
-              message: `Tạo nhiệm vụ ${payload.title}`,
-              entity_type: payload.entity_type,
-              entity_id: payload.entity_id,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        if (data.assigned_to) {
-          void runBestEffort("task.create.notification", () =>
-            notificationService.createUnique({
-              user_id: data.assigned_to,
-              title: `Nhiệm vụ mới: ${data.title}`,
-              message: payload.description ?? "Bạn vừa được giao một nhiệm vụ follow-up mới.",
-              type: "info",
-              entity_type: "task",
-              entity_id: data.id,
-            }),
-          );
-        }
-
-        return toTask(data as TaskRow);
-      })(),
+  async update(id: string, payload: TaskUpdateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const entityPayload = mapEntityToPayload(payload);
+    const result = await dataLayerTaskService.update(id, {
+      ...entityPayload,
+      title: payload.title,
+      description: payload.description,
+      due_date: payload.due_at ?? undefined,
+      status: payload.status ? toDbStatus(payload.status) : undefined,
+      priority: payload.priority,
+      assigned_to: payload.assigned_to,
+      completed_at: payload.completed_at,
+    });
+    return mapTask(
+      unwrap(result as DataLayerResult<Record<string, unknown>>, "Không thể cập nhật nhiệm vụ."),
     );
   },
 
-  update(id: string, payload: TaskUpdateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchTaskRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const nextStatus = payload.status ?? previous.status ?? "todo";
-        const completedAt =
-          nextStatus === "done"
-            ? payload.completed_at ?? previous.completed_at ?? new Date().toISOString()
-            : payload.completed_at === undefined
-              ? previous.completed_at
-              : payload.completed_at;
-        const { data, error } = await withAbortSignal(
-          supabase.from("tasks").update({
-            title: payload.title ?? previous.title,
-            description: payload.description ?? previous.description,
-            entity_type: payload.entity_type ?? previous.entity_type,
-            entity_id: payload.entity_id ?? previous.entity_id,
-            assigned_to: payload.assigned_to ?? previous.assigned_to,
-            status: nextStatus,
-            priority: payload.priority ?? previous.priority,
-            due_at: payload.due_at === undefined ? previous.due_at : payload.due_at,
-            completed_at: completedAt,
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .eq("id", id)
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("task.update.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "task",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Cập nhật nhiệm vụ ${data.title}`,
-              status: data.status,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        if (data.assigned_to && data.status === "overdue") {
-          void runBestEffort("task.update.notification", () =>
-            notificationService.createUnique({
-              user_id: data.assigned_to,
-              title: `Nhiệm vụ quá hạn: ${data.title}`,
-              message: "Deadline đã tới hạn, cần cập nhật ngay.",
-              type: "warning",
-              entity_type: "task",
-              entity_id: data.id,
-            }),
-          );
-        }
-
-        return toTask(data as TaskRow);
-      })(),
+  async complete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTaskService.complete(id);
+    return mapTask(
+      unwrap(
+        result as DataLayerResult<Record<string, unknown>>,
+        "Không thể đánh dấu hoàn thành nhiệm vụ.",
+      ),
     );
   },
 
-  complete(id: string, options: ServiceRequestOptions = {}) {
-    return taskService.update(id, {
-      status: "done",
-      completed_at: new Date().toISOString(),
-    }, options);
+  async delete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerTaskService.softDelete(id);
+    unwrap(result as DataLayerResult<{ id: string; deleted_at: string }>, "Không thể xóa nhiệm vụ.");
   },
 
-  delete(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchTaskRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const { error } = await withAbortSignal(
-          supabase.from("tasks").delete(),
-          options.signal,
-        ).eq("id", id);
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("task.delete.audit", () =>
-          createAuditLog({
-            action: "delete",
-            entityType: "task",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: { message: `Xóa nhiệm vụ ${previous.title}` },
-            userId: currentUserId,
-          }),
-        );
-      })(),
-    );
+  async softDelete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    return taskService.delete(id);
   },
 };

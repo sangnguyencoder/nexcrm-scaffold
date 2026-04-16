@@ -11,7 +11,7 @@ export function ThemeToggle() {
     <Button
       variant="outline"
       size="icon"
-      className="rounded-xl bg-card/80"
+      className="size-9 rounded-lg bg-card/80"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Đổi giao diện"
     >

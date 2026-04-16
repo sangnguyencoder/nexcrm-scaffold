@@ -40,6 +40,20 @@ vi.mock("@/services/shared", () => ({
     return error;
   },
   ensureSupabaseConfigured: vi.fn(),
+  getAppErrorDetails: (error: unknown, fallback = "Đã có lỗi xảy ra.") => {
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message?: unknown }).message ?? fallback)
+          : fallback;
+    return {
+      kind: "unknown",
+      message,
+      technicalMessage: message,
+      retryable: false,
+    };
+  },
   isMissingRpcFunctionError: vi.fn(() => false),
 }));
 

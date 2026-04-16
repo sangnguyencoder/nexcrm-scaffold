@@ -1,3 +1,5 @@
+-- LEGACY (schema cũ): file này không còn phù hợp schema hiện tại.
+-- Dùng file mới: supabase/seeds/large_demo_seed_v2.sql
 -- NexCRM operational seed dataset
 -- Run this in Supabase SQL Editor on a non-production environment after schema + migrations.
 -- Rerunnable: the script clears the previous seeded batch before inserting a fresh dataset.

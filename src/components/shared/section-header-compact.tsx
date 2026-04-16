@@ -15,9 +15,9 @@ export function SectionHeaderCompact({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         {eyebrow ? (
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {eyebrow}
           </div>
         ) : null}

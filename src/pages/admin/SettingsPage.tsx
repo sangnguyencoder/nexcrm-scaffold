@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Copy, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
@@ -13,6 +14,7 @@ import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { SettingsRow } from "@/components/shared/settings-row";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +25,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useSettingsQuery, queryKeys } from "@/hooks/useNexcrmQueries";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
-import { copyTextToClipboard, getDefaultLogoUrl, isValidAssetUrl } from "@/lib/utils";
+import {
+  copyTextToClipboard,
+  formatDateTime,
+  getDefaultLogoUrl,
+  isValidAssetUrl,
+} from "@/lib/utils";
 import { seedService } from "@/services/seedService";
 import { getAppErrorMessage } from "@/services/shared";
 import { settingsService } from "@/services/settingsService";
@@ -36,7 +43,38 @@ type SettingsDraft = {
   smsProvider?: AppSettings["integrations"]["sms_provider"];
 };
 
+function toLastSyncLabel(value: string) {
+  const parsedAt = Date.parse(value);
+  if (Number.isNaN(parsedAt)) {
+    return "Chưa có dữ liệu sync";
+  }
+
+  return formatDateTime(value);
+}
+
+function getPosStatusMeta(status: string) {
+  if (status === "success" || status === "active") {
+    return {
+      label: "Sẵn sàng",
+      className: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300",
+    };
+  }
+
+  if (status === "processing" || status === "received") {
+    return {
+      label: "Đang xử lý",
+      className: "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
+    };
+  }
+
+  return {
+    label: "Lỗi cần kiểm tra",
+    className: "bg-rose-500/15 text-rose-600 ring-rose-500/25 dark:text-rose-300",
+  };
+}
+
 export function SettingsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: settings, isLoading, error, refetch, isFetching } = useSettingsQuery();
   const [draft, setDraft] = useState<SettingsDraft>({});
@@ -56,8 +94,10 @@ export function SettingsPage() {
 
   const companyName = draft.companyName ?? settings?.company_name ?? "";
   const logoUrl = draft.logoUrl ?? settings?.logo_url ?? "";
+  const lastSyncLabel = settings ? toLastSyncLabel(settings.integrations.last_sync) : "Chưa có dữ liệu sync";
   const emailProvider = draft.emailProvider ?? settings?.integrations.email_provider ?? fallbackEmailProvider;
   const smsProvider = draft.smsProvider ?? settings?.integrations.sms_provider ?? fallbackSmsProvider;
+  const posStatusMeta = getPosStatusMeta(settings?.integrations.pos_status ?? "active");
 
   const normalizedLogoUrl = logoUrl.trim();
   const logoUrlValid = !normalizedLogoUrl || isValidAssetUrl(normalizedLogoUrl);
@@ -275,8 +315,18 @@ export function SettingsPage() {
                   <div className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
                     {settings.integrations.pos_webhook_url}
                   </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <StatusBadge
+                      label={posStatusMeta.label}
+                      className={posStatusMeta.className}
+                      dotClassName="bg-current"
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => navigate("/admin/pos-sync")}>
+                      Xem log POS
+                    </Button>
+                  </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Last sync: 2024-01-21 09:30</span>
+                    <span>Last sync: {lastSyncLabel}</span>
                     <Button
                       variant="ghost"
                       size="icon"

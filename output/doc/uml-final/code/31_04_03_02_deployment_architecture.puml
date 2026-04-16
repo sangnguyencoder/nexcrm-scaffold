@@ -1,0 +1,78 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.3.2] Deployment Architecture - Vercel + Supabase
+    top to bottom direction
+
+    node "Browser / End Users" as Browser
+
+    node "Vercel CDN\nFrontend Deployment" as Vercel {
+      artifact "React SPA\n(Vite build)" as SPA
+      artifact "Preview / Production URLs" as URLs
+    }
+
+    node "Supabase Cloud" as Supabase {
+      node "Auth Service" as Auth
+      database "PostgreSQL 15" as DB
+      component "RLS Policies" as RLS
+      component "Triggers + RPC" as RPC
+      component "Realtime" as Realtime
+      component "Storage" as Storage
+      component "Edge Functions" as Edge {
+        [dispatch-communication]
+        [manage-profile-user]
+        [pos-sync-webhook]
+        [run-automation]
+      }
+    }
+
+    cloud "Resend / Email Provider" as EmailProvider
+    cloud "SMS Provider" as SMSProvider
+    cloud "POS System API" as POS
+
+    Browser --> Vercel : HTTPS
+    Vercel --> Supabase : HTTPS / WSS
+    SPA --> Auth
+    SPA --> DB
+    SPA --> Realtime
+    SPA --> Storage
+
+    Edge --> EmailProvider
+    Edge --> SMSProvider
+    Edge --> POS
+    DB --> RLS
+    DB --> RPC
+    DB --> Realtime
+
+    note right of Vercel
+      Dev: localhost:5173
+      Staging: Vercel preview URL
+      Prod: custom domain
+    end note
+    @enduml

@@ -1,16 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import type { Campaign } from "@/types";
+import type { Campaign, CustomerType } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 
-import {
-  type CampaignFilters,
-  type CampaignRow,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getCurrentProfileId,
-  runBestEffort,
-  toCampaign,
-  withLatency,
-} from "@/services/shared";
+import type { CampaignFilters } from "@/services/shared";
 
 export type CampaignCreateInput = {
   name: string;
@@ -26,246 +18,205 @@ export type CampaignCreateInput = {
 
 export type CampaignUpdateInput = Partial<CampaignCreateInput>;
 
-async function fetchCampaignRow(id: string) {
-  const { data, error } = await supabase
-    .from("campaigns")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) {
-    throw error;
+function requireOrgContext() {
+  const state = useAuthStore.getState();
+  const orgId = state.orgId;
+  const userId = state.profile?.id ?? state.user?.id ?? null;
+  if (!orgId) {
+    throw new Error("Thiếu ngữ cảnh tổ chức. Vui lòng đăng nhập lại.");
   }
+  return { orgId, userId };
+}
 
-  return data;
+function toCampaign(row: Record<string, unknown>): Campaign {
+  const targetSegment =
+    row.target_segment && typeof row.target_segment === "object"
+      ? (row.target_segment as Record<string, unknown>)
+      : {};
+  const customerTypes = Array.isArray(targetSegment.customer_types)
+    ? targetSegment.customer_types.filter(
+        (item): item is CustomerType =>
+          item === "new" ||
+          item === "potential" ||
+          item === "loyal" ||
+          item === "vip" ||
+          item === "inactive",
+      )
+    : [];
+
+  const sentCount = Number(row.sent_count ?? 0);
+  const openedCount = Number(row.opened_count ?? 0);
+  const clickCount = Number(row.click_count ?? 0);
+
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    description: row.description ? String(row.description) : "",
+    channel:
+      row.channel === "email" || row.channel === "sms" || row.channel === "both"
+        ? row.channel
+        : "email",
+    customer_types: customerTypes,
+    subject: row.subject ? String(row.subject) : "",
+    content: row.content ? String(row.content) : "",
+    recipient_count: Number(row.recipient_count ?? 0),
+    status:
+      row.status === "draft" ||
+      row.status === "scheduled" ||
+      row.status === "sending" ||
+      row.status === "sent" ||
+      row.status === "sent_with_errors" ||
+      row.status === "cancelled"
+        ? row.status
+        : "draft",
+    sent_count: sentCount,
+    opened_count: openedCount,
+    click_count: clickCount,
+    failed_count: Number(row.failed_count ?? 0),
+    scheduled_at: row.scheduled_at ? String(row.scheduled_at) : null,
+    sent_at: row.sent_at ? String(row.sent_at) : null,
+    created_at: String(row.created_at ?? ""),
+    click_rate: sentCount > 0 ? (clickCount / sentCount) * 100 : 0,
+    open_rate: sentCount > 0 ? (openedCount / sentCount) * 100 : 0,
+  };
+}
+
+function toTargetSegment(customerTypes?: Campaign["customer_types"]) {
+  if (!customerTypes?.length) {
+    return {};
+  }
+  return {
+    customer_types: customerTypes,
+  };
 }
 
 export const campaignService = {
-  getList(filters: CampaignFilters = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = supabase.from("campaigns").select("*").order("created_at", {
-          ascending: false,
-        });
+  async getList(filters: CampaignFilters = {}) {
+    const { orgId } = requireOrgContext();
+    let query = supabase
+      .from("campaigns")
+      .select("*")
+      .eq("org_id", orgId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
-        if (filters.status && filters.status !== "all") {
-          query = query.eq("status", filters.status);
-        }
+    if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
 
-        const { data, error } = await query;
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
 
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as CampaignRow[]).map(toCampaign);
-      })(),
-    );
+    return ((data ?? []) as Array<Record<string, unknown>>).map(toCampaign);
   },
 
-  create(payload: CampaignCreateInput) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        const status = payload.status ?? "draft";
-        const recipientCount = payload.recipient_count ?? 0;
-        const sentCount =
-          status === "sent" ? recipientCount : status === "sending" ? Math.round(recipientCount * 0.6) : 0;
-        const openedCount =
-          status === "sent" ? Math.round(sentCount * 0.42) : status === "sending" ? Math.round(sentCount * 0.25) : 0;
-        const clickCount =
-          status === "sent" ? Math.round(sentCount * 0.11) : status === "sending" ? Math.round(sentCount * 0.05) : 0;
-        const failedCount = status === "sent" ? Math.max(recipientCount - sentCount, 0) : 0;
-        const { data, error } = await supabase
-          .from("campaigns")
-          .insert({
-            name: payload.name,
-            description: payload.description || null,
-            channel: payload.channel,
-            subject: payload.subject || null,
-            content: payload.content,
-            target_segment: {
-              customer_types: payload.customer_types ?? [],
-            },
-            recipient_count: recipientCount,
-            status,
-            sent_count: sentCount,
-            opened_count: openedCount,
-            click_count: clickCount,
-            failed_count: failedCount,
-            scheduled_at: payload.scheduled_at || null,
-            sent_at: status === "sent" ? new Date().toISOString() : null,
-            created_by: currentUserId,
-          })
-          .select("*")
-          .single();
+  async getById(id: string) {
+    const { orgId } = requireOrgContext();
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
 
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("campaign.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "campaign",
-            entityId: data.id,
-            newData: {
-              message: `Tạo chiến dịch ${payload.name}`,
-              status,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toCampaign(data);
-      })(),
-    );
+    if (error) {
+      throw error;
+    }
+    return toCampaign((data ?? {}) as Record<string, unknown>);
   },
 
-  update(id: string, payload: CampaignUpdateInput) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchCampaignRow(id);
-        const currentUserId = await getCurrentProfileId();
-        const nextStatus = payload.status ?? previous.status ?? "draft";
-        const nextRecipientCount = payload.recipient_count ?? previous.recipient_count ?? 0;
-        const nextSentCount =
-          nextStatus === "sent"
-            ? Math.max(previous.sent_count ?? 0, nextRecipientCount)
-            : nextStatus === "sending"
-              ? Math.max(previous.sent_count ?? 0, Math.round(nextRecipientCount * 0.6))
-              : previous.sent_count ?? 0;
-        const nextOpenedCount =
-          nextStatus === "sent"
-            ? Math.max(previous.opened_count ?? 0, Math.round(nextSentCount * 0.42))
-            : nextStatus === "sending"
-              ? Math.max(previous.opened_count ?? 0, Math.round(nextSentCount * 0.25))
-              : previous.opened_count ?? 0;
-        const nextClickCount =
-          nextStatus === "sent"
-            ? Math.max((previous as CampaignRow).click_count ?? 0, Math.round(nextSentCount * 0.11))
-            : nextStatus === "sending"
-              ? Math.max((previous as CampaignRow).click_count ?? 0, Math.round(nextSentCount * 0.05))
-              : (previous as CampaignRow).click_count ?? 0;
-        const nextFailedCount =
-          nextStatus === "sent"
-            ? Math.max((previous as CampaignRow).failed_count ?? 0, Math.max(nextRecipientCount - nextSentCount, 0))
-            : (previous as CampaignRow).failed_count ?? 0;
-        const { data, error } = await supabase
-          .from("campaigns")
-          .update({
-            name: payload.name ?? previous.name,
-            description: payload.description ?? previous.description,
-            channel: payload.channel ?? previous.channel,
-            subject: payload.subject ?? previous.subject,
-            content: payload.content ?? previous.content,
-            target_segment: {
-              customer_types:
-                payload.customer_types ??
-                  ((previous.target_segment as { customer_types?: Campaign["customer_types"] })
-                  ?.customer_types ??
-                  []),
-            },
-            recipient_count: nextRecipientCount,
-            status: nextStatus,
-            sent_count: nextSentCount,
-            opened_count: nextOpenedCount,
-            click_count: nextClickCount,
-            failed_count: nextFailedCount,
-            scheduled_at:
-              payload.scheduled_at === undefined
-                ? previous.scheduled_at
-                : payload.scheduled_at,
-            sent_at:
-              nextStatus === "sent"
-                ? previous.sent_at ?? new Date().toISOString()
-                : previous.sent_at,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", id)
-          .select("*")
-          .single();
+  async create(payload: CampaignCreateInput) {
+    const { orgId, userId } = requireOrgContext();
+    const { data, error } = await supabase
+      .from("campaigns")
+      .insert({
+        org_id: orgId,
+        name: payload.name,
+        description: payload.description || null,
+        channel: payload.channel,
+        subject: payload.subject || null,
+        content: payload.content,
+        target_segment: toTargetSegment(payload.customer_types),
+        recipient_count: payload.recipient_count ?? 0,
+        status: payload.status ?? "draft",
+        scheduled_at: payload.scheduled_at ?? null,
+        created_by: userId,
+        updated_by: userId,
+      })
+      .select("*")
+      .single();
 
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("campaign.update.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "campaign",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Cập nhật chiến dịch ${data.name}`,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toCampaign(data);
-      })(),
-    );
+    if (error) {
+      throw error;
+    }
+    return toCampaign((data ?? {}) as Record<string, unknown>);
   },
 
-  updateStatus(id: string, status: Campaign["status"]) {
-    return campaignService.update(id, {
-      status,
-      scheduled_at: status === "scheduled" ? new Date().toISOString() : null,
+  async update(id: string, payload: CampaignUpdateInput) {
+    const { orgId, userId } = requireOrgContext();
+    const patch: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    };
+    if (payload.name !== undefined) patch.name = payload.name;
+    if (payload.description !== undefined) patch.description = payload.description || null;
+    if (payload.channel !== undefined) patch.channel = payload.channel;
+    if (payload.subject !== undefined) patch.subject = payload.subject || null;
+    if (payload.content !== undefined) patch.content = payload.content;
+    if (payload.customer_types !== undefined) patch.target_segment = toTargetSegment(payload.customer_types);
+    if (payload.recipient_count !== undefined) patch.recipient_count = payload.recipient_count;
+    if (payload.status !== undefined) patch.status = payload.status;
+    if (payload.scheduled_at !== undefined) patch.scheduled_at = payload.scheduled_at;
+
+    const { data, error } = await supabase
+      .from("campaigns")
+      .update(patch)
+      .eq("org_id", orgId)
+      .eq("id", id)
+      .is("deleted_at", null)
+      .select("*")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+    return toCampaign((data ?? {}) as Record<string, unknown>);
+  },
+
+  async duplicate(id: string) {
+    const base = await campaignService.getById(id);
+    return campaignService.create({
+      name: `${base.name} (Copy)`,
+      description: base.description,
+      channel: base.channel,
+      customer_types: base.customer_types,
+      subject: base.subject,
+      content: base.content,
+      recipient_count: base.recipient_count,
+      status: "draft",
+      scheduled_at: null,
     });
   },
 
-  duplicate(id: string) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const campaign = await fetchCampaignRow(id);
-        return campaignService.create({
-          name: `${campaign.name} (Copy)`,
-          description: campaign.description ?? "",
-          channel: campaign.channel,
-          customer_types:
-            ((campaign.target_segment as { customer_types?: Campaign["customer_types"] })
-              ?.customer_types ??
-              []),
-          subject: campaign.subject ?? "",
-          content: campaign.content,
-          recipient_count: campaign.recipient_count ?? 0,
-          status: "draft",
-          scheduled_at: null,
-        });
-      })(),
-    );
-  },
+  async delete(id: string) {
+    const { orgId, userId } = requireOrgContext();
+    const { error } = await supabase
+      .from("campaigns")
+      .update({
+        deleted_at: new Date().toISOString(),
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      })
+      .eq("org_id", orgId)
+      .eq("id", id)
+      .is("deleted_at", null);
 
-  delete(id: string) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchCampaignRow(id);
-        const currentUserId = await getCurrentProfileId();
-        const { error } = await supabase.from("campaigns").delete().eq("id", id);
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("campaign.delete.audit", () =>
-          createAuditLog({
-            action: "delete",
-            entityType: "campaign",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Xóa chiến dịch ${previous.name}`,
-            },
-            userId: currentUserId,
-          }),
-        );
-      })(),
-    );
+    if (error) {
+      throw error;
+    }
   },
 };

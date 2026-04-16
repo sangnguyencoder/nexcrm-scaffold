@@ -53,7 +53,7 @@ import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { Customer } from "@/types";
+import type { Customer, Task } from "@/types";
 
 const noteSchema = z.object({
   note_type: z.enum(["general", "call", "meeting", "internal"]),
@@ -178,8 +178,15 @@ export function CustomerDetailPage() {
         priority: values.priority,
         due_at: values.due_at ? new Date(`${values.due_at}T09:00:00`).toISOString() : null,
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["tasks"], refetchType: "active" });
+    onSuccess: (createdTask) => {
+      queryClient.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (current = []) => {
+        const exists = current.some((task) => task.id === createdTask.id);
+        if (exists) {
+          return current.map((task) => (task.id === createdTask.id ? createdTask : task));
+        }
+
+        return [createdTask, ...current];
+      });
       void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
       taskForm.reset({
         title: "",
@@ -630,7 +637,11 @@ export function CustomerDetailPage() {
                           </Select>
                         </FormField>
                         <FormField label="Deadline">
-                          <Input type="date" {...taskForm.register("due_at")} />
+                          <Input
+                            type="date"
+                            {...taskForm.register("due_at")}
+                            className="h-11 w-full"
+                          />
                         </FormField>
                       </div>
                       <FormField label="Mô tả">

@@ -14,10 +14,10 @@ export function DataTableShell({
   contentClassName?: string;
 }) {
   return (
-    <div className={cn("panel overflow-hidden", className)}>
+    <div className={cn("panel overflow-hidden border-border/70 bg-card/90", className)}>
       <div className={cn("min-w-0", contentClassName)}>{children}</div>
       {footer ? (
-        <div className="flex items-center justify-between gap-3 border-t border-border/70 px-4 py-3.5 text-sm lg:px-5">
+        <div className="flex items-center justify-between gap-3 border-t border-border/65 px-4 py-3 text-sm lg:px-5">
           {footer}
         </div>
       ) : null}

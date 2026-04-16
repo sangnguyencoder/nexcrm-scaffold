@@ -1,0 +1,61 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.3.2] Phân rã Use Case Nhân viên Marketing
+    left to right direction
+
+    actor "Nhân viên Marketing" as Marketing
+
+    rectangle "Module Marketing CRM" {
+      usecase "Xác thực đăng nhập" as Login
+      usecase "Quản lý chiến dịch" as ManageCampaign
+      usecase "Quản lý automation rule" as ManageAutomation
+      usecase "Chọn phân khúc khách hàng" as SelectSegment
+      usecase "Soạn nội dung chiến dịch" as ComposeContent
+      usecase "Lên lịch / gửi ngay" as ScheduleSend
+      usecase "Theo dõi hiệu quả chiến dịch" as TrackCampaign
+      usecase "Gửi thử nội dung" as TestSend
+      usecase "Cấu hình trigger automation" as ConfigureTrigger
+      usecase "Kích hoạt / vô hiệu hóa rule" as ToggleRule
+    }
+
+    Marketing --> ManageCampaign
+    Marketing --> ManageAutomation
+
+    ManageCampaign ..> Login : <<include>>
+    ManageCampaign ..> SelectSegment : <<include>>
+    ManageCampaign ..> ComposeContent : <<include>>
+    ManageCampaign ..> ScheduleSend : <<include>>
+    ManageCampaign ..> TrackCampaign : <<include>>
+    TestSend ..> ManageCampaign : <<extend>>
+
+    ManageAutomation ..> Login : <<include>>
+    ManageAutomation ..> ConfigureTrigger : <<include>>
+    ManageAutomation ..> ToggleRule : <<include>>
+    @enduml

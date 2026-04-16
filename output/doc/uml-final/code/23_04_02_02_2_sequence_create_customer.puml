@@ -1,0 +1,60 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - Tạo mới hồ sơ khách hàng
+    actor Sales
+    participant Browser
+    participant "React App" as ReactApp
+    participant "Zod Validation" as Zod
+    participant "customerService" as CustomerService
+    database "Supabase DB" as DB
+    participant "TanStack Query" as Query
+    participant "React Router" as Router
+
+    Sales -> Browser : Truy cập /customers/new
+    Browser -> ReactApp : Nhập form khách hàng
+    ReactApp -> Zod : validate(phone, email, required fields)
+
+    alt Hợp lệ
+      ReactApp -> CustomerService : create(payload + org_id)
+      CustomerService -> DB : INSERT INTO customers(...)
+      DB -> DB : trg_customer_code
+      DB -> DB : trg_audit_customers
+      DB --> CustomerService : new customer record
+      CustomerService --> ReactApp : customer created
+      ReactApp -> Query : invalidateQueries(['customers'])
+      ReactApp -> Router : navigate /customers/:id
+    else Phone trùng
+      DB --> CustomerService : unique constraint error
+      CustomerService --> ReactApp : duplicate phone error
+      ReactApp --> Browser : "Số điện thoại đã tồn tại"
+    else Lỗi validate
+      Zod --> ReactApp : validation errors
+      ReactApp --> Browser : Hiển thị lỗi dữ liệu
+    end
+    @enduml

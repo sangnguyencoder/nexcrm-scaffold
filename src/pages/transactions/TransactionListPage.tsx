@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { queryKeys, useCustomersQuery, useTransactionsQuery } from "@/hooks/useNexcrmQueries";
+import { useCustomersQuery, useTransactionsQuery } from "@/hooks/useNexcrmQueries";
 import {
   formatCurrencyCompact,
   formatCurrency,
@@ -160,11 +160,11 @@ function AddTransactionModal({
 
         return [createdTransaction, ...current];
       });
-      void queryClient.invalidateQueries({ queryKey: ["transactions"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("7days"), refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("today"), refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard("30days"), refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"], refetchType: "active" }),
+      ]);
       toast.success("Đã tạo giao dịch mới");
       form.reset();
       onOpenChange(false);
@@ -268,14 +268,39 @@ function AddTransactionModal({
               </Button>
             }
           >
+            <div className="hidden items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground md:grid md:grid-cols-[minmax(0,2fr)_74px_120px_120px_40px]">
+              <span>Sản phẩm / dịch vụ</span>
+              <span className="text-center">SL</span>
+              <span className="text-right">Đơn giá</span>
+              <span className="text-right">Thành tiền</span>
+              <span className="sr-only">Xóa</span>
+            </div>
             {fields.map((field, index) => (
               <div key={field.id} className="grid gap-2 md:grid-cols-[minmax(0,2fr)_74px_120px_120px_40px]">
-                <Input {...form.register(`items.${index}.name`)} placeholder="Tên sản phẩm" />
-                <Input type="number" min={1} {...form.register(`items.${index}.qty`, { valueAsNumber: true })} />
-                <Input type="number" min={0} {...form.register(`items.${index}.price`, { valueAsNumber: true })} />
+                <Input
+                  {...form.register(`items.${index}.name`)}
+                  placeholder="Nhập tên sản phẩm / dịch vụ"
+                  aria-label={`Tên sản phẩm dòng ${index + 1}`}
+                />
+                <Input
+                  type="number"
+                  min={1}
+                  {...form.register(`items.${index}.qty`, { valueAsNumber: true })}
+                  placeholder="SL"
+                  aria-label={`Số lượng dòng ${index + 1}`}
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  {...form.register(`items.${index}.price`, { valueAsNumber: true })}
+                  placeholder="Đơn giá"
+                  aria-label={`Đơn giá dòng ${index + 1}`}
+                />
                 <Input
                   readOnly
                   value={formatCurrency((watchedItems[index]?.qty ?? 0) * (watchedItems[index]?.price ?? 0))}
+                  placeholder="Thành tiền"
+                  aria-label={`Thành tiền dòng ${index + 1}`}
                 />
                 <Button
                   type="button"
@@ -290,9 +315,13 @@ function AddTransactionModal({
             ))}
           </FormSection>
 
-          <FormSection title="Ghi chú" /* description="Chỉ giữ phần thông tin bổ sung thực sự cần cho kế toán hoặc CSKH." */>
-            <FormField label="Ghi chú">
-              <Textarea {...form.register("notes")} placeholder="Thông tin thêm về giao dịch" rows={4} />
+          <FormSection title="Ghi chú giao dịch" /* description="Chỉ giữ phần thông tin bổ sung thực sự cần cho kế toán hoặc CSKH." */>
+            <FormField label="Nội dung">
+              <Textarea
+                {...form.register("notes")}
+                placeholder="Ví dụ: Khách thanh toán đủ và yêu cầu xuất hóa đơn VAT"
+                rows={4}
+              />
             </FormField>
           </FormSection>
         </div>

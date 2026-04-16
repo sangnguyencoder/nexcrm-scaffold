@@ -1,0 +1,58 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.9] Biểu đồ hoạt động quản lý khách hàng
+    start
+    :Sales mở /customers;
+    :Tìm kiếm hoặc lọc danh sách;
+    if (Chọn tạo mới?) then (Có)
+      :Mở /customers/new;
+      :Nhập thông tin khách hàng;
+      if (Form hợp lệ?) then (Có)
+        :customerService.create();
+        if (Phone trùng trong org?) then (Có)
+          :Báo lỗi duplicate và gợi ý merge;
+        else (Không)
+          :Sinh customer_code qua trigger;
+          :Lưu customer_tags / customer_notes nếu có;
+          :Điều hướng sang /customers/:id;
+        endif
+      else (Không)
+        :Hiển thị lỗi validate;
+      endif
+    else (Không)
+      :Mở chi tiết khách hàng;
+      if (Người dùng chọn cập nhật?) then (Có)
+        :customerService.update();
+        :Ghi audit_logs và refresh danh sách;
+      else (Không)
+        :Nếu chọn xóa mềm -> customerService.softDelete();
+      endif
+    endif
+    stop
+    @enduml

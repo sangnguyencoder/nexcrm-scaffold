@@ -1,0 +1,53 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.9] Biểu đồ hoạt động đăng nhập
+    start
+    :Người dùng mở /login;
+    :Nhập email và mật khẩu;
+    if (Form hợp lệ?) then (Có)
+      :React App gọi signInWithPassword();
+      if (Xác thực thành công?) then (Có)
+        :Tải profiles theo auth.uid();
+        if (is_active = true?) then (Có)
+          :Lưu session vào authStore/Zustand;
+          :Điều hướng đến dashboard phù hợp vai trò;
+          stop
+        else (Không)
+          :Thông báo tài khoản bị vô hiệu hóa;
+          stop
+        endif
+      else (Không)
+        :Thông báo sai email hoặc mật khẩu;
+        stop
+      endif
+    else (Không)
+      :Hiển thị lỗi validate;
+      stop
+    endif
+    @enduml

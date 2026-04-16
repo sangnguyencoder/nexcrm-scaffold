@@ -1,0 +1,51 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - CSKH xử lý khiếu nại
+    actor CSKH
+    participant Browser
+    participant "TicketDetailPage" as UI
+    participant "ticketService" as TicketService
+    database "Supabase DB" as DB
+
+    CSKH -> Browser : Mở ticket khiếu nại
+    Browser -> UI : Xem chi tiết ticket
+    UI -> TicketService : getById(ticketId)
+    TicketService -> DB : SELECT support_tickets + comments
+    DB --> TicketService : complaint ticket
+    TicketService --> UI : data
+    CSKH -> UI : Cập nhật in_progress / pending / resolved
+    UI -> TicketService : updateStatus()
+    TicketService -> DB : UPDATE support_tickets
+    alt Đã giải quyết
+      CSKH -> UI : Nhập satisfaction_score
+      UI -> TicketService : update(ticket, satisfaction_score)
+      TicketService -> DB : UPDATE support_tickets
+    end
+    UI --> Browser : Ticket đóng với lịch sử xử lý đầy đủ
+    @enduml

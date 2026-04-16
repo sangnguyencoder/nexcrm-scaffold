@@ -25,9 +25,9 @@ export function MetricStripItem({
   className?: string;
 }) {
   return (
-    <Card className={cn("metric-card", className)}>
-      <CardContent className="flex min-h-[132px] flex-col justify-between gap-4 p-4 lg:p-5">
-        <div className="space-y-2">
+    <Card className={cn("metric-card border-border/70 bg-card/90", className)}>
+      <CardContent className="flex min-h-[124px] flex-col justify-between gap-3 p-4 lg:p-5">
+        <div className="flex flex-col gap-1.5">
           <div className="metric-label">{label}</div>
           <div className="metric-value">{value}</div>
         </div>

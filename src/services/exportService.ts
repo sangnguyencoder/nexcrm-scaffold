@@ -97,8 +97,8 @@ function getExportColumns(snapshot: ReportSnapshot): ExportColumn[] {
   return [
     { key: "name", label: "Chiến dịch", format: (row) => String(row.name ?? "") },
     { key: "channel", label: "Kênh", format: (row) => String(row.channel ?? "") },
-    { key: "sent", label: "Sent", format: (row) => Number(row.sent ?? 0) },
-    { key: "failed", label: "Failed", format: (row) => Number(row.failed ?? 0) },
+    { key: "sent", label: "Đã gửi", format: (row) => Number(row.sent ?? 0) },
+    { key: "failed", label: "Thất bại", format: (row) => Number(row.failed ?? 0) },
     { key: "openRate", label: "Open rate", format: (row) => `${Number(row.openRate ?? 0)}%` },
     { key: "clickRate", label: "Click rate", format: (row) => `${Number(row.clickRate ?? 0)}%` },
     { key: "status", label: "Trạng thái", format: (row) => String(row.status ?? "") },

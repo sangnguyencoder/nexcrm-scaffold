@@ -387,16 +387,16 @@ export function MarketingPanel({ snapshot }: { snapshot: MarketingReportSnapshot
   return (
     <div className="space-y-4">
       <MetricStrip className="xl:grid-cols-4">
-        <MetricStripItem label="Sent" value={formatNumberCompact(snapshot.outboundTotals.sent)} helper="Message đã rời hàng đợi." />
-        <MetricStripItem label="Opened" value={formatNumberCompact(snapshot.outboundTotals.opened)} helper="Theo outbound tracking." />
-        <MetricStripItem label="Clicked" value={formatNumberCompact(snapshot.outboundTotals.clicked)} helper="Tổng click đo được." />
-        <MetricStripItem label="Failed" value={formatNumberCompact(snapshot.outboundTotals.failed)} helper="Ưu tiên để kiểm tra provider." />
+        <MetricStripItem label="Đã gửi" value={formatNumberCompact(snapshot.outboundTotals.sent)} helper="Tin nhắn đã rời hàng đợi." />
+        <MetricStripItem label="Đã mở" value={formatNumberCompact(snapshot.outboundTotals.opened)} helper="Theo theo dõi outbound." />
+        <MetricStripItem label="Đã nhấp" value={formatNumberCompact(snapshot.outboundTotals.clicked)} helper="Tổng lượt nhấp đo được." />
+        <MetricStripItem label="Thất bại" value={formatNumberCompact(snapshot.outboundTotals.failed)} helper="Ưu tiên kiểm tra nhà cung cấp." />
       </MetricStrip>
 
       <SummaryTable
         title="Hiệu quả chiến dịch"
         description="" // Bảng chính để scan nhanh trạng thái, open rate và click rate của từng campaign.
-        headers={["Chiến dịch", "Kênh", "Sent", "Failed", "Open rate", "Click rate", "Status"]}
+        headers={["Chiến dịch", "Kênh", "Đã gửi", "Thất bại", "Tỷ lệ mở", "Tỷ lệ nhấp", "Trạng thái"]}
         rows={snapshot.campaignPerformance.map((campaign) => ({
           key: campaign.id,
           cells: [
@@ -426,9 +426,9 @@ export function MarketingPanel({ snapshot }: { snapshot: MarketingReportSnapshot
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" horizontal={false} />
               <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
               <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} fontSize={12} width={120} />
-              <Tooltip content={<CustomTooltip valueFormatter={(value) => `${value} message`} />} />
+              <Tooltip content={<CustomTooltip valueFormatter={(value) => `${value} tin nhắn`} />} />
               <Legend />
-              <Bar dataKey="sent" name="Sent" fill="#2563eb" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="sent" name="Đã gửi" fill="#2563eb" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

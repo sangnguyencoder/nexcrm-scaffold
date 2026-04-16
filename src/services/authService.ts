@@ -6,12 +6,35 @@ import {
 import {
   createAppError,
   ensureSupabaseConfigured,
+  getAppErrorDetails,
   isMissingRpcFunctionError,
 } from "@/services/shared";
 
 const PASSWORD_RESET_CLIENT_COOLDOWN_MS = 15_000;
+const PASSWORD_UPDATE_MAX_RETRIES = 2;
+const PASSWORD_UPDATE_RETRY_DELAY_MS = 180;
 const passwordResetInFlight = new Map<string, Promise<string>>();
 const passwordResetLastSentAt = new Map<string, number>();
+
+function isAuthTokenLockRaceError(error: unknown) {
+  const details = getAppErrorDetails(error);
+  const haystack = `${details.message} ${details.technicalMessage ?? ""}`.toLowerCase();
+  return haystack.includes("lock:sb-") && haystack.includes("stole it");
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, ms);
+  });
+}
+
+async function resolveCurrentAuthUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    throw error;
+  }
+  return data.user ?? null;
+}
 
 export async function resolveLoginIdentifier(identifier: string) {
   ensureSupabaseConfigured();
@@ -132,4 +155,29 @@ export async function requestPasswordReset(identifier: string) {
   } finally {
     passwordResetInFlight.delete(resolvedEmail);
   }
+}
+
+export async function updateCurrentUserPassword(password: string) {
+  ensureSupabaseConfigured();
+
+  for (let attempt = 0; attempt <= PASSWORD_UPDATE_MAX_RETRIES; attempt += 1) {
+    const { data, error } = await supabase.auth.updateUser({ password });
+
+    if (!error) {
+      return data.user ?? (await resolveCurrentAuthUser());
+    }
+
+    if (isAuthTokenLockRaceError(error) && attempt < PASSWORD_UPDATE_MAX_RETRIES) {
+      await delay(PASSWORD_UPDATE_RETRY_DELAY_MS * (attempt + 1));
+      continue;
+    }
+
+    throw error;
+  }
+
+  throw createAppError({
+    kind: "timeout",
+    message: "Không thể cập nhật mật khẩu do xung đột phiên đăng nhập. Vui lòng thử lại.",
+    retryable: true,
+  });
 }

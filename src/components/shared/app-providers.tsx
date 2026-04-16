@@ -32,16 +32,16 @@ function AppToaster() {
       closeButton={false}
       toastOptions={{
         classNames: {
-          toast: "rounded-xl border border-border/80 bg-card text-card-foreground shadow-panel",
+          toast: "rounded-lg border border-border/80 bg-card text-card-foreground shadow-panel",
           default: "border-border/80 bg-card text-card-foreground",
-          success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
-          error: "border-rose-500/20 bg-rose-500/10 text-rose-900 dark:text-rose-100",
-          warning: "border-amber-500/20 bg-amber-500/10 text-amber-900 dark:text-amber-100",
-          info: "border-primary/20 bg-primary/10 text-foreground",
+          success: "border-emerald-500/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-100",
+          error: "border-rose-500/25 bg-rose-500/12 text-rose-700 dark:text-rose-100",
+          warning: "border-amber-500/25 bg-amber-500/12 text-amber-800 dark:text-amber-100",
+          info: "border-indigo-500/25 bg-indigo-500/12 text-indigo-700 dark:text-indigo-100",
           title: "font-semibold text-sm",
           description: "text-sm opacity-80",
-          actionButton: "rounded-lg border border-border/80 bg-background px-3 text-foreground",
-          cancelButton: "rounded-lg border border-border/80 bg-background px-3 text-muted-foreground",
+          actionButton: "rounded-md border border-border/80 bg-background px-3 text-foreground",
+          cancelButton: "rounded-md border border-border/80 bg-background px-3 text-muted-foreground",
         },
       }}
     />
@@ -54,10 +54,10 @@ export function AppProviders({ children }: Props) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 15_000,
-            gcTime: 300_000,
+            staleTime: 30_000,
+            gcTime: 180_000,
             retry: 1,
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false,
             refetchOnReconnect: true,
           },
           mutations: {
@@ -68,7 +68,7 @@ export function AppProviders({ children }: Props) {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <QueryClientProvider client={queryClient}>
         <AuthBootstrap />
         {children}

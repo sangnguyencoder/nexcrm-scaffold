@@ -1,0 +1,50 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - CSKH xử lý phản hồi khách hàng
+    actor CSKH
+    participant Browser
+    participant "TicketPage" as UI
+    participant "ticketService" as TicketService
+    participant "notificationService" as NotificationService
+    database "Supabase DB" as DB
+
+    CSKH -> Browser : Tạo phiếu phản hồi mới
+    Browser -> UI : Submit feedback form
+    UI -> TicketService : create(ticket payload)
+    TicketService -> DB : INSERT support_tickets
+    DB -> DB : generate ticket_code
+    DB --> TicketService : ticket created
+    TicketService --> UI : ticket detail
+    CSKH -> UI : Thêm comment và cập nhật trạng thái
+    UI -> TicketService : addComment()/updateStatus()
+    TicketService -> DB : INSERT ticket_comments / UPDATE support_tickets
+    UI -> NotificationService : notify assigned users
+    NotificationService -> DB : INSERT notifications
+    UI --> Browser : Hiển thị phản hồi đã được ghi nhận
+    @enduml

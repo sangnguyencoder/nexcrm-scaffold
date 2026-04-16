@@ -1,0 +1,41 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.9] Biểu đồ hoạt động xem báo cáo doanh số
+    start
+    :Giám đốc mở /dashboard hoặc /reports;
+    :Chọn khoảng thời gian ngày / tuần / tháng;
+    :dashboardService gọi RPC tổng hợp dữ liệu;
+    :Hiển thị KPI cards và biểu đồ doanh thu;
+    :Hiển thị top khách hàng và trạng thái ticket;
+    if (Xuất báo cáo?) then (Có)
+      :reportService / exportService sinh CSV hoặc Excel;
+      :Trình duyệt tải file về máy;
+    endif
+    stop
+    @enduml

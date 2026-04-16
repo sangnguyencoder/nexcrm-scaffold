@@ -1,0 +1,50 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.9] Biểu đồ hoạt động thêm người dùng
+    start
+    :Admin truy cập /admin/users;
+    :Nhấn "Thêm người dùng";
+    :Nhập full_name, email, role, org và trạng thái active;
+    if (Dữ liệu hợp lệ?) then (Có)
+      :profileService/manage-profile-user\nkiểm tra email trùng;
+      if (Email đã tồn tại?) then (Có)
+        :Hiển thị lỗi trùng email;
+        stop
+      else (Không)
+        :Tạo auth user;
+        :Tạo bản ghi profiles;
+        :Ghi audit_logs;
+        :Hiển thị tài khoản mới trong bảng user;
+        stop
+      endif
+    else (Không)
+      :Hiển thị lỗi validate;
+      stop
+    endif
+    @enduml

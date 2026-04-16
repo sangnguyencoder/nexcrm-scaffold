@@ -1,0 +1,76 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.3.1] Biểu đồ Use Case tổng quan
+    left to right direction
+
+    actor "Người dùng hệ thống" as User
+    actor "Nhân viên Sales" as Sales
+    actor "Nhân viên CSKH" as CSKH
+    actor "Nhân viên Marketing" as Marketing
+    actor "Giám đốc" as Director
+    actor "Admin" as Admin
+
+    User <|-- Sales
+    User <|-- CSKH
+    User <|-- Marketing
+    User <|-- Director
+    User <|-- Admin
+
+    rectangle "CRM SaaS" {
+      usecase "UC00\nĐăng nhập / khôi phục mật khẩu" as UC00
+      usecase "UC01\nQuản lý khách hàng" as UC01
+      usecase "UC02\nQuản lý giao dịch\nvà lịch sử mua hàng" as UC02
+      usecase "UC03\nQuản lý khiếu nại / phản hồi" as UC03
+      usecase "UC04\nQuản lý chăm sóc khách hàng" as UC04
+      usecase "UC05\nQuản lý chiến dịch Marketing" as UC05
+      usecase "UC06\nBáo cáo và phân tích dữ liệu" as UC06
+      usecase "UC07\nQuản trị hệ thống" as UC07
+      usecase "UC08\nPOS Integration Configuration" as UC08
+    }
+
+    User --> UC00
+    Sales --> UC01
+    Sales --> UC02
+    CSKH --> UC03
+    CSKH --> UC04
+    Marketing --> UC05
+    Director --> UC06
+    Admin --> UC07
+    Admin --> UC08
+
+    UC01 ..> UC00 : <<include>>
+    UC02 ..> UC00 : <<include>>
+    UC03 ..> UC00 : <<include>>
+    UC04 ..> UC00 : <<include>>
+    UC05 ..> UC00 : <<include>>
+    UC06 ..> UC00 : <<include>>
+    UC07 ..> UC00 : <<include>>
+    UC08 ..> UC00 : <<include>>
+    @enduml

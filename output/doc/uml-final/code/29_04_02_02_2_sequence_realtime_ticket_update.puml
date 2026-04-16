@@ -1,0 +1,47 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - Realtime Ticket Update
+    actor "CSKH A" as AgentA
+    actor "CSKH B" as AgentB
+    participant "React App A" as AppA
+    participant "Supabase DB" as DB
+    participant "Supabase Realtime" as Realtime
+    participant "React App B" as AppB
+    participant "TanStack Query" as Query
+
+    AgentA -> AppA : Cập nhật status ticket
+    AppA -> DB : UPDATE support_tickets\nstatus='in_progress'
+    DB -> Realtime : broadcast postgres_changes
+    Realtime --> AppB : support_tickets UPDATE event
+    AppB -> Query : invalidateQueries(['tickets'])
+    Query -> DB : refetch tickets
+    DB --> Query : latest ticket state
+    Query --> AppB : refreshed data
+    AppB --> AgentB : UI cập nhật không cần reload
+    @enduml

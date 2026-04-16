@@ -24,7 +24,7 @@ export function SectionPanel({
   contentClassName,
 }: SectionPanelProps) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("overflow-hidden border-border/70 bg-card/85", className)}>
       <CardHeader className="compact-panel-header">
         <SectionHeaderCompact
           eyebrow={eyebrow}

@@ -17,7 +17,7 @@ export const PERMISSIONS = {
   "customer:read": ALL_ROLES,
   "customer:create": ["super_admin", "admin", "sales"],
   "customer:update": ["super_admin", "admin", "sales"],
-  "customer:delete": ["super_admin", "admin"],
+  "customer:delete": ["super_admin", "admin", "director", "sales"],
 
   "transaction:read": ["super_admin", "admin", "director", "sales", "cskh"],
   "transaction:create": ["super_admin", "admin", "sales"],

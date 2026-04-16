@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  CalendarClock,
   Copy,
   Eye,
   Megaphone,
@@ -10,7 +11,8 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
@@ -24,6 +26,7 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionHeaderCompact } from "@/components/shared/section-header-compact";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useCampaignsQuery, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +73,10 @@ type WizardState = {
   scheduledAt: string;
 };
 
+type ComposerTab = "audience" | "content" | "schedule";
+
+const composerTabOrder: ComposerTab[] = ["audience", "content", "schedule"];
+
 const initialWizardState: WizardState = {
   name: "",
   description: "",
@@ -81,12 +88,22 @@ const initialWizardState: WizardState = {
   scheduledAt: "",
 };
 
+function toDateTimeLocalInput(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const pad = (input: number) => String(input).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function formatCampaignStatus(status: Campaign["status"]) {
   const map: Record<Campaign["status"], string> = {
     draft: "Bản nháp",
     scheduled: "Lên lịch",
     sending: "Đang gửi",
     sent: "Đã gửi",
+    sent_with_errors: "Gửi có lỗi",
     cancelled: "Đã hủy",
   };
 
@@ -99,6 +116,7 @@ function getCampaignStatusColor(status: Campaign["status"]) {
     scheduled: "bg-blue-500/15 text-blue-600 ring-blue-500/25 dark:text-blue-300",
     sending: "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
     sent: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300",
+    sent_with_errors: "bg-orange-500/15 text-orange-600 ring-orange-500/25 dark:text-orange-300",
     cancelled: "bg-rose-500/15 text-rose-600 ring-rose-500/25 dark:text-rose-300",
   };
 
@@ -144,21 +162,31 @@ function Field({
 }
 
 export function CampaignListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: campaigns = [], isLoading } = useCampaignsQuery();
   const [statusFilter, setStatusFilter] = useState<Campaign["status"] | "all">("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [composerTab, setComposerTab] = useState("audience");
+  const [composerOpenLocal, setComposerOpenLocal] = useState(false);
+  const [composerTab, setComposerTab] = useState<ComposerTab>("audience");
   const [wizard, setWizard] = useState<WizardState>(initialWizardState);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [detailCampaign, setDetailCampaign] = useState<Campaign | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
+  const requestedCreate = searchParams.get("create") === "1";
+  const composerOpen = requestedCreate || composerOpenLocal;
   const { data: detailMessages = [] } = useOutboundMessagesQuery(
     detailCampaign ? { campaignId: detailCampaign.id } : undefined,
     Boolean(detailCampaign),
   );
+
+  const clearCreateParam = () => {
+    if (!requestedCreate) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    setSearchParams(next, { replace: true });
+  };
 
   const estimatedRecipients = estimateRecipients(wizard.customer_types);
 
@@ -198,11 +226,85 @@ export function CampaignListPage() {
     .replaceAll("{ma_khach_hang}", "KH-2026-0182")
     .replaceAll("{tong_chi_tieu}", "18.500.000 ₫")
     .replaceAll("{lan_mua_cuoi}", "3 ngày trước");
+  const sectionValidation = useMemo<Record<ComposerTab, string[]>>(() => {
+    const audienceErrors: string[] = [];
+    const contentErrors: string[] = [];
+    const scheduleErrors: string[] = [];
+
+    if (wizard.name.trim().length < 3) {
+      audienceErrors.push("Tên chiến dịch cần tối thiểu 3 ký tự.");
+    }
+    if (!wizard.customer_types.length) {
+      audienceErrors.push("Cần chọn ít nhất một phân khúc khách hàng.");
+    }
+    if (wizard.channel !== "sms" && wizard.subject.trim().length < 3) {
+      contentErrors.push("Campaign email cần subject rõ ràng (ít nhất 3 ký tự).");
+    }
+    if (wizard.content.trim().length < 10) {
+      contentErrors.push("Nội dung chiến dịch cần tối thiểu 10 ký tự.");
+    }
+    if (wizard.scheduleMode === "later") {
+      if (!wizard.scheduledAt) {
+        scheduleErrors.push("Vui lòng chọn thời điểm đặt lịch.");
+      }
+    }
+
+    return {
+      audience: audienceErrors,
+      content: contentErrors,
+      schedule: scheduleErrors,
+    };
+  }, [wizard]);
+  const currentStepIndex = composerTabOrder.indexOf(composerTab);
+  const isFirstComposerStep = currentStepIndex <= 0;
+  const isLastComposerStep = currentStepIndex === composerTabOrder.length - 1;
+  const canSubmitCampaign = composerTabOrder.every((tabKey) => sectionValidation[tabKey].length === 0);
+
+  useEffect(() => {
+    if (!requestedCreate) return;
+    setEditingCampaign(null);
+    setWizard(initialWizardState);
+    setComposerTab("audience");
+  }, [requestedCreate]);
+
+  const runScheduler = useAppMutation({
+    action: "scheduler.tick",
+    errorMessage: "Không thể chạy scheduler chiến dịch.",
+    mutationFn: () => communicationService.runSchedulerTick(),
+    onSuccess: (result) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["automation-rules"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["outbound-messages"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" }),
+      ]);
+
+      const processed = result.processedCampaigns + result.processedAutomationRules;
+      if (processed > 0) {
+        toast.success(`Scheduler đã xử lý ${processed} job đến hạn.`);
+      } else {
+        toast("Không có job đến hạn để chạy.");
+      }
+    },
+  });
 
   const upsertCampaign = useAppMutation({
     action: editingCampaign ? "campaign.update" : "campaign.create",
     errorMessage: "Không thể lưu chiến dịch.",
-    mutationFn: async () => {
+    mutationFn: async (submitMode: "draft" | "send_now" | "schedule") => {
+      const firstInvalidStep = composerTabOrder.find((tabKey) => sectionValidation[tabKey].length > 0);
+      if (firstInvalidStep) {
+        throw new Error(sectionValidation[firstInvalidStep][0] ?? "Thông tin chiến dịch chưa hợp lệ.");
+      }
+      if (
+        submitMode === "schedule" &&
+        (!wizard.scheduledAt || new Date(wizard.scheduledAt).getTime() <= Date.now() + 30_000)
+      ) {
+        throw new Error("Thời điểm đặt lịch phải lớn hơn thời điểm hiện tại.");
+      }
+
+      const shouldSchedule = submitMode === "schedule";
       const payload = {
         name: wizard.name,
         description: wizard.description,
@@ -211,9 +313,9 @@ export function CampaignListPage() {
         subject: wizard.subject,
         content: wizard.content,
         recipient_count: estimatedRecipients,
-        status: wizard.scheduleMode === "now" ? "draft" : "scheduled",
+        status: shouldSchedule ? "scheduled" : "draft",
         scheduled_at:
-          wizard.scheduleMode === "later" && wizard.scheduledAt
+          shouldSchedule && wizard.scheduledAt
             ? new Date(wizard.scheduledAt).toISOString()
             : null,
       } as const;
@@ -221,14 +323,20 @@ export function CampaignListPage() {
         ? await campaignService.update(editingCampaign.id, payload)
         : await campaignService.create(payload);
 
-      if (wizard.scheduleMode === "now") {
+      if (submitMode === "send_now") {
         const dispatchResult = await communicationService.dispatchCampaign(campaign.id);
-        return dispatchResult.campaign;
+        return {
+          campaign: dispatchResult.campaign,
+          submitMode,
+        };
       }
 
-      return campaign;
+      return {
+        campaign,
+        submitMode,
+      };
     },
-    onSuccess: (savedCampaign) => {
+    onSuccess: ({ campaign: savedCampaign, submitMode }) => {
       queryClient.setQueriesData<Campaign[]>({ queryKey: ["campaigns"] }, (current = []) => {
         const existingIndex = current.findIndex((campaign) => campaign.id === savedCampaign.id);
         if (existingIndex === -1) {
@@ -242,18 +350,27 @@ export function CampaignListPage() {
       if (detailCampaign?.id === savedCampaign.id) {
         setDetailCampaign(savedCampaign);
       }
-      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
-      void queryClient.invalidateQueries({
-        queryKey: ["outbound-messages"],
-        refetchType: "active",
-      });
-      void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
-      toast.success(editingCampaign ? "Đã cập nhật chiến dịch" : "Đã tạo chiến dịch mới");
-      setComposerOpen(false);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" }),
+        queryClient.invalidateQueries({
+          queryKey: ["outbound-messages"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
+      if (submitMode === "send_now") {
+        toast.success("Đã lưu và gửi chiến dịch.");
+      } else if (submitMode === "schedule") {
+        toast.success("Đã lưu chiến dịch theo lịch.");
+      } else {
+        toast.success(editingCampaign ? "Đã lưu bản nháp chiến dịch." : "Đã tạo bản nháp chiến dịch.");
+      }
+      setComposerOpenLocal(false);
       setEditingCampaign(null);
       setWizard(initialWizardState);
       setComposerTab("audience");
+      clearCreateParam();
     },
   });
 
@@ -270,13 +387,15 @@ export function CampaignListPage() {
       if (detailCampaign?.id === result.campaign.id) {
         setDetailCampaign(result.campaign);
       }
-      void queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" });
-      void queryClient.invalidateQueries({
-        queryKey: ["outbound-messages"],
-        refetchType: "active",
-      });
-      void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["campaigns"], refetchType: "active" }),
+        queryClient.invalidateQueries({
+          queryKey: ["outbound-messages"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["audit"], refetchType: "active" }),
+      ]);
       toast.success("Đã khởi động chiến dịch");
     },
   });
@@ -323,16 +442,51 @@ export function CampaignListPage() {
             subject: campaign.subject,
             content: campaign.content,
             scheduleMode: campaign.scheduled_at ? "later" : "now",
-            scheduledAt: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : "",
+            scheduledAt: toDateTimeLocalInput(campaign.scheduled_at),
           }
         : initialWizardState,
     );
     setComposerTab("audience");
-    setComposerOpen(true);
+    setComposerOpenLocal(true);
   };
+
+  const sendingCampaignId = sendCampaign.isPending ? sendCampaign.variables : null;
+  const duplicatingCampaignId = duplicateCampaign.isPending ? duplicateCampaign.variables : null;
+  const deletingCampaignId = deleteCampaign.isPending ? deleteCampaign.variables : null;
 
   const appendVariable = (token: string) => {
     setWizard((current) => ({ ...current, content: `${current.content} ${token}`.trim() }));
+  };
+
+  const goComposerStep = (direction: 1 | -1) => {
+    if (direction > 0 && sectionValidation[composerTab].length > 0) {
+      toast.error(sectionValidation[composerTab][0]);
+      return;
+    }
+
+    const nextStep = composerTabOrder[currentStepIndex + direction];
+    if (nextStep) {
+      setComposerTab(nextStep);
+    }
+  };
+
+  const handleComposerTabChange = (nextTabValue: string) => {
+    const nextTab = nextTabValue as ComposerTab;
+    const nextIndex = composerTabOrder.indexOf(nextTab);
+
+    if (nextIndex === -1) return;
+
+    if (nextIndex > currentStepIndex) {
+      for (let index = currentStepIndex; index < nextIndex; index += 1) {
+        const step = composerTabOrder[index];
+        if (sectionValidation[step].length > 0) {
+          toast.error(sectionValidation[step][0]);
+          return;
+        }
+      }
+    }
+
+    setComposerTab(nextTab);
   };
 
   if (isLoading) {
@@ -386,10 +540,21 @@ export function CampaignListPage() {
           ))}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={() => openComposer()}>
-            <Plus className="size-4" />
-            Tạo chiến dịch
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => runScheduler.mutate()}
+            disabled={runScheduler.isPending}
+          >
+            <CalendarClock className="size-4" />
+            {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
           </Button>
+          <Can roles={["super_admin", "admin", "director", "marketing"]}>
+            <Button size="sm" onClick={() => openComposer()}>
+              <Plus className="size-4" />
+              Tạo chiến dịch
+            </Button>
+          </Can>
         </div>
       </StickyFilterBar>
 
@@ -472,7 +637,7 @@ export function CampaignListPage() {
                           size="icon"
                           aria-label={`Gửi ${campaign.name}`}
                           onClick={() => sendCampaign.mutate(campaign.id)}
-                          disabled={sendCampaign.isPending}
+                          disabled={sendingCampaignId === campaign.id}
                         >
                           <Send className="size-4" />
                         </Button>
@@ -485,7 +650,7 @@ export function CampaignListPage() {
                         size="icon"
                         aria-label={`Nhân bản ${campaign.name}`}
                         onClick={() => duplicateCampaign.mutate(campaign.id)}
-                        disabled={duplicateCampaign.isPending}
+                        disabled={duplicatingCampaignId === campaign.id}
                       >
                         <Copy className="size-4" />
                       </Button>
@@ -494,7 +659,7 @@ export function CampaignListPage() {
                         size="icon"
                         aria-label={`Xóa ${campaign.name}`}
                         onClick={() => setDeleteTarget(campaign)}
-                        disabled={deleteCampaign.isPending}
+                        disabled={deletingCampaignId === campaign.id}
                       >
                         <Trash2 className="size-4 text-rose-500" />
                       </Button>
@@ -519,9 +684,10 @@ export function CampaignListPage() {
       <Sheet
         open={composerOpen}
         onOpenChange={(open) => {
-          setComposerOpen(open);
+          setComposerOpenLocal(open);
           if (!open) {
             setEditingCampaign(null);
+            clearCreateParam();
           }
         }}
         title={editingCampaign ? "Chỉnh sửa chiến dịch" : "Tạo chiến dịch"}
@@ -529,16 +695,56 @@ export function CampaignListPage() {
         className="w-[min(100vw,560px)]"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <Button variant="secondary" onClick={() => setComposerOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setComposerOpenLocal(false);
+                clearCreateParam();
+              }}
+            >
               Hủy
             </Button>
-            <Button onClick={() => upsertCampaign.mutate()} disabled={upsertCampaign.isPending}>
-              {upsertCampaign.isPending
-                ? "Đang lưu..."
-                : wizard.scheduleMode === "now"
-                  ? "Lưu & gửi"
-                  : "Lưu chiến dịch"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {!isFirstComposerStep ? (
+                <Button type="button" variant="secondary" onClick={() => goComposerStep(-1)}>
+                  Quay lại
+                </Button>
+              ) : null}
+              {!isLastComposerStep ? (
+                <Button
+                  type="button"
+                  onClick={() => goComposerStep(1)}
+                  disabled={sectionValidation[composerTab].length > 0}
+                >
+                  Tiếp tục
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => upsertCampaign.mutate("draft")}
+                    disabled={upsertCampaign.isPending || !canSubmitCampaign}
+                  >
+                    Lưu nháp
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      upsertCampaign.mutate(
+                        wizard.scheduleMode === "later" ? "schedule" : "send_now",
+                      )
+                    }
+                    disabled={upsertCampaign.isPending || !canSubmitCampaign}
+                  >
+                    {upsertCampaign.isPending
+                      ? "Đang lưu..."
+                      : wizard.scheduleMode === "later"
+                        ? "Lưu lịch"
+                        : "Gửi ngay"}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         }
       >
@@ -551,7 +757,7 @@ export function CampaignListPage() {
             />
           ) : null}
 
-          <Tabs value={composerTab} onValueChange={setComposerTab}>
+          <Tabs value={composerTab} onValueChange={handleComposerTabChange}>
             <TabsList className="w-full justify-start">
               <TabsTrigger value="audience">Audience</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
@@ -618,6 +824,11 @@ export function CampaignListPage() {
                   ))}
                 </div>
               </Field>
+              {sectionValidation.audience.length ? (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-200">
+                  {sectionValidation.audience[0]}
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="content" className="space-y-4">
@@ -652,6 +863,11 @@ export function CampaignListPage() {
                   </div>
                 </CardContent>
               </Card>
+              {sectionValidation.content.length ? (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-200">
+                  {sectionValidation.content[0]}
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="schedule" className="space-y-4">
@@ -715,6 +931,11 @@ export function CampaignListPage() {
                   </div>
                 </CardContent>
               </Card>
+              {sectionValidation.schedule.length ? (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-200">
+                  {sectionValidation.schedule[0]}
+                </div>
+              ) : null}
             </TabsContent>
           </Tabs>
         </div>
@@ -741,7 +962,7 @@ export function CampaignListPage() {
                   <Button
                     variant="outline"
                     onClick={() => sendCampaign.mutate(detailCampaign.id)}
-                    disabled={sendCampaign.isPending}
+                    disabled={sendingCampaignId === detailCampaign.id}
                   >
                     <Send className="size-4" />
                     Chạy ngay
@@ -750,7 +971,7 @@ export function CampaignListPage() {
                 <Button
                   variant="outline"
                   onClick={() => duplicateCampaign.mutate(detailCampaign.id)}
-                  disabled={duplicateCampaign.isPending}
+                  disabled={duplicatingCampaignId === detailCampaign.id}
                 >
                   <Copy className="size-4" />
                   Nhân bản
@@ -771,7 +992,7 @@ export function CampaignListPage() {
                     setDeleteTarget(detailCampaign);
                     setDetailCampaign(null);
                   }}
-                  disabled={deleteCampaign.isPending}
+                  disabled={deletingCampaignId === detailCampaign.id}
                 >
                   <Trash2 className="size-4" />
                   Xóa

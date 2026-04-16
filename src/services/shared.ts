@@ -41,6 +41,7 @@ type Nullable<T> = T | null;
 
 export type ProfileRow = {
   id: string;
+  email: Nullable<string>;
   full_name: string;
   role: UserRole;
   department: Nullable<string>;
@@ -456,6 +457,44 @@ function readErrorParts(error: unknown) {
   return { message, details, code, name };
 }
 
+function localizeErrorMessage(message: string) {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.toLowerCase();
+  const map: Array<{ pattern: RegExp; localized: string }> = [
+    { pattern: /^unexpected service error\.?$/i, localized: "Lỗi dịch vụ không xác định." },
+    { pattern: /^invalid input\.?$/i, localized: "Dữ liệu đầu vào không hợp lệ." },
+    { pattern: /^missing organization context\. please sign in again\.?$/i, localized: "Thiếu ngữ cảnh tổ chức. Vui lòng đăng nhập lại." },
+    { pattern: /^missing user context\.?$/i, localized: "Thiếu ngữ cảnh người dùng." },
+    { pattern: /^file not found\.?$/i, localized: "Không tìm thấy tệp." },
+    { pattern: /^file is required\.?$/i, localized: "Thiếu tệp tải lên." },
+    { pattern: /^cannot export customers csv\.?$/i, localized: "Không thể xuất CSV khách hàng." },
+    { pattern: /^email provider test failed\.?$/i, localized: "Kiểm tra kết nối Email thất bại." },
+    { pattern: /^pos connection test failed\.?$/i, localized: "Kiểm tra kết nối POS thất bại." },
+    { pattern: /^email provider connection successful\.?$/i, localized: "Kết nối Email thành công." },
+    { pattern: /^pos connection successful\.?$/i, localized: "Kết nối POS thành công." },
+    { pattern: /^automation rule not found\.?$/i, localized: "Không tìm thấy quy tắc automation." },
+    { pattern: /^task not found\.?$/i, localized: "Không tìm thấy nhiệm vụ." },
+    { pattern: /^notification not found\.?$/i, localized: "Không tìm thấy thông báo." },
+    { pattern: /^direct create notification is not exposed in data-layer\.?$/i, localized: "Chức năng tạo thông báo trực tiếp chưa được mở trong data layer." },
+    { pattern: /^delete settings is not supported\.?$/i, localized: "Chức năng xóa cấu hình chưa được hỗ trợ." },
+    { pattern: /^new row violates row-level security policy for table .+$/i, localized: "Bạn không có quyền thực hiện thao tác này." },
+    { pattern: /^permission denied for table .+$/i, localized: "Bạn không có quyền thực hiện thao tác này." },
+    { pattern: /^could not find the function .+ in the schema cache$/i, localized: "Hệ thống chưa cập nhật đầy đủ chức năng backend. Vui lòng chạy migration mới nhất." },
+    { pattern: /^could not find the '.*' column of '.*' in the schema cache$/i, localized: "Schema database chưa đồng bộ với mã nguồn hiện tại. Vui lòng cập nhật migration rồi thử lại." },
+  ];
+
+  const matched = map.find((item) => item.pattern.test(normalized));
+  if (matched) {
+    return matched.localized;
+  }
+
+  return trimmed;
+}
+
 export function createAppError({
   kind,
   message,
@@ -495,7 +534,7 @@ export function getAppErrorDetails(
     const typed = error as AppError;
     return {
       kind: typed.appKind ?? "unknown",
-      message: typed.message || fallback,
+      message: localizeErrorMessage(typed.message || fallback),
       technicalMessage: typed.technicalMessage ?? typed.message ?? fallback,
       retryable: typed.retryable ?? false,
     };
@@ -570,7 +609,9 @@ export function getAppErrorDetails(
     normalized.includes("permission") ||
     normalized.includes("not authorized") ||
     normalized.includes("forbidden") ||
-    normalized.includes("403")
+    normalized.includes("403") ||
+    normalized.includes("row-level security") ||
+    normalized.includes("violates row-level security policy")
   ) {
     return {
       kind: "permission",
@@ -605,7 +646,7 @@ export function getAppErrorDetails(
   ) {
     return {
       kind: "validation",
-      message: message || fallback,
+      message: localizeErrorMessage(message || fallback),
       technicalMessage,
       retryable: false,
     };
@@ -613,7 +654,7 @@ export function getAppErrorDetails(
 
   return {
     kind: "unknown",
-    message: message || fallback,
+    message: localizeErrorMessage(message || fallback),
     technicalMessage,
     retryable: false,
   };
@@ -837,10 +878,15 @@ export function toUser(
   email = "",
   options: { hasProfile?: boolean } = {},
 ): User {
+  const normalizedProfileEmail = profile.email?.trim().toLowerCase() ?? "";
+  if (normalizedProfileEmail) {
+    cacheProfileEmail(profile.id, normalizedProfileEmail);
+  }
+
   return {
     id: profile.id,
     full_name: profile.full_name,
-    email: email || getCachedProfileEmail(profile.id, ""),
+    email: normalizedProfileEmail || email || getCachedProfileEmail(profile.id, ""),
     role: profile.role,
     department: profile.department ?? "",
     is_active: profile.is_active ?? true,
@@ -1060,6 +1106,27 @@ function describeAction(actionType: string, config?: Record<string, unknown> | n
 export function toAutomationRule(row: AutomationRuleRow): AutomationRule {
   const actionConfig = row.action_config ?? {};
   const triggerDays = Number(row.trigger_config?.days ?? 0);
+  const scheduleEnabled = actionConfig.schedule_enabled === true;
+  const scheduleIntervalValue = Number(actionConfig.schedule_interval_minutes ?? 0);
+  const scheduleIntervalMinutes = Number.isFinite(scheduleIntervalValue) && scheduleIntervalValue > 0
+    ? scheduleIntervalValue
+    : null;
+  const rawScheduleNextRunAt = actionConfig.schedule_next_run_at;
+  const scheduleNextRunAt = typeof rawScheduleNextRunAt === "string" ? rawScheduleNextRunAt : null;
+  const rawScheduleStatus = actionConfig.schedule_last_status;
+  const scheduleLastStatus =
+    rawScheduleStatus === "success" || rawScheduleStatus === "failed"
+      ? rawScheduleStatus
+      : "idle";
+  const scheduleLastError =
+    typeof actionConfig.schedule_last_error === "string" && actionConfig.schedule_last_error.trim()
+      ? actionConfig.schedule_last_error
+      : null;
+  const scheduleRetryCountValue = Number(actionConfig.schedule_retry_count ?? 0);
+  const scheduleRetryCount =
+    Number.isFinite(scheduleRetryCountValue) && scheduleRetryCountValue > 0
+      ? Math.trunc(scheduleRetryCountValue)
+      : 0;
 
   return {
     id: row.id,
@@ -1082,6 +1149,12 @@ export function toAutomationRule(row: AutomationRuleRow): AutomationRule {
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_run_at: typeof actionConfig.last_run_at === "string" ? actionConfig.last_run_at : null,
+    schedule_enabled: scheduleEnabled,
+    schedule_interval_minutes: scheduleIntervalMinutes,
+    schedule_next_run_at: scheduleNextRunAt,
+    schedule_last_status: scheduleLastStatus,
+    schedule_last_error: scheduleLastError,
+    schedule_retry_count: scheduleRetryCount,
   };
 }
 
@@ -1202,13 +1275,13 @@ export async function createAuditLog({
 
   const actorId = userId ?? (await getCurrentProfileId());
 
-  const { error } = await supabase.from("audit_logs").insert({
-    user_id: actorId,
-    action,
-    entity_type: entityType,
-    entity_id: entityId,
-    old_data: oldData ?? null,
-    new_data: newData ?? null,
+  const { error } = await supabase.rpc("app_create_audit_log", {
+    p_action: action,
+    p_entity_type: entityType,
+    p_entity_id: entityId ?? null,
+    p_old_data: oldData ?? null,
+    p_new_data: newData ?? null,
+    p_user_id: actorId,
   });
 
   if (error) {

@@ -1,0 +1,1102 @@
+FILE: docs\Báo cáo chính môn Công Nghệ Phần Mềm (1).docx
+PARAGRAPHS: 821
+TABLES: 34
+
+[P2][normal] TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN & TRUYỀN THÔNG – ĐẠI HỌC THÁI NGUYÊN
+[P3][normal] KHOA CÔNG NGHỆ THÔNG TIN
+[P5][normal] MÔN: Công Nghệ Phần Mềm
+[P6][normal] ĐỀ TÀI: XÂY DỰNG PHẦN MỀM QUẢN LÝ KHÁCH HÀNG
+[P7][normal] Sinh Viên Thực Hiện :   Phạm Thị Nhung
+[P8][normal] Nguyễn Văn Sáng
+[P9][normal] Nguyễn Thị Khánh Hòa
+[P10][normal] Hà Quang Tiến
+[P11][normal] Vũ Trọng Tuyền
+[P12][normal] Lớp                              :   KHMT K23A
+[P13][normal] Giảng viên hướng dẫn : Nguyễn Thị Cành
+[P15][normal] Thái Nguyên, Ngày…tháng…năm 20…
+[P16][Title] LỜI NÓI ĐẦU
+[P17][normal] Trong kỷ nguyên của cuộc Cách mạng công nghiệp 4.0, sự phát triển không ngừng của các công nghệ đột phá như Big Data, Cloud Computing và Trí tuệ nhân tạo đã làm thay đổi căn bản diện mạo của nền kinh tế toàn cầu. Trong bối cảnh đó, phần mềm không còn đơn thuần là công cụ hỗ trợ mà đã trở thành nhân tố cốt lõi quyết định năng lực cạnh tranh và sự phát triển bền vững của doanh nghiệp. Để tạo ra những sản phẩm phần mềm chất lượng cao, đáp ứng được nhu cầu khắt khe của thị trường, việc vận dụng các nguyên lý Kỹ nghệ phần mềm (Software Engineering) và các tiêu chuẩn quản lý quốc tế đã trở thành yêu cầu cấp thiết.
+[P18][normal] Phần mềm quản lý  khách hàng (Customer Relationship Management - CRM) là một trong những giải pháp công nghệ trọng yếu, giúp doanh nghiệp tối ưu hóa nguồn lực và xây dựng mối quan hệ bền chặt với khách hàng thông qua việc quản lý dữ liệu tập trung. Tuy nhiên, việc xây dựng một hệ thống CRM hoàn chỉnh đòi hỏi một quy trình phân tích và thiết kế hệ thống nghiêm ngặt, từ khâu khảo sát hiện trạng đến việc đặc tả yêu cầu và mô hình hóa nghiệp vụ.
+[P19][normal] Nhận thức được tầm quan trọng của lý thuyết công nghệ phần mềm và tính thực tiễn của bài toán quản trị, nhóm đã quyết định thực hiện đề tài: “Xây dựng phần mềm quản lý khách hàng” trong khuôn khổ học phần Công nghệ phần mềm. Dù đã dành nhiều tâm huyết nghiên cứu và thực hiện, song do giới hạn về thời gian cũng như kinh nghiệm thực tiễn, báo cáo chắc chắn không tránh khỏi những thiếu sót. Nhóm  rất mong nhận được những ý kiến đóng góp quý báu từ quý thầy cô để nhóm có cơ hội hoàn thiện kiến thức và nâng cao kỹ năng chuyên môn trong tương lai.
+[P20][normal] Chúng em xin chân thành cảm ơn!
+[P21][normal] Mục Lục
+[P24][Heading 1] Chương 1 : Tổng quan về công nghệ phần mềm
+[P25][Heading 1] 1.1.Các khái niệm cơ bản
+[P26][Heading 2] 1.1.1 Phần mềm
+[P27][normal] Nghĩa đơn giản nhất của phần mềm (software) là các chương trình chứa các dòng lệnh chỉ thị cho máy tính thực hiện một công việc nào đó. Đôi khi người ta gọi phần mềm là chương trình, cho dù thực tế thì phần mềm gồm nhiều chương trình và dữ liệu. Ví dụ: chương trình quản lý nhân sự, chương trình quản lý tín dụng...
+[P28][normal] Trong công nghệ phần mềm, người ta hiểu phần mềm: không chỉ là các chương trình, dữ liệu, mà còn gồm cả các tài liệu liên quan như các bản đặc tả,     thiết kế, hướng dẫn sử dụng, các thông tin cấu hình cần thiết để làm cho các chương trình này có thể vận hành một cách đúng đắn.
+[P29][Heading 2] 1.1.2 Công nghệ (Engineering)
+[P30][normal] Công nghệ (Engineering) được định nghĩa là phương pháp hoặc cách thức thực hiện một công việc (cụ thể hoặc trừu tượng) dựa trên việc áp dụng các thành tựu khoa học một cách bài bản và hệ thống.
+[P31][normal] Mọi tiến trình công nghệ đều hướng tới việc sản xuất sản phẩm thông qua một quy trình (process) nghiêm ngặt. Một quy trình công nghệ chuẩn luôn phải xác định rõ 4 yếu tố cốt lõi:
+[P32][normal] Who (Ai): Nhân sự thực hiện và trách nhiệm.
+[P33][normal] What (Làm gì): Nội dung công việc và kết quả mong muốn.
+[P34][normal] When (Khi nào): Tiến độ và thời hạn.
+[P35][normal] How (Làm như thế nào): Phương pháp và công cụ sử dụng.
+[P36][Heading 2] 1.1.3. Công nghệ phần mềm (Software Engineering - SE)
+[P37][normal] Công nghệ phần mềm là một ngành kỹ thuật (engineering discipline) chuyên biệt, tập trung vào tất cả các khía cạnh của quy trình phát triển sản phẩm phần mềm. Theo định nghĩa của Fritz Bauer, đây là việc “thiết lập và sử dụng các nguyên tắc khoa học nhằm tạo ra các sản phẩm phần mềm một cách kinh tế, hoạt động hiệu quả và tin cậy trên các hệ thống máy tính”.
+[P38][normal] Bản chất của Công nghệ phần mềm
+[P39][normal] Công nghệ phần mềm không chỉ là việc lập trình đơn thuần, mà là sự phối hợp đồng bộ giữa phương pháp, công cụ và quy trình nghiêm ngặt. Đặc điểm nổi bật của SE là tính định lượng và kỷ luật cao, chuyển đổi phần mềm từ mức khái niệm (yêu cầu khách hàng) sang mức vận hành thực tế (hệ thống phần mềm hoàn chỉnh, đóng gói) thông qua việc phát triển mới hoặc nâng cấp các hệ thống đã tồn tại.
+[P40][Heading 1] 1.2 Các xu hướng công nghệ phần mềm hiện đại
+[P41][normal] Trong những năm gần đây, sự phát triển mạnh mẽ của công nghệ thông tin đã tạo ra nhiều xu hướng mới trong lĩnh vực công nghệ phần mềm. Các xu hướng này giúp nâng cao hiệu quả phát triển phần mềm, mở rộng khả năng xử lý dữ liệu và tạo ra nhiều ứng dụng thông minh phục vụ cho các lĩnh vực của đời sống. Một số xu hướng tiêu biểu hiện nay bao gồm:
+[P42][Heading 2] 1.2.1 Internet of Things (IoT)
+[P43][normal] Internet of Things (IoT) là xu hướng kết nối các thiết bị vật lý với Internet để thu thập, trao đổi và xử lý dữ liệu. Các thiết bị như cảm biến, thiết bị gia dụng thông minh, xe hơi thông minh hay hệ thống nhà thông minh đều có thể kết nối và giao tiếp với nhau thông qua Internet.
+[P44][normal] Trong công nghệ phần mềm, IoT yêu cầu phát triển các hệ thống phần mềm có khả năng quản lý, xử lý dữ liệu thời gian thực và đảm bảo tính bảo mật cao. IoT đang được ứng dụng rộng rãi trong các lĩnh vực như nhà thông minh, y tế, nông nghiệp thông minh và quản lý đô thị.
+[P45][Heading 2] 1.2.2 Trí tuệ nhân tạo (Artificial Intelligence) và Big Data
+[P46][normal] Trí tuệ nhân tạo (AI) là công nghệ cho phép máy tính mô phỏng các hoạt động trí tuệ của con người như học tập, suy luận và ra quyết định. Kết hợp với Big Data – công nghệ xử lý khối lượng dữ liệu lớn – AI giúp các hệ thống phần mềm có khả năng phân tích dữ liệu và đưa ra dự đoán chính xác.
+[P47][normal] Các ứng dụng phổ biến của AI và Big Data bao gồm hệ thống gợi ý sản phẩm, nhận dạng giọng nói, nhận diện hình ảnh, chatbot và phân tích dữ liệu kinh doanh. Đây là một trong những xu hướng quan trọng nhất trong phát triển phần mềm hiện nay.
+[P48][Heading 2] 1.2.3 Thực tế ảo (Virtual Reality – VR) và Thực tế tăng cường (Augmented Reality – AR)
+[P49][normal] VR và AR là các công nghệ cho phép tạo ra môi trường ảo hoặc bổ sung thông tin ảo vào môi trường thực. Trong VR, người dùng được trải nghiệm hoàn toàn trong một không gian ảo thông qua các thiết bị chuyên dụng. Trong khi đó, AR bổ sung các yếu tố ảo vào môi trường thực thông qua màn hình điện thoại hoặc kính thông minh.
+[P50][normal] Các công nghệ này đang được ứng dụng trong nhiều lĩnh vực như giáo dục, giải trí, đào tạo kỹ năng, y tế và mô phỏng công nghiệp. Sự phát triển của VR/AR đang mở ra nhiều cơ hội mới cho các hệ thống phần mềm tương tác.
+[P51][Heading 2] 1.2.4 Tự động hóa quy trình bằng robot (Robotic Process Automation – RPA)
+[P52][normal] Robotic Process Automation (RPA) là công nghệ cho phép tự động hóa các quy trình công việc lặp đi lặp lại trong doanh nghiệp thông qua các phần mềm robot. Các robot phần mềm có thể thực hiện các tác vụ như nhập dữ liệu, xử lý hóa đơn, kiểm tra thông tin hoặc gửi báo cáo.
+[P53][normal] Việc áp dụng RPA giúp giảm thiểu công việc thủ công, tăng năng suất làm việc và giảm sai sót trong quá trình xử lý dữ liệu. Đây là xu hướng quan trọng trong việc tự động hóa các hoạt động nghiệp vụ trong doanh nghiệp.
+[P54][Heading 2] 1.2.5 Xác thực không mật khẩu (Passwordless Authentication)
+[P55][normal] Xác thực không mật khẩu là xu hướng bảo mật mới nhằm thay thế phương pháp đăng nhập bằng mật khẩu truyền thống. Thay vì sử dụng mật khẩu, người dùng có thể xác thực bằng các phương thức khác như sinh trắc học (vân tay, nhận diện khuôn mặt), mã OTP hoặc khóa bảo mật.
+[P56][normal] Công nghệ này giúp nâng cao tính bảo mật của hệ thống phần mềm, đồng thời mang lại trải nghiệm thuận tiện hơn cho người dùng. Hiện nay nhiều hệ thống phần mềm và dịch vụ trực tuyến đang dần chuyển sang sử dụng các phương thức xác thực hiện đại này.
+[P57][Heading 1] 1.3. Vòng đời phần mềm
+[P58][Heading 2] 1.3.1 Khái niệm Vòng đời phần mềm
+[P59][normal] Vòng đời phát triển phần mềm (SDLC) là một khung quy trình có cấu trúc được thiết lập để quản lý và điều phối các hoạt động trong quá trình xây dựng, phát triển, thẩm định và tiến hóa các hệ thống phần mềm. SDLC đảm bảo rằng sản phẩm cuối cùng không chỉ đạt được chất lượng kỹ thuật mà còn thỏa mãn tối đa các yêu cầu của người dùng trong khuôn khổ ngân sách và thời hạn quy định.
+[P60][Heading 2] 1.3.2 Các giai đoạn cốt lõi của SDLC
+[P61][normal] Triển khai & Vận hành (Deployment): Đưa phần mềm vào môi trường thực tế để người dùng cuối sử dụng.
+[P62][normal] Tiến hóa & Bảo trì (Maintenance & Evolution): Giai đoạn dài nhất trong vòng đời, tập trung vào việc sửa lỗi, cập nhật tính năng và tối ưu hóa hệ thống để thích nghi với sự thay đổi của môi trường công nghệ.Một tiến trình SDLC tiêu chuẩn bao gồm các hoạt động mang tính tuần tự hoặc lặp lại sau:
+[P63][normal] Xác định & Phân tích yêu cầu (Requirement Engineering): Giai đoạn nền tảng nhằm định nghĩa rõ phạm vi, chức năng và các giới hạn của hệ thống thông qua việc tương tác chặt chẽ với khách hàng.
+[P64][normal] Thiết kế hệ thống (Design): Chuyển đổi yêu cầu thành kiến trúc phần mềm, bao gồm sơ đồ thiết kế cơ sở dữ liệu, giao diện người dùng (UI/UX) và kiến trúc tổng thể.
+[P65][normal] Triển khai & Lập trình (Implementation): Hiện thực hóa các thiết kế kiến trúc thành mã nguồn (source code) thông qua các ngôn ngữ và công cụ lập trình cụ thể.
+[P66][normal] Thẩm định & Kiểm thử (Verification & Validation): Thực hiện các quy trình kiểm thử (Unit test, Integration test, System test, Acceptance test) để đảm bảo sản phẩm vận hành đúng theo đặc tả kỹ thuật và kỳ vọng của người dùng.
+[P67][Heading 1] 1.4. Quy trình phát triển phần mềm
+[P68][Heading 2] 1.4.1 Định nghĩa và Bản chất
+[P69][normal] Quy trình phát triển phần mềm là một tập hợp các hoạt động có cấu trúc với mục đích xây dựng, phát triển và tiến hóa phần mềm. Đây là nền tảng quản trị giúp trả lời các câu hỏi chiến lược trong dự án: Làm gì (What)? Khi nào làm (When)? Ai làm (Who)? Làm như thế nào (How)? Ở đâu (Where)? Bằng công cụ gì (With what)? và Tiêu chí đánh giá là gì?
+[P72][Heading 2] 1.4.2. Các hoạt động cốt lõi
+[P73][normal] Mọi quy trình phần mềm chuẩn đều bao gồm 4 nhóm hoạt động chính:
+[P74][normal] Xác định yêu cầu: Nhận diện và đặc tả rõ các mục tiêu, chức năng của sản phẩm phần mềm.
+[P75][normal] Phát triển (Development): Quá trình chuyển đổi các yêu cầu thành mã thực thi và kiến trúc hệ thống.
+[P76][normal] Thẩm định (Validation): Kiểm tra tính đúng đắn của phần mềm so với yêu cầu ban đầu để đảm bảo chất lượng.
+[P77][normal] Tiến hóa (Evolution): Các hoạt động sửa lỗi, bảo trì và thay đổi phần mềm nhằm đáp ứng các nhu cầu mới hoặc thay đổi từ môi trường vận hành.
+[P78][Heading 2] 1.4.3. Đặc trưng của quy trình phần mềm
+[P79][normal] Tính gắn kết dự án: Mỗi quy trình không đứng tách biệt mà gắn liền với đặc thù của từng dự án cụ thể.
+[P80][normal] Tính cấu trúc xác định: Quy trình quy định rõ trình tự thực hiện công việc, phương pháp và công cụ hỗ trợ.
+[P81][normal] Kết quả đầu ra (Deliverable): Sản phẩm cuối cùng của quy trình là phần mềm đã được bàn giao, đóng gói và sẵn sàng vận hành.
+[P82][Heading 1] 1.5. Các mô hình phát triển phần mềm và mô hình áp dụng cho dự án
+[P83][normal] Mô hình quy trình phần mềm là biểu diễn đơn giản hóa của quy trình phát triển, giúp kỹ sư định hướng công việc và kiểm soát dự án.
+[P84][Heading 2] 1.5.1. Mô hình Thác nước (Waterfall Model)
+[P85][normal] Đây là mô hình quy trình hướng kế hoạch với các pha được thực hiện tuần tự, nghiêm ngặt; kết thúc pha trước mới được bắt đầu pha tiếp theo.
+[P86][normal] Ưu điểm: Dễ quản lý; tài liệu đầu ra đầy đủ; các mục tiêu rõ ràng, dễ thẩm tra.
+[P87][normal] Nhược điểm: Tính linh hoạt thấp, khó thay đổi yêu cầu sau khi đã chuyển pha; rủi ro cao do kiểm thử thực hiện ở cuối chu kỳ.
+[P88][Heading 2] 1.5.2. Mô hình Chữ V (V-Model)
+[P89][normal] Là mô hình cải tiến từ Thác nước bằng cách thực hiện các hoạt động kiểm thử song song với từng giai đoạn phát triển.
+[P90][normal] Ưu điểm: Tính tổ chức cao; sự mơ hồ được phát hiện sớm thông qua việc lập kế hoạch kiểm thử ngay từ đầu.
+[P91][normal] Nhược điểm: Không linh hoạt với các dự án có yêu cầu thay đổi liên tục; thiếu sản phẩm làm việc trung gian.
+[P92][Heading 2] 1.5.3. Mô hình Mẫu thử (Prototyping Model)
+[P93][normal] Tập trung vào việc xây dựng phiên bản mẫu thử sớm để làm rõ yêu cầu, sau đó tinh chỉnh qua nhiều vòng lặp trước khi xây dựng hệ thống hoàn chỉnh.
+[P94][normal] Ưu điểm: Thỏa mãn tốt yêu cầu người dùng; xác định yêu cầu mơ hồ nhanh chóng.
+[P95][normal] Nhược điểm: Cấu trúc hệ thống có thể chưa tối ưu; tốn chi phí và thời gian để xây dựng nhiều phiên bản thử nghiệm.
+[P96][Heading 2] 1.5.4. Mô hình Xoắn ốc (Spiral Model)
+[P97][normal] Kết hợp giữa tư duy Thác nước, Mẫu thử và chú trọng vào việc phân tích rủi ro trong mỗi vòng lặp.
+[P98][normal] Ưu điểm: Quản lý rủi ro tốt; cho phép thay đổi và tiến hóa yêu cầu sau mỗi vòng xoắn; phù hợp với các hệ thống phức tạp, quy mô lớn.
+[P99][normal] Nhược điểm: Đòi hỏi kỹ năng đánh giá rủi ro cao từ quản trị dự án; chi phí quản lý vận hành lớn.
+[P100][Heading 2] 1.5.5. Mô hình Tăng trưởng (Incremental Model)
+[P101][normal] Phát triển phần mềm theo từng phần nhỏ, mỗi phần hoàn thiện dần tính năng (chức năng) dựa trên sự ưu tiên của khách hàng.
+[P102][normal] Ưu điểm: Đáp ứng nhanh nhu cầu thị trường; khách hàng thấy được kết quả từng phần; rủi ro thấp do triển khai từng phần.
+[P103][normal] Nhược điểm: Đòi hỏi đơn vị phát triển phải có tiềm lực kỹ thuật và tài sản phần mềm sẵn có tốt.
+[P104][Heading 2] 1.5.6. Mô hình Phát triển ứng dụng nhanh (RAD - Rapid Application Development)
+[P105][normal] Tập trung vào việc sử dụng các công cụ tự động, thành phần có sẵn và chú trọng khả năng tái sử dụng để rút ngắn thời gian phát triển (thường từ 60-90 ngày).
+[P106][normal] Ưu điểm: Tốc độ bàn giao sản phẩm rất nhanh; giảm thiểu rủi ro tích hợp.
+[P107][normal] Nhược điểm: Phụ thuộc nhiều vào công cụ hỗ trợ và năng lực của đội ngũ phát triển.
+[P108][Heading 2] 1.5.7. Quy trình hợp nhất (RUP - Rational Unified Process)
+[P109][normal] Là quy trình phát triển phần mềm hướng đối tượng, kiến trúc tập trung, được điều chỉnh linh hoạt theo đặc thù của tổ chức.
+[P110][normal] Đặc điểm: Bao gồm các pha: Khởi đầu (Inception), Chi tiết (Elaboration), Xây dựng (Construction) và Thẩm định (Transition).
+[P111][normal] Ưu điểm: Cung cấp giải pháp toàn diện, quản lý chặt chẽ nhưng có độ uyển chuyển nhất định trong áp dụng.
+[P112][Heading 2] 1.5.8. Mô hình phát triển phần mềm áp dụng cho dự án (Agile/Scrum)
+[P113][normal] Nhóm quyết định áp dụng mô hình Agile (Scrum) cho dự án CRM vì đây là mô hình tối ưu nhất để quản lý các yêu cầu nghiệp vụ phức tạp và thường xuyên thay đổi. Cụ thể như sau:
+[P114][normal] Khả năng thích ứng cao: Cho phép nhóm tiếp nhận và điều chỉnh yêu cầu của người dùng sau mỗi chu kỳ phát triển (Sprint), tránh được sự cứng nhắc của các mô hình truyền thống.
+[P115][normal] Giá trị sản phẩm liên tục: Agile tập trung vào việc tạo ra các tính năng chạy được (Working Software) ngay từ các Sprint đầu, giúp khách hàng thấy được tiến độ thực tế.
+[P116][normal] Cộng tác chặt chẽ: Thúc đẩy sự giao tiếp liên tục trong nhóm, từ đó giảm thiểu tối đa các hiểu lầm về nghiệp vụ CRM giữa các thành viên.
+[P117][normal] Nguyên tắc vận hành chính:
+[P118][normal] Tính lặp (Iterative): Dự án được chia nhỏ thành nhiều Sprint, mỗi Sprint là một vòng lặp hoàn chỉnh từ thiết kế đến kiểm thử.
+[P119][normal] Tính tiến hóa (Incremental): Hệ thống được xây dựng dần dần, mỗi Sprint hoàn thiện một nhóm tính năng (ví dụ: Sprint 1 làm module khách hàng, Sprint 2 làm module tương tác).
+[P120][normal] Tính minh bạch: Mọi thành viên đều nắm rõ tiến độ qua các buổi họp Daily Scrum hàng ngày.
+[P121][normal] Các hoạt động chủ đạo trong quy trình Scrum:
+[P122][normal] Product Backlog: Xây dựng danh sách các tính năng ưu tiên (yêu cầu nghiệp vụ CRM).
+[P123][normal] Sprint Planning: Lập kế hoạch chi tiết cho các công việc trong Sprint (2-4 tuần).
+[P124][normal] Daily Scrum: Họp nhanh 15 phút để đồng bộ công việc và xử lý rào cản.
+[P125][normal] Sprint Review/Retrospective: Demo sản phẩm và rút kinh nghiệm để cải thiện hiệu suất đội ngũ.
+[P126][normal] Ưu và nhược điểm đối với dự án:
+[P127][normal] Ưu điểm: Giảm thiểu rủi ro qua demo liên tục; linh hoạt trước thay đổi nghiệp vụ; tăng tính tự chủ cho đội ngũ phát triển.
+[P128][normal] Nhược điểm: Đòi hỏi sự cam kết cao từ các thành viên; yêu cầu kỹ năng quản lý nhóm tốt để tránh tình trạng làm việc lan man.
+[P129][Heading 1] 1.6. Chuẩn CMM/CMMI
+[P130][Heading 3] 1.6.1 Khái niệm
+[P131][normal] CMM (Capability Maturity Model): Là mô hình năng lực trưởng thành, một công cụ dùng để cải thiện và hoàn thiện các quy trình phát triển phần mềm thông qua phương pháp có cấu trúc để đánh giá thực tiễn và xác định lộ trình cải thiện.
+[P132][normal] CMMI (Capability Maturity Model Integration): Phiên bản kế thừa và tích hợp của CMM, giúp tổ chức tối ưu hóa hiệu suất không chỉ trong phần mềm mà còn trong phát triển sản phẩm và dịch vụ nói chung.
+[P133][Heading 3] 1.6.2 Mục đích và Vai trò
+[P134][normal] Thiết lập lộ trình: Cải tiến quy trình liên tục, kiểm soát chất lượng sản phẩm và tiến độ dự án.
+[P135][normal] Tối ưu hóa nguồn lực: Nhận diện và loại bỏ các hoạt động kém hiệu quả để phân bổ nhân lực, tiền bạc và thời gian tốt nhất.
+[P136][normal] Quản lý chất lượng: Áp dụng các thực tiễn tốt nhất để đảm bảo và kiểm soát chất lượng đầu ra.
+[P137][normal] Tăng năng suất: Đơn giản hóa quy trình để tăng sản lượng mà không ảnh hưởng đến chất lượng.
+[P138][Heading 3] 1.6.3 Các cấp độ trưởng thành trong CMM/CMMI
+[P139][normal] Mô hình được chia thành 5 cấp độ (Levels) từ thấp đến cao:
+[P140][Heading 3] 1.6.4 Quy trình áp dụng CMMI trong doanh nghiệp
+[P141][normal] Để triển khai CMMI thành công, doanh nghiệp thường thực hiện qua 7 bước:
+[P142][normal] Đánh giá hiện trạng: Phân tích quy trình hiện tại để xác định mức trưởng thành thực tế.
+[P143][normal] Xác định mục tiêu: Chọn mức CMMI cần đạt (Level 2, 3...) và các quy trình trọng tâm.
+[P144][normal] Lập kế hoạch: Thành lập nhóm cải tiến quy trình (Process Improvement Team - PIT).
+[P145][normal] Chuẩn hóa quy trình: Thiết kế và ban hành tài liệu quy trình theo chuẩn CMMI.
+[P146][normal] Đào tạo & Áp dụng thử: Huấn luyện nhân viên và triển khai thí điểm vào các dự án.
+[P147][normal] Đánh giá nội bộ: Kiểm tra, sửa đổi quy trình để phù hợp với thực tế sản xuất.
+[P148][normal] Đánh giá chứng nhận: Mời tổ chức độc lập đánh giá và cấp chứng chỉ chính thức.
+[P149][Heading 3] 1.6.5. Các doanh nghiệp Việt Nam tiêu biểu áp dụng thành công CMMI
+[P150][normal] FPT Software (FSOFT)
+[P151][normal] Trạng thái: Là đơn vị tiên phong tại Việt Nam đạt CMMI Level 5 (từ năm 2004 với bản CMM và 2006 với CMMI). Hiện tại đã đạt CMMI Level 5 phiên bản 2.0.
+[P152][normal] Hiệu quả ghi nhận: Năng lực quản lý tiến độ dự án tăng 67%.
+[P153][normal] Chất lượng sản phẩm tăng 13%.
+[P154][normal] Năng suất lao động tăng 33%.
+[P155][normal] Ứng dụng: Sử dụng CMMI làm "giấy thông hành" để chinh phục các thị trường khó tính như Nhật Bản, Mỹ và Châu Âu, quản lý các dự án triệu đô với quy trình kiểm soát lỗi nghiêm ngặt.
+[P156][normal] Viettel High Technology (VHT) - Tổng công ty Công nghiệp Công nghệ cao Viettel
+[P157][normal] Trạng thái: Đạt chứng chỉ CMMI-DEV Level 3 quốc tế (năm 2022) cho lĩnh vực nghiên cứu sản xuất thiết bị công nghệ cao.
+[P158][normal] Chi tiết: VHT áp dụng CMMI để chuẩn hóa quy trình phát triển sản phẩm từ phần cứng đến phần mềm trong các lĩnh vực quân sự và dân sự.
+[P159][normal] Hiệu quả: Việc áp dụng giúp VHT tối ưu hóa quy trình phối hợp giữa các nhóm nghiên cứu lớn, đảm bảo các thiết bị hạ tầng viễn thông (như 5G) đạt tiêu chuẩn chất lượng khắt khe nhất của quốc tế.
+[P160][normal] TMA Solutions
+[P161][normal] Trạng thái: Một trong những doanh nghiệp phần mềm lớn nhất Việt Nam đạt CMMI Level 5.
+[P162][normal] Chi tiết: TMA đã duy trì các quy trình chuẩn CMMI trong nhiều năm để phục vụ hơn 100 khách hàng từ 27 quốc gia.
+[P163][normal] Hiệu quả: CMMI Level 5 giúp TMA xây dựng niềm tin tuyệt đối với các khách hàng trong lĩnh vực Viễn thông và Tài chính - Ngân hàng, nơi sai sót phần mềm có thể gây hậu quả cực lớn. Quy trình định lượng tại đây cho phép quản lý rủi ro dự án một cách khoa học.
+[P164][normal] NashTech Vietnam
+[P165][normal] Trạng thái: Đạt chứng chỉ CMMI Level 5.
+[P166][normal] Hiệu quả: NashTech sử dụng CMMI để duy trì sự ổn định trong vận hành các dự án phức tạp về Cloud, Data Science và AI. Việc đạt cấp độ cao nhất giúp công ty này duy trì vị thế dẫn đầu trong xuất khẩu phần mềm tại thị trường Anh và khu vực Châu Á - Thái Bình Dương.
+[P168][Heading 1] Chương 2 : Lập kế hoạch dự án
+[P169][Heading 2] 2.1. Lý do chọn đề tài
+[P170][normal] Nhu cầu thị trường: Trong bối cảnh kinh tế số, các doanh nghiệp và tổ chức đang phát triển rất nhanh, đòi hỏi một hệ thống quản lý dữ liệu khách hàng chuyên nghiệp và tập trung để thấu hiểu hành vi người dùng. Một phần mềm quản trị quan hệ khách hàng (CRM) sẽ giúp doanh nghiệp tương tác tốt hơn, đáp ứng kịp thời các yêu cầu và tăng tính cạnh tranh trên thị trường.
+[P171][normal] Cơ hội thị trường: Thị trường phần mềm CRM hiện nay đang rất tiềm năng và là xu hướng tất yếu của chuyển đổi số, cung cấp cơ hội kinh doanh và phát triển lớn cho các công ty phần mềm. Việc xây dựng một giải pháp CRM hoàn thiện không chỉ mang lại giá trị kinh tế mà còn khẳng định năng lực công nghệ của đơn vị phát triển.
+[P172][normal] Sự tiện lợi và hiệu quả: Phần mềm CRM giúp cho công tác quản trị khách hàng trở nên đơn giản, khoa học và hiệu quả hơn. CRM giúp cho việc quản lý thông tin liên hệ, lịch sử giao dịch, phản hồi khiếu nại và các chiến dịch Marketing trở nên dễ dàng, đồng bộ và đạt độ chính xác cao.
+[P173][normal] Sự cần thiết: Một phần mềm CRM được thiết kế bài bản sẽ giúp doanh nghiệp quản lý dữ liệu chính xác, loại bỏ các sai sót và rủi ro thất thoát thông tin từ việc quản lý thủ công bằng giấy tờ hay Excel. Nó cũng giúp doanh nghiệp tối ưu hóa nguồn lực nhân sự, tiết kiệm thời gian và giảm thiểu chi phí vận hành đáng kể.
+[P174][normal] => Vì những lý do trên, việc lựa chọn đề tài "Xây dựng phần mềm quản lý khách hàng" là một sự lựa chọn hợp lý, có tính thực tiễn cao và tiềm năng phát triển mạnh mẽ trong tương lai.
+[P175][Heading 2] 2.2. Sơ lược về dự án
+[P176][normal] Tên dự án: Xây dựng phần mềm quản lý khách hàng (CRM).
+[P177][normal] Tổng thời gian dự kiến: 03 tháng (chia thành 6 Sprint, mỗi Sprint kéo dài 2 tuần).
+[P178][normal] Tổng kinh phí dự kiến:150.000.000 VNĐ (150 triệu đồng). Để dự án triển khai hiệu quả, nguồn kinh phí này được phân bổ dự kiến theo tỷ trọng như sau:
+[P179][normal] Chi phí nhân sự (Lương cho đội ngũ phát triển, kiểm thử, quản lý): 60%
+[P180][normal] Chi phí hạ tầng kỹ thuật (Thuê Server, Cloud, bản quyền phần mềm): 20%
+[P181][normal] Chi phí đào tạo và chuyển giao công nghệ cho khách hàng: 10%
+[P182][normal] Chi phí dự phòng rủi ro: 10%
+[P183][normal] Nhân sự dự án và vai trò theo mô hình Scrum:
+[P184][normal] Phạm Thị Nhung - Vai trò Product Owner (Chủ sản phẩm): Chịu trách nhiệm thấu hiểu nghiệp vụ, định nghĩa các yêu cầu, quản lý Product Backlog và quyết định độ ưu tiên của các tính năng cần phát triển.
+[P185][normal] Vũ Trọng Tuyền & Nguyễn Thị Khánh Hòa - Vai trò Scrum Master: Chịu trách nhiệm điều phối quy trình Scrum, theo dõi tiến độ, tổ chức các cuộc họp (Daily Scrum, Sprint Planning...) và loại bỏ các rào cản cản trở công việc của đội ngũ.
+[P186][normal] Nguyễn Văn Sáng & Hà Quang Tiến - Vai trò Development Team (Nhóm phát triển): Trực tiếp thực hiện các công việc kỹ thuật bao gồm phân tích, thiết kế cơ sở dữ liệu, lập trình giao diện (UI/UX), lập trình hệ thống (Backend) và kiểm thử (Testing) để tạo ra sản phẩm hoàn chỉnh.
+[P187][Heading 2] 2.3. Phân công công việc chi tiết (Theo các Sprint)
+[P188][normal] Quá trình phát triển dự án được chia nhỏ thành 6 vòng lặp (Sprint), mỗi vòng lặp kéo dài 2 tuần nhằm tạo ra các phần mềm có thể chạy được liên tục.
+[P189][Heading 2] 2.4. Kết quả dự kiến của dự án
+[P190][normal] * Sản phẩm phần mềm hoàn thiện:
+[P191][normal] Phần mềm CRM: Ứng dụng quản trị khách hàng với 4 module cốt lõi (Quản trị dữ liệu, Quản lý kinh doanh, Quản lý hỗ trợ, Báo cáo thống kê) hoạt động ổn định trên nền tảng Web.
+[P192][normal] Cơ sở dữ liệu: Hệ thống CSDL được thiết kế tối ưu, đảm bảo tính nhất quán, bảo mật và khả năng mở rộng trong tương lai.
+[P193][normal] Giao diện người dùng (UI): Hệ thống giao diện trực quan, dễ sử dụng, tương thích với quy trình nghiệp vụ thực tế tại doanh nghiệp.
+[P194][normal] * Bộ tài liệu kỹ thuật chuẩn Công nghệ phần mềm:
+[P195][normal] Tài liệu đặc tả (SRS): Xác định rõ phạm vi, yêu cầu chức năng và phi chức năng của hệ thống.
+[P196][normal] Tài liệu thiết kế hệ thống: Bao gồm kiến trúc hệ thống, sơ đồ CSDL (ERD) và hệ thống biểu đồ UML (Use Case, Activity, Class, Sequence) giúp hình dung toàn bộ luồng logic của phần mềm.
+[P197][normal] * Giá trị thực tiễn và tính ứng dụng:
+[P198][normal] Chuyển đổi số: Hiện thực hóa việc thay thế các phương thức quản lý thủ công (Excel, giấy tờ) bằng hệ thống số hóa tập trung.
+[P199][normal] Tối ưu hóa quản trị: Cung cấp công cụ giúp doanh nghiệp theo dõi vòng đời khách hàng, từ đó cải thiện tỷ lệ chuyển đổi và chất lượng chăm sóc khách hàng.
+[P200][normal] Tính mở rộng: Kiến trúc phần mềm được thiết kế sẵn sàng cho việc tích hợp với các hệ thống bán hàng hay kế toán thông qua giao diện API.
+[P201][Heading 2] 2.5. Phân tích rủi ro dự án
+[P202][normal] Trong quá trình thực hiện dự án, nhóm đã nhận diện các rủi ro có khả năng tác động đến chất lượng và tiến độ công việc để đưa ra phương án dự phòng:
+[P203][normal] Rủi ro về yêu cầu (Requirement Risk):
+[P204][normal] Yêu cầu hệ thống CRM phát sinh thêm các chức năng ngoài phạm vi dự kiến.
+[P205][normal] Sự thiếu hụt thông tin chi tiết về quy trình nghiệp vụ thực tế của doanh nghiệp.
+[P206][normal] Rủi ro về kỹ thuật (Technical Risk):
+[P207][normal] Sự không tương thích giữa các thành phần phần mềm hoặc cấu trúc Database chưa tối ưu khi tích hợp.
+[P208][normal] Khó khăn trong việc thiết lập kiến trúc tích hợp giữa CRM và hệ thống bán hàng bên ngoài.
+[P209][normal] Rủi ro về tiến độ (Schedule Risk):
+[P210][normal] Thời gian thực hiện các giai đoạn bị kéo dài do độ phức tạp của khâu phân tích dữ liệu.
+[P211][normal] Áp lực về khối lượng công việc khi triển khai lập trình và kiểm thử đồng thời.
+[P212][normal] Rủi ro về nguồn lực (Resource Risk):
+[P213][normal] Sự thay đổi nhân sự hoặc bất đồng trong việc phân bổ nhiệm vụ giữa các thành viên nhóm (Nhung, Hòa, Tuyền, Sáng, Tiến).
+[P214][normal] Giới hạn về kinh nghiệm của nhóm trong việc xử lý các tình huống bảo mật dữ liệu khách hàng phức tạp.
+[P216][Heading 1] Chương 3 : Đặc tả phần mềm
+[P217][Heading 2] 3.1 Khảo sát hiện trạng
+[P218][normal] Hiện nay, nhiều doanh nghiệp vừa và nhỏ (SMEs) tại Việt Nam vẫn đang duy trì phương thức quản lý khách hàng bằng các công cụ thủ công. Nhóm đã tiến hành khảo sát và tổng hợp được thực trạng như sau:
+[P219][normal] Sử dụng công cụ rời rạc:
+[P220][normal] Dữ liệu khách hàng chủ yếu được lưu trữ trên các file Excel cá nhân, sổ tay hoặc tệp ghi chú trên máy tính.
+[P221][normal] Thông tin thiếu tính đồng bộ, dẫn đến việc nhân viên không thể truy cập dữ liệu nhanh chóng khi cần.
+[P222][normal] Quy trình tương tác thiếu sự kết nối:
+[P223][normal] Việc trao đổi thông tin giữa các bộ phận (Marketing, Kinh doanh, Chăm sóc khách hàng) bị ngắt quãng, tạo ra "hố ngăn cách" về thông tin khách hàng.
+[P224][normal] Nhân viên không nắm được lịch sử mua hàng hoặc các khiếu nại trước đó, gây lãng phí thời gian và giảm lòng tin của khách hàng.
+[P225][normal] Thiếu khả năng báo cáo và phân tích:
+[P226][normal] Dữ liệu không được hệ thống hóa khiến việc thống kê báo cáo doanh số, tỷ lệ khách hàng tiềm năng hay hiệu suất nhân viên gặp nhiều khó khăn.
+[P227][normal] Ban lãnh đạo không có cái nhìn tổng quan (360 độ) về khách hàng để đưa ra các chiến lược kinh doanh chính xác.
+[P228][normal] Rủi ro thất thoát dữ liệu:
+[P229][normal] Khi nhân sự thay đổi hoặc thiết bị gặp sự cố, dữ liệu khách hàng rất dễ bị mất mát hoặc rò rỉ ra bên ngoài do thiếu hệ thống phân quyền và sao lưu (backup) tập trung.
+[P230][Heading 2] 3.2 Mô tả bài toán
+[P231][normal] Hiện tại, quy trình quản lý khách hàng tại đơn vị đang vận hành theo cơ chế phân tán, thiếu sự kết nối giữa các nguồn dữ liệu và các bộ phận nghiệp vụ. Sự phụ thuộc vào công cụ thủ công (Excel, sổ tay) không chỉ tạo ra các "ốc đảo thông tin" riêng biệt mà còn hạn chế khả năng kiểm soát, phân tích và khai thác giá trị từ dữ liệu khách hàng. Hệ quả là doanh nghiệp đang bỏ lỡ cơ hội thấu hiểu khách hàng, lãng phí tài nguyên nhân sự trong việc xử lý dữ liệu và đối mặt với rủi ro bảo mật cao.
+[P232][Heading 2] 3.3 Khái quát mô hình nghiệp vụ phần mềm CRM
+[P233][normal] Phần mềm Quản lý khách hàng (CRM) được xây dựng dựa trên nguyên lý tập trung vào dữ liệu (Data-Centric), đóng vai trò là công cụ số hóa toàn bộ quy trình tương tác giữa doanh nghiệp và khách hàng. Mô hình này không chỉ đơn thuần là nơi lưu trữ mà là một hệ thống luồng việc (Workflow) giúp chuyển đổi dữ liệu thô thành các giá trị quản trị thiết thực.
+[P234][Heading 3] 3.3.1 Cấu trúc các thành phần nghiệp vụ cốt lõi
+[P235][normal] Để đảm bảo tính nhất quán với các yêu cầu chức năng sẽ trình bày ở phần sau, phần mềm được khái quát qua 03 phân hệ quản lý trọng tâm:
+[P236][normal] Quản trị thực thể Khách hàng (Customer Profile Management): Đây là hạt nhân của phần mềm, quản lý định danh khách hàng thông qua mã duy nhất. Thành phần này chịu trách nhiệm lưu trữ thông tin nền (nhân khẩu học, hành vi) và là gốc để liên kết với tất cả các hoạt động giao dịch, chăm sóc về sau.
+[P237][normal] Quản trị luồng Giao dịch và Tương tác (Transaction & Interaction Tracking): Thay vì quản lý đối tượng lưu trú, phần mềm tập trung ghi lại biến động của các "Sự kiện giao dịch". Mỗi đơn hàng hoặc yêu cầu hỗ trợ được coi là một bản ghi dữ liệu có trạng thái (Status), giúp người dùng theo dõi được lộ trình từ khi tiếp cận đến khi hoàn tất thanh toán.
+[P238][normal] Phân tích và Phân lớp khách hàng (Customer Analytics & Categorization): Dựa trên các dữ liệu lịch sử đã thu thập, phần mềm thực hiện các phép lọc và phân nhóm tự động. Điều này giúp doanh nghiệp xác định được các nhóm khách hàng chiến lược (VIP, tiềm năng) để áp dụng các chính sách chăm sóc khác biệt, thay vì quản lý dàn trải.
+[P239][Heading 3] 3.3.2. Mô hình vận hành và Luồng dữ liệu (Data Flow)
+[P240][normal] Mô hình vận hành của phần mềm tuân thủ quy trình khép kín, đảm bảo tính toàn vẹn của thông tin:
+[P241][normal] Giai đoạn Thu thập: Dữ liệu được chuẩn hóa và nạp vào phần mềm, loại bỏ các thông tin trùng lặp để tạo ra "điểm nhìn duy nhất" về khách hàng.
+[P242][normal] Giai đoạn Xử lý: Người dùng tương tác với phần mềm để cập nhật các ghi chú tư vấn, trạng thái đơn hàng và phản hồi của khách hàng.
+[P243][normal] Giai đoạn Kết xuất: Phần mềm tổng hợp dữ liệu để xuất ra các báo cáo đo lường chỉ số kinh doanh, hỗ trợ cấp quản lý đưa ra các quyết định điều chỉnh kịp thời.
+[P244][Heading 3] 3.3.3. Giá trị mục tiêu của mô hình
+[P245][normal] Việc áp dụng mô hình phần mềm này hướng tới các chuẩn mực chuyên nghiệp trong kỹ nghệ phần mềm:
+[P246][normal] Tính tập trung (Centralization): Loại bỏ sự rời rạc trong quản lý thông tin, đảm bảo mọi bộ phận đều tiếp cận cùng một nguồn dữ liệu chuẩn.
+[P247][normal] Tính vết (Traceability): Mọi thay đổi trong quan hệ với khách hàng đều được lưu vết lịch sử, phục vụ công tác kiểm tra và tối ưu hóa dịch vụ.
+[P248][normal] Tính sẵn sàng (Scalability): Cấu trúc phần mềm cho phép dễ dàng mở rộng thêm các trường thông tin hoặc tính năng mới tùy theo sự phát triển của doanh nghiệp mà không làm phá vỡ cấu trúc dữ liệu hiện tại.
+[P249][Heading 2] 3.4 Phương pháp đặc tả phần mềm
+[P250][normal] Để đảm bảo tính nhất quán và khả năng mở rộng cho hệ thống Quản trị quan hệ khách hàng (CRM), nhóm thực hiện tiếp cận theo phương pháp phát triển hướng đối tượng (Object-Oriented Analysis and Design - OOAD). Việc lựa chọn phương pháp này xuất phát từ đặc thù của bài toán CRM, nơi các thực thể dữ liệu (Khách hàng, Đơn hàng, Chiến dịch) và các quy trình nghiệp vụ (Chăm sóc, Khiếu nại, Báo cáo) có sự tương tác qua lại phức tạp.
+[P251][normal] Cụ thể, phương pháp được triển khai qua các công cụ hỗ trợ sau:
+[P252][normal] Ngôn ngữ mô hình hóa thống nhất (UML): Được sử dụng làm ngôn ngữ chuẩn để trực quan hóa các yêu cầu. Thông qua sơ đồ Use Case, nhóm làm rõ phạm vi chức năng của từng Actor (Nhân viên kinh doanh, Marketing, Admin); thông qua sơ đồ Activity, nhóm mô tả luồng xử lý nghiệp vụ thực tế cho từng quy trình cụ thể (như quy trình tiếp nhận khiếu nại hay đồng bộ dữ liệu từ POS).
+[P253][normal] Tiếp cận theo thành phần (Component-based approach): Nhóm phân rã hệ thống CRM thành các module chức năng độc lập (Quản lý khách hàng, Marketing tự động, Báo cáo Dashboards) nhằm tối ưu hóa quá trình phát triển theo mô hình Agile/Scrum. Cách tiếp cận này giúp nhóm dễ dàng thực hiện kiểm thử, đánh giá và cập nhật yêu cầu cho từng Sprint mà không làm ảnh hưởng đến cấu trúc tổng thể của hệ thống.
+[P254][normal] Việc áp dụng OOAD kết hợp với quy trình phát triển linh hoạt không chỉ giúp tài liệu đặc tả (SRS) trở nên minh bạch đối với tất cả thành viên trong nhóm, mà còn tạo nền tảng vững chắc cho giai đoạn cài đặt và kiểm thử phần mềm ở các chương tiếp theo
+[P256][Heading 2] 3.5. Xác định yêu cầu hệ thống
+[P257][normal] Để định hình phạm vi phát triển cho hệ thống CRM, nhóm thực hiện phân tích dựa trên phương pháp tiếp cận từ trên xuống . Mục tiêu cốt lõi của giai đoạn này là thiết lập ranh giới hệ thống và định danh các thực thể tác động nhằm tạo tiền đề cho việc đặc tả chi tiết các luồng xử lý nghiệp vụ ở mục sau.
+[P258][Heading 3] 3.5.1. Mô hình ngữ cảnh hệ thống
+[P259][normal] Hệ thống CRM đóng vai trò là hạt nhân trung tâm trong cấu trúc dữ liệu của doanh nghiệp. Hệ thống không hoạt động độc lập mà thực hiện trao đổi dữ liệu hai chiều với các hệ thống ngoại vi (như hệ thống bán hàng POS, cổng thanh toán hoặc hệ thống Email Marketing), từ đó tạo ra một hệ sinh thái dữ liệu thống nhất.
+[P260][Heading 3] 3.5.2. Ma trận chức năng chiến lược
+[P261][normal] Nhóm phân loại các yêu cầu chức năng dựa trên mức độ ưu tiên và đối tượng thụ hưởng, nhằm cung cấp cái nhìn tổng quan về phạm vi dự án trước khi đi sâu vào chi tiết kỹ thuật tại tài liệu SRS.
+[P262][Heading 3] 3.5.3. Ràng buộc hệ thống
+[P263][normal] Các yêu cầu phi chức năng được định nghĩa như những "bộ lọc chất lượng" (Quality Gates) cho toàn bộ kiến trúc, đảm bảo hệ thống đáp ứng các tiêu chuẩn kỹ thuật khắt khe trước khi vận hành thực tế:
+[P264][normal] Hiệu năng: Hệ thống phải duy trì tốc độ xử lý ổn định trong môi trường dữ liệu lớn (Big Data) với thời gian phản hồi tối ưu.
+[P265][normal] Bảo mật: Tuân thủ các chuẩn phân quyền truy cập (RBAC) và mã hóa thông tin khách hàng nhằm đảm bảo tính toàn vẹn và quyền riêng tư.
+[P266][normal] Tính liên kết: Đảm bảo chuẩn giao tiếp dữ liệu đồng bộ thời gian thực (Real-time synchronization) giữa CRM và hệ thống bán hàng (POS) để tránh sai lệch hồ sơ khách hàng.
+[P267][Heading 2] 3.6. Tài Liệu đặc tả phần mềm
+[P268][Heading 3] 3.6.1 Phạm vi hệ thống
+[P269][normal] Phạm vi hệ thống mô tả các chức năng mà hệ thống CRM sẽ hỗ trợ và các chức năng nằm ngoài phạm vi của giai đoạn triển khai hiện tại. Nội dung được phân nhóm nghiệp vụ tương ứng như sau:
+[P271][Heading 3] 3.6.2 Xác định tác nhân
+[P272][normal] Dựa trên các Use Case ở mức nghiệp vụ, hệ thống CRM có 01 tác nhân tổng quát và 05 tác nhân nghiệp vụ chính trực tiếp tham gia và tương tác với hệ thống.
+[P273][normal] Người dùng hệ thống
+[P274][normal] Vai trò:
+[P275][normal] Người dùng hệ thống là tác nhân tổng quát đại diện cho tất cả các đối tượng có quyền truy cập và sử dụng hệ thống CRM.
+[P276][normal] Mục tiêu:
+[P277][normal] - Truy cập hệ thống CRM thông qua chức năng đăng nhập
+[P278][normal] - Thực hiện các chức năng nghiệp vụ tương ứng với vai trò được phân quyền
+[P279][normal] Ý nghĩa trong mô hình:
+[P280][normal] Người dùng hệ thống không đại diện cho một vai trò nghiệp vụ cụ thể mà được sử dụng nhằm mô hình hóa các chức năng dùng chung (đặc biệt là chức năng đăng nhập) cho tất cả các tác nhân cụ thể trong hệ thống.
+[P281][normal] Nhân viên Kinh doanh
+[P282][normal] Vai trò:
+[P283][normal] Nhân viên Kinh doanh là người trực tiếp làm việc với khách hàng trong hoạt động bán hàng, chịu trách nhiệm quản lý thông tin khách hàng và các giao dịch mua bán.
+[P284][normal] Mục tiêu:
+[P285][normal] - Quản lý thông tin khách hàng một cách đầy đủ và chính xác
+[P286][normal] - Ghi nhận và theo dõi lịch sử giao dịch của khách hàng
+[P287][normal] - Hỗ trợ hoạt động bán hàng hiệu quả hơn
+[P288][normal] Lý do là tác nhân chính:
+[P289][normal] Nhân viên Kinh doanh sử dụng hệ thống CRM thường xuyên để thực hiện các nghiệp vụ cốt lõi liên quan đến khách hàng và doanh thu. Các Use Case UC01 và UC02 phản ánh trực tiếp vai trò trung tâm của tác nhân này trong hoạt động kinh doanh của doanh nghiệp
+[P290][normal] Nhân viên Chăm sóc khách hàng
+[P291][normal] Vai trò:
+[P292][normal] Nhân viên CSKH là người tiếp nhận, xử lý các khiếu nại, phản hồi và thực hiện các hoạt động chăm sóc khách hàng sau bán.
+[P293][normal] Mục tiêu:
+[P294][normal] - Đảm bảo các khiếu nại và phản hồi của khách hàng được xử lý kịp thời
+[P295][normal] - Theo dõi lịch sử chăm sóc để nâng cao mức độ hài lòng của khách hàng
+[P296][normal] - Duy trì mối quan hệ lâu dài với khách hàng
+[P297][normal] Lý do là tác nhân chính:
+[P298][normal] Nhân viên CSKH tương tác trực tiếp với hệ thống, đóng vai trò quan trọng trong việc cải thiện trải nghiệm khách hàng và hình ảnh doanh nghiệp.
+[P299][normal] Nhân viên Marketing
+[P300][normal] Vai trò:
+[P301][normal] Nhân viên Marketing chịu trách nhiệm phân nhóm khách hàng, xây dựng và triển khai các chiến dịch marketing nhằm tiếp cận và chăm sóc khách hàng hiệu quả.
+[P302][normal] Mục tiêu:
+[P303][normal] - Phân loại khách hàng theo các tiêu chí phục vụ marketing
+[P304][normal] - Thiết lập và triển khai các chiến dịch marketing
+[P305][normal] - Theo dõi và đánh giá hiệu quả chiến dịch
+[P306][normal] Lý do là tác nhân chính:
+[P307][normal] Nhân viên Marketing sử dụng hệ thống CRM như một công cụ chính để lập kế hoạch, triển khai và đánh giá hoạt động marketing dựa trên dữ liệu khách hàng
+[P308][normal] Giám đốc
+[P309][normal] Vai trò:
+[P310][normal] Giám đốc là đối tượng sử dụng hệ thống ở mức quản lý, giám sát và ra quyết định chiến lược cho doanh nghiệp.
+[P311][normal] Mục tiêu:
+[P312][normal] - Theo dõi tình hình doanh thu và hiệu quả kinh doanh
+[P313][normal] - Phân tích dữ liệu khách hàng để hỗ trợ ra quyết định
+[P314][normal] - Định hướng chiến lược phát triển doanh nghiệp
+[P315][normal] Lý do là tác nhân chính: Giám đốc sử dụng hệ thống CRM để khai thác các báo cáo và phân tích dữ liệu tổng hợp, phục vụ cho công tác quản lý và điều hành.
+[P316][normal] Admin
+[P317][normal] Vai trò:
+[P318][normal] Quản trị hệ thống chịu trách nhiệm vận hành, quản lý người dùng và đảm bảo hệ thống CRM hoạt động ổn định, an toàn.
+[P319][normal] Mục tiêu:
+[P320][normal] - Quản lý tài khoản và quyền truy cập của người dùng
+[P321][normal] - Cấu hình các tham số hệ thống và kênh thông báo
+[P322][normal] - Đảm bảo tính bảo mật và ổn định của hệ thống
+[P323][normal] Lý do là tác nhân chính:
+[P324][normal] Quản trị hệ thống là tác nhân không thể thiếu để duy trì và kiểm soát hoạt động của hệ thống CRM trong toàn bộ quá trình vận hành.
+[P325][Heading 3] 3.6.3 Use Case tổng quát (Business Use Case Diagram)
+[P326][normal] - Phần này trình bày toàn bộ các Use Case ở mức nghiệp vụ (business level), phản ánh các chức năng chính mà hệ thống cần cung cấp. Danh sách Use Case được phân nhóm theo từng tác nhân tham gia hệ thống.
+[P327][normal] UC00 – Đăng nhập
+[P328][normal] Người dùng hệ thống (Nhân viên Kinh doanh, Nhân viên CSKH, Nhân viên Marketing, Giám đốc, Quản trị hệ thống) thực hiện đăng nhập để truy cập hệ thống CRM, đăng xuất khi kết thúc phiên làm việc và yêu cầu khôi phục mật khẩu khi cần. Hệ thống xác thực tài khoản, quản lý phiên làm việc và xác định vai trò người dùng để cấp quyền sử dụng các chức năng phù hợp.
+[P329][normal] Nhóm Use Case của Nhân viên Kinh doanh
+[P330][normal] UC01 – Quản lý khách hàng
+[P331][normal] Nhân viên Kinh doanh tạo mới, cập nhật và tra cứu thông tin khách hàng. Hệ thống lưu trữ hồ sơ khách hàng, cho phép phân loại khách hàng theo các nhóm như khách mới, khách tiềm năng, khách thân thiết hoặc khách ngừng mua để hỗ trợ hoạt động kinh doanh.
+[P332][normal] UC02 – Quản lý giao dịch và lịch sử mua hàng
+[P333][normal] Nhân viên Kinh doanh tra cứu và theo dõi các giao dịch mua hàng của khách hàng. Hệ thống lưu thông tin đơn hàng, sản phẩm đã mua, giá trị giao dịch và hiển thị lịch sử mua hàng theo từng khách hàng để hỗ trợ hoạt động bán hàng và chăm sóc khách hàng.
+[P334][normal] Nhóm Use Case của Nhân viên Chăm sóc khách hàng
+[P335][normal] UC03 – Quản lý khiếu nại / phản hồi khách hàng
+[P336][normal] Nhân viên CSKH tiếp nhận phản hồi hoặc khiếu nại từ khách hàng, ghi nhận nội dung và phân loại vấn đề. Hệ thống lưu thông tin phản hồi, theo dõi trạng thái xử lý và cho phép cập nhật kết quả khi vấn đề được giải quyết.
+[P337][normal] UC04 – Quản lý chăm sóc khách hàng
+[P338][normal] Nhân viên CSKH theo dõi và quản lý các hoạt động chăm sóc khách hàng. Hệ thống lưu lịch sử liên hệ, hỗ trợ lập lịch chăm sóc và ghi nhận kết quả chăm sóc. Ngoài ra hệ thống có thể gửi thông báo tự động như chúc mừng sinh nhật, nhắc lịch hẹn hoặc thông báo ưu đãi nhằm tăng cường tương tác với khách hàng.
+[P339][normal] Nhóm Use Case của Nhân viên Marketing
+[P340][normal] UC05 – Quản lý chiến dịch Marketing
+[P341][normal] Nhân viên Marketing tạo và quản lý các chiến dịch marketing. Người dùng lựa chọn nhóm khách hàng mục tiêu, thiết lập nội dung chiến dịch và thực hiện gửi thông báo qua Email hoặc SMS. Hệ thống lưu thông tin chiến dịch và quản lý danh sách khách hàng nhận chiến dịch.
+[P342][normal] Nhóm Use Case của Giám đốc
+[P343][normal] UC06 – Báo cáo và phân tích dữ liệu
+[P344][normal] Giám đốc yêu cầu hệ thống hiển thị các báo cáo tổng hợp như doanh thu theo thời gian, doanh số theo khách hàng và hiệu quả chiến dịch marketing. Hệ thống tổng hợp dữ liệu từ các giao dịch và thông tin khách hàng để cung cấp báo cáo và phân tích hỗ trợ quá trình ra quyết định.
+[P345][normal] Nhóm Use Case của Quản trị hệ thống (Admin)
+[P346][normal] UC07 – Quản trị hệ thống
+[P347][normal] Quản trị hệ thống thực hiện quản lý tài khoản người dùng, bao gồm tạo mới, cập nhật hoặc khóa tài khoản khi cần. Admin cũng cấu hình các tham số hệ thống và thiết lập kết nối các dịch vụ thông báo như Email hoặc SMS    . Hệ thống lưu thông tin tài khoản, phân quyền truy cập theo vai trò và ghi nhận nhật ký hoạt động của người dùng.
+[P348][normal] UC08 – Đồng bộ POS
+[P349][normal] Hệ thống CRM thực hiện đồng bộ dữ liệu giao dịch từ hệ thống bán hàng (POS). Thông tin đơn hàng và thanh toán được cập nhật vào hồ sơ khách hàng trong CRM, giúp đảm bảo dữ liệu giao dịch luôn chính xác và nhất quán giữa hai hệ thống, đồng thời hỗ trợ theo dõi lịch sử mua hàng của khách hàng theo thời gian thực.
+[P350][Heading 4] 3.6.3.1 Biểu đồ Use Case tổng quan
+[P353][Heading 4] 3.6.3.2 Biểu đồ UseCase phân rã
+[P354][normal] Phân rã Use Case “Nhân viên kinh doanh”
+[P356][normal] Phân rã Use Case “Nhân viên kinh doanh”
+[P357][normal] Phân rã Use Case “Nhân viên CSKH”
+[P359][normal] Phân rã Use Case “Nhân viên CSKH”
+[P360][normal] Phân rã use case “Nhân viên Marketing”
+[P362][normal] Phân rã use case “Nhân viên Marketing”
+[P364][normal] Phân rã use case “Giám đốc”
+[P366][normal] Phân rã use case “Giám đốc”
+[P367][normal] Phân rã Use Case Admin
+[P369][normal] Phân rã Use Case Admin
+[P370][Heading 3] 3.6.7 Yêu cầu chức năng
+[P371][normal] - ID khách hàng, họ tên, số điện thoại, email, địa chỉ.
+[P372][normal] - Lịch sử giao dịch, lịch sử phản hồi và ghi chú.
+[P373][normal] - Phân loại khách hàng.
+[P374][normal] - Nguồn khách hàng (marketing, mua trực tiếp, giới thiệu…)Mô tả chức năng:
+[P375][normal] - Lưu trữ và quản lý đầy đủ thông tin khách hàng
+[P376][normal] - Cập nhật lịch sử tương tác: gọi điện, phản hồi, email, hỗ trợ CSKH.
+[P377][normal] - Theo dõi lịch sử mua hàng (dữ liệu từ kinh doanh / kế toán gửi sang).
+[P378][normal] - Tìm kiếm khách hàng theo tên, số điện thoại, email, mã khách hàng.
+[P379][normal] - Hỗ trợ phân loại khách hàng: mới, tiềm năng, thân thiết, ngưng mua.
+[P380][normal] Người sử dụng:
+[P381][normal] - Nhân viên CSKH
+[P382][normal] - Nhân viên kinh doanh
+[P383][normal] - Nhân viên Marketing
+[P384][normal] Thông tin cần quản lý:
+[P385][normal] - Trạng thái khách hàng: đang hoạt động / không hoạt động.
+[P386][Heading 4] 3.6.7.1 Tiếp nhận và xử lý phản hồi – khiếu nại khách hàng
+[P387][normal] Mô tả chức năng:
+[P388][normal] - Tiếp nhận yêu cầu từ khách hàng qua nhiều kênh: điện thoại, email, tin nhắn, gặp trực tiếp.
+[P389][normal] - CSKH lập phiếu xử lý, phân loại vấn đề.
+[P390][normal] - Tự xử lý vấn đề đơn giản (qua thông tin tra cứu).
+[P391][normal] - Chuyển phiếu cho bộ phận chuyên môn nếu vấn đề phức tạp.
+[P392][normal] - Cập nhật trạng thái xử lý phiếu: đã nhận – đang xử lý – hoàn tất.
+[P393][normal] - Gửi thông báo kết quả xử lý cho khách hàng.
+[P394][normal] - Lưu trữ phiếu để truy xuất sau này.
+[P395][normal] Người sử dụng:
+[P396][normal] - Nhân viên CSKH
+[P397][normal] - Giám Đốc
+[P398][normal] - Bộ phận chuyên môn
+[P399][normal] - Admin
+[P400][normal] Thông tin cần quản lý:
+[P401][normal] - ID phiếu, nội dung phản hồi, mức độ ưu tiên.
+[P402][normal] - Nhân viên tiếp nhận, thời gian bắt đầu – kết thúc.
+[P403][normal] - Bộ phận xử lý, kết quả xử lý, ghi chú.
+[P404][normal] - Trạng thái phiếu.
+[P405][Heading 4] 3.6.7.2 Quản lý giao dịch và lịch sử mua hàng
+[P406][normal] Mô tả chức năng:
+[P407][normal] - Nhận dữ liệu đơn hàng / hóa đơn từ kế toán hoặc kinh doanh.
+[P408][normal] - Lưu lại các giao dịch theo từng khách hàng.
+[P409][normal] - Tự động đồng bộ dữ liệu doanh số.
+[P410][normal] - Hỗ trợ thống kê khách hàng mua nhiều, mua ít, nhóm VIP.
+[P411][normal] Người sử dụng:
+[P412][normal] - CSKH
+[P413][normal] - Kinh doanh
+[P414][normal] - Marketing
+[P415][normal] - Giám đốc
+[P416][normal] Thông tin cần quản lý:
+[P417][normal] - Mã hóa đơn, ngày mua, sản phẩm đã mua, số lượng.
+[P418][normal] - Giá trị đơn hàng, phương thức thanh toán.
+[P419][normal] - Trạng thái thanh toán.
+[P420][Heading 4] 3.6.7.3 Quản lý chiến dịch Marketing
+[P421][normal] Mô tả chức năng:
+[P422][normal] - Thu thập dữ liệu khách hàng từ nhiều nguồn.
+[P423][normal] - Phân nhóm khách hàng thủ công hoặc tự động.
+[P424][normal] - Thiết kế chiến dịch Email/SMS.
+[P425][normal] - Gửi chiến dịch theo tệp khách đã chọn.
+[P426][normal] - Thu thập kết quả chiến dịch (tương tác, phản hồi).
+[P427][normal] - Lưu trữ toàn bộ chiến dịch để phục vụ báo cáo.
+[P428][normal] Người sử dụng:
+[P429][normal] - Nhân viên Marketing
+[P430][normal] - Admin
+[P431][normal] Thông tin cần quản lý:
+[P432][normal] - Tệp khách hàng theo nhóm.
+[P433][normal] - Nội dung chiến dịch.
+[P434][normal] - Trạng thái gửi, tỷ lệ mở, tỷ lệ phản hồi.
+[P435][normal] - Danh sách khách hàng tiềm năng sau chiến dịch.
+[P436][Heading 4] 3.6.7.4 Báo cáo tổng hợp (CRM Dashboard)
+[P437][normal] Mô tả chức năng:
+[P438][normal] - Báo cáo doanh thu theo khách hàng.
+[P439][normal] - Báo cáo số lượng khiếu nại, số phiếu đã xử lý, thời gian xử lý.
+[P440][normal] - Báo cáo hiệu quả chiến dịch Marketing.
+[P441][normal] - Báo cáo khách hàng theo nhóm (VIP – tiềm năng – rời bỏ…).
+[P442][normal] - Xuất báo cáo ra Excel/PDF.
+[P443][normal] Người sử dụng:
+[P444][normal] - Ban Giám đốc
+[P445][normal] - Admin
+[P446][normal] - Marketing
+[P447][normal] - CSKH
+[P448][normal] - Kinh doanh
+[P449][normal] Thông tin cần quản lý:
+[P450][normal] - Số lượng khách mới, khách thân thiết.
+[P451][normal] - Các phiếu phản hồi theo thời gian.
+[P452][normal] - Doanh số theo từng khách hàng.
+[P453][normal] - Hiệu suất chiến dịch marketing.
+[P454][Heading 4] 3.6.7.5 Chăm sóc khách hàng tự động
+[P455][normal] Mô tả chức năng:
+[P456][normal] Tự động gửi thông điệp chăm sóc (SMS, Email, thông báo ứng dụng) theo kịch bản: chúc mừng sinh nhật, thông báo ưu đãi, nhắc nhở lịch hẹn.
+[P457][normal] Phân luồng khách hàng tự động dựa trên hành vi (ví dụ: khách không quay lại quán sau 30 ngày sẽ nhận được tin nhắn ưu đãi).
+[P458][normal] Giảm tải công việc nhập liệu và theo dõi thủ công cho nhân viên.
+[P459][normal] Người sử dụng:
+[P460][normal] Nhân viên Marketing, Nhân viên CSKH, Admin.
+[P461][normal] Thông tin cần quản lý:
+[P462][normal] Mẫu nội dung tin nhắn (Template), kịch bản tự động (Trigger), điều kiện gửi.
+[P463][normal] Danh sách khách hàng nhận tin (Segment).
+[P464][normal] Nhật ký lịch sử đã gửi, trạng thái gửi (Đã gửi/Lỗi/Đã xem)
+[P465][Heading 4] 3.6.7.6 Quản trị người dùng
+[P466][normal] Mô tả chức năng:
+[P467][normal] Quản lý tài khoản truy cập hệ thống của nhân viên.
+[P468][normal] Phân quyền chi tiết (chỉ được xem, được sửa, hoặc được xóa dữ liệu) dựa trên vai trò công việc.
+[P469][normal] Kiểm soát nhật ký hoạt động (Log) để biết ai đã thực hiện thao tác gì trong hệ thống.
+[P470][normal] Người sử dụng:
+[P471][normal] Admin.
+[P472][normal] Thông tin cần quản lý:
+[P473][normal] Thông tin người dùng (Họ tên, bộ phận, tài khoản, mật khẩu).
+[P474][normal] Nhóm quyền, vai trò (Role-based access control).
+[P475][normal] Nhật ký đăng nhập và lịch sử thao tác quan trọng trên hệ thống.
+[P478][Heading 3] 3.6.8 Yêu cầu phi chức năng
+[P479][normal] Tính dễ dùng
+[P480][normal] - Giao diện trực quan, đơn giản cho CSKH và Marketing.
+[P481][normal] - Màn hình tra cứu khách hàng dễ nhìn, có bộ lọc nhanh.
+[P482][normal] - Mỗi chức năng đều có hướng dẫn gợi ý.
+[P483][normal] - Màu sắc – bố cục rõ ràng, hạn chế sai sót khi nhập liệu.
+[P484][normal] Tính ổn định
+[P485][normal] - Hệ thống CRM phải hoạt động liên tục 99,5% thời gian.
+[P486][normal] - Trung bình 500 giờ mới phát sinh 1 sự cố.
+[P487][normal] - Thời gian phục hồi ≤ 2 giờ khi lỗi.
+[P488][normal] - Đảm bảo dữ liệu khách hàng, doanh số, phiếu xử lý luôn chính xác.
+[P489][normal] - Có server dự phòng, backup dữ liệu mỗi ngày.
+[P490][normal] - Có báo cáo sự cố gửi cho Admin và Ban Giám đốc.
+[P491][normal] Tốc độ xử lý
+[P492][normal] - Tìm kiếm khách hàng trả về kết quả ≤ 2 giây.
+[P493][normal] - Tải danh sách khách hàng hoặc phiếu xử lý ≤ 3 giây.
+[P494][normal] - Tải các báo cáo lớn ≤ 5 giây.
+[P495][normal] - Hỗ trợ tối thiểu 300–500 người dùng nội bộ đồng thời.
+[P496][normal] Tính hỗ trợ
+[P497][normal] - Hỗ trợ CSKH nhập dữ liệu nhanh, hạn chế lỗi.
+[P498][normal] - Hỗ trợ Marketing gửi Email/SMS hàng loạt.
+[P499][normal] - Tự động ghi log hoạt động để kiểm tra khi có sự cố.
+[P500][normal] - Tự động sao lưu dữ liệu khách hàng và phiếu hỗ trợ.
+[P501][normal] Công nghệ & ràng buộc
+[P502][normal] - Ngôn ngữ: Web CRM dùng HTML/CSS/JS + Java/PHP/.NET tuỳ doanh nghiệp.
+[P503][normal] - Database: MySQL/PostgreSQL.
+[P504][normal] - Chạy trên cloud hoặc server nội bộ.
+[P505][normal] - Không được dùng thư viện không bản quyền.
+[P506][normal] - Đảm bảo an toàn bảo mật thông tin khách hàng.
+[P507][normal] Yêu cầu giao tiếp
+[P508][normal] - Tự động thông báo email/SMS khi:
+[P509][normal] + tạo phiếu hỗ trợ
+[P510][normal] + hoàn tất xử lý
+[P511][normal] + cập nhật trạng thái phiếu
+[P512][normal] - Có chatbot hoặc form liên hệ nhanh.
+[P513][normal] - Tất cả giao tiếp phải mã hoá SSL/TLS.
+[P514][normal] - Gửi thông báo cho Admin khi có lỗi hệ thống.
+[P515][normal] - Lưu log giao tiếp để kiểm tra khi cần.
+[P516][normal] Tính liên kết với phần mềm quản lý bán hàng
+[P517][normal] -Đồng bộ thời gian thực: Dữ liệu giao dịch (đơn hàng, thanh toán) từ POS phải đổ về CRM tức thời, đảm bảo hồ sơ khách hàng luôn mới nhất.
+[P518][normal] -Định danh thống nhất (Customer Mapping): Sử dụng mã khách hàng duy nhất xuyên suốt giữa CRM và POS để tránh trùng lặp dữ liệu.
+[P519][normal] -Kiểm tra chéo (Data Consistency): Đảm bảo tính chính xác tuyệt đối giữa doanh thu ghi nhận tại POS và dữ liệu phân tích trong CRM.
+[P520][normal] -Độ trễ API: Phản hồi dữ liệu giữa hai hệ thống ≤ 1 giây nhằm tối ưu tốc độ tại điểm bán.
+[P522][Heading 3] 3.6.9 Sơ đồ Activity Diagram và đặc tả
+[P523][normal] Biểu đồ hoạt động cho chức năng thêm người dùng
+[P527][normal] Biểu đồ hoạt động cho chức năng “Đăng nhập”
+[P530][normal] Biểu đồ hoạt động cho chức năng “Quản lý khách hàng”
+[P533][normal] Biểu đồ hoạt động cho chức năng “quản lý phản hồi/khiếu nại”
+[P536][normal] Biểu đồ hoạt động cho chức năng “Thiết  lập chiến dịch Marketing”
+[P540][normal] Biểu đồ hoạt động cho chức năng “Quản lý giao dịch và lịch sử mua hàng”
+[P544][normal] Biểu đồ hoạt động cho chức năng “Xem báo cáo doanh số”
+[P548][normal] Biểu đồ hoạt động cho chức năng đồng bộ dữ liệu POS
+[P552][Heading 1] Chương 4:Phân Tích Thiết Kế Hệ Thống
+[P553][Heading 2] 4.1 Thiết kế kiến trúc hệ thống
+[P554][Heading 3] 4.1.1. Khái niệm và vai trò của mô hình hóa hệ thống
+[P555][normal] Mô hình hóa hệ thống là quá trình xây dựng các biểu diễn trừu tượng (thông qua sơ đồ, biểu đồ hoặc ký hiệu) nhằm mô tả cấu trúc, thành phần và hành vi của hệ thống phần mềm. Việc mô hình hóa giúp đơn giản hóa các vấn đề phức tạp, từ đó hỗ trợ hiệu quả cho quá trình phân tích, thiết kế và triển khai hệ thống.
+[P556][normal] Việc áp dụng mô hình hóa hệ thống mang lại nhiều lợi ích quan trọng, cụ thể:
+[P557][normal] Tạo sự thống nhất trong nhóm phát triển: Các thành viên có thể hiểu rõ cách thức hệ thống hoạt động thông qua các mô hình trực quan, từ đó giảm thiểu sai lệch trong quá trình trao đổi và triển khai.
+[P558][normal] Giảm thiểu rủi ro trong quá trình phát triển: Việc xây dựng “bản thiết kế” trước khi lập trình giúp phát hiện sớm các vấn đề tiềm ẩn, hạn chế sai sót khi coding.
+[P559][normal] Hỗ trợ bảo trì và mở rộng hệ thống: Các mô hình giúp việc theo dõi, chỉnh sửa và nâng cấp hệ thống trở nên dễ dàng và có hệ thống hơn trong tương lai.
+[P560][Heading 3] 4.1.2. Phân biệt các mô hình kiến trúc phổ biến
+[P561][normal] Để lựa chọn được mô hình phù hợp, nhóm đã tiến hành xem xét và phân biệt các kiến trúc phần mềm đặc trưng: v
+[P562][normal] Mô hình Client-Server: Chia hệ thống thành máy khách (yêu cầu dịch vụ) và máy chủ (cung cấp dịch vụ).
+[P563][normal] Mô hình MVC (Model-View-Controller): Tách biệt giao diện (View), dữ liệu (Model) và điều khiển (Controller). Thường dùng mạnh cho các ứng dụng Web.
+[P564][normal] Mô hình 3-Tier (3 lớp): Chia phần mềm thành 3 tầng logic riêng biệt, thường được triển khai trên các thiết bị vật lý khác nhau để tăng tính bảo mật và hiệu suất.
+[P565][Heading 3] 4.1.3. Lựa chọn mô hình 3-Tier (Kiến trúc 3 lớp) cho dự án
+[P566][normal] Sau khi phân tích đặc điểm của đề tài "Quản lý khách hàng", nhóm quyết định lựa chọn Kiến trúc 3 lớp (3-Tier Architecture) làm nền tảng phát triển.
+[P567][normal] a. Cấu trúc chi tiết của mô hình: Mô hình bao gồm 3 tầng chính:
+[P568][normal] Presentation Tier (Tầng giao diện): Là lớp tiếp xúc trực tiếp với người dùng (GUI). Nhiệm vụ chính là thu thập dữ liệu nhập vào và hiển thị kết quả cho người dùng.
+[P569][normal] Application/Business Logic Tier (Tầng nghiệp vụ): Đây là "bộ não" của hệ thống. Nó chứa các quy tắc nghiệp vụ (ví dụ: kiểm tra mã khách hàng không được trùng, tính toán tổng nợ...). Tầng này xử lý dữ liệu nhận từ giao diện trước khi gửi xuống cơ sở dữ liệu.
+[P570][normal] Data Tier (Tầng dữ liệu): Bao gồm hệ quản trị cơ sở dữ liệu (SQL Server/MySQL). Nhiệm vụ là lưu trữ, truy xuất và cập nhật dữ liệu theo yêu cầu từ tầng nghiệp vụ.
+[P571][normal] b. Lý do nhóm lựa chọn mô hình 3-Tier: Việc chọn mô hình này giúp nhóm đạt được các mục tiêu sau:
+[P572][normal] Tính độc lập (Decoupling): Thay đổi ở một tầng (ví dụ: đổi giao diện từ Desktop sang Web) sẽ không ảnh hưởng đến tầng xử lý nghiệp vụ hay dữ liệu.
+[P573][normal] Dễ dàng phân công công việc: * Thành viên A, B tập trung thiết kế giao diện (Presentation).
+[P574][normal] Thành viên C, D viết mã xử lý nghiệp vụ (Business Logic).
+[P575][normal] Thành viên E thiết kế và truy vấn dữ liệu (Data).
+[P576][normal] Khả năng bảo trì cao: Khi phát sinh lỗi, nhóm có thể xác định ngay lỗi nằm ở tầng nào (lỗi hiển thị, lỗi tính toán hay lỗi dữ liệu) để xử lý nhanh chóng.
+[P577][normal] Phù hợp với hướng đối tượng: Mô hình này cho phép triển khai các lớp BUS (Business), DAL (Data Access) và DTO (Data Transfer Object) một cách mạch lạc, đúng theo phương pháp phân tích thiết kế hướng đối tượng mà môn học yêu cầu
+[P578][Heading 2] 4.2 Phân tích hệ thống
+[P579][normal] Nhóm áp dụng phương pháp Phân tích thiết kế hướng đối tượng (OOAD) để xây dựng hệ thống. Phương pháp này tập trung vào việc xác định các đối tượng thực tế và mối quan hệ giữa chúng, mang lại các ý nghĩa then chốt:
+[P580][normal] Mô hình hóa thực tế: Trừu tượng hóa các thực thể (Khách hàng, Hóa đơn, Nhân viên) thành các đối tượng trong mã nguồn, giúp hệ thống gần gũi với nghiệp vụ thực tế.
+[P581][normal] Tính đóng gói (Encapsulation): Che giấu chi tiết xử lý bên trong các lớp (BUS, DAL), giúp giảm thiểu lỗi dây chuyền và tăng tính bảo mật cho dữ liệu.
+[P582][normal] Khả năng tái sử dụng: Nhờ tính kế thừa và đa hình, nhóm có thể tận dụng lại các cấu trúc mã nguồn đã viết, giúp tiết kiệm thời gian phát triển và mở rộng tính năng.
+[P583][normal] Dễ bảo trì: Phân chia hệ thống thành các lớp đối tượng độc lập giúp việc nâng cấp hoặc sửa lỗi trở nên đơn giản, không ảnh hưởng đến toàn bộ cấu trúc hệ thống.
+[P584][Heading 3] 4.2.1. Thiết kế dữ liệu (Data Design)
+[P585][normal] Thiết kế dữ liệu tập trung vào việc cấu trúc hóa thông tin nhằm đảm bảo tính toàn vẹn, tối ưu hóa khả năng truy xuất và lưu trữ của hệ thống.
+[P586][normal] Sơ đồ thực thể mối quan hệ (ERD): Nhóm sử dụng sơ đồ ERD để mô hình hóa các thực thể chính của hệ thống như Khách hàng, Tài khoản, Hóa đơn, Nhóm khách hàng... cùng các mối quan hệ logic giữa chúng.
+[P587][normal] Ý nghĩa: Sơ đồ này là cơ sở để xây dựng tầng dữ liệu (Data Tier) trong mô hình 3 lớp. Từ đây, các bảng trong cơ sở dữ liệu được thiết kế với đầy đủ các ràng buộc về khóa chính (Primary Key), khóa ngoại (Foreign Key) và các quy tắc kiểm soát dữ liệu chặt chẽ.
+[P589][Heading 3] 4.2.2. Thiết kế logic hệ thống (Logic Design)
+[P590][normal] Dựa trên các yêu cầu chức năng từ tài liệu đặc tả, nhóm tiến hành thiết kế cấu trúc tĩnh và hành vi động của hệ thống thông qua các biểu đồ UML.
+[P591][Heading 4] 4.2.2.1 Sơ đồ lớp chi tiết
+[P592][normal] Dưới đây là bảng đặc tả chi tiết cho 13 lớp trong hệ thống CRM, tuân thủ định dạng thuộc tính riêng tư (Private) và phương thức công khai (Public).
+[P593][normal] Lớp Khách hàng (KhachHang)
+[P594][normal] a. Thuộc tính
+[P595][normal] b. Phương thức
+[P596][normal] Lớp Tài khoản người dùng (NguoiDung)
+[P597][normal] a. Thuộc tính
+[P598][normal] b. Phương thức
+[P599][normal] Lớp Vai trò (VaiTro)
+[P600][normal] a. Thuộc tính
+[P601][normal] Lớp Đơn hàng (DonHang)
+[P602][normal] a. Thuộc tính
+[P603][normal] b. Phương thức
+[P604][normal] Lớp Chi tiết đơn hàng (ChiTietDonHang)
+[P605][normal] a. Thuộc tính
+[P606][normal] b. Phương thức
+[P607][normal] Lớp Phiếu hỗ trợ (PhieuHoTro)
+[P608][normal] a. Thuộc tính
+[P609][normal] b. Phương thức
+[P610][normal] Lớp Tương tác (TuongTac)
+[P611][normal] a. Thuộc tính
+[P612][normal] b. Phương thức
+[P613][normal] Lớp Chiến dịch (ChienDich)
+[P614][normal] a. Thuộc tính
+[P615][normal] b. Phương thức
+[P616][normal] Lớp Chiến dịch - Khách hàng (ChienDich_KhachHang)
+[P617][normal] a. Thuộc tính
+[P618][normal] Lớp Báo cáo doanh số (BaoCaoDoanhSo)
+[P619][normal] a. Thuộc tính
+[P620][normal] b. Phương thức
+[P621][normal] Lớp Nhật ký hệ thống (NhatKyHeThong)
+[P622][normal] a. Thuộc tính
+[P623][normal] b. Phương thức
+[P624][normal] Lớp Đồng bộ POS (DongBoPOS)
+[P625][normal] a. Thuộc tính
+[P626][normal] b. Phương thức
+[P627][normal] Lớp Mẫu nội dung (MauNoiDung)
+[P628][normal] a. Thuộc tính
+[P632][Heading 4] 4.2.2.2 Sơ đồ tuần tự
+[P633][normal] Sơ đồ tuần tự nhân viên đăng nhập hệ thống
+[P634][normal] Mục đích của sơ đồ : Mô tả chi tiết quá trình xác thực danh tính của nhân viên khi truy cập vào hệ thống CRM. Sơ đồ thể hiện luồng tương tác giữa giao diện đăng nhập, tầng xử lý nghiệp vụ để kiểm tra thông tin tài khoản trong cơ sở dữ liệu. Kết quả trả về sẽ quyết định việc cấp quyền truy cập và điều hướng người dùng đến giao diện chức năng phù hợp với vai trò của họ.
+[P636][normal] Sơ đồ tuần tự nhân viên tìm kiếm thông tin khách hàng
+[P637][normal] Mục đích của sơ đồ: Minh họa các bước thực hiện khi nhân viên cần truy xuất dữ liệu của một khách hàng cụ thể từ hệ thống. Quy trình bắt đầu bằng việc nhập tiêu chí tìm kiếm (như tên, số điện thoại), sau đó hệ thống thực hiện truy vấn trong cơ sở dữ liệu và trả về kết quả hiển thị trên màn hình. Sơ đồ giúp đảm bảo nhân viên có thể tiếp cận thông tin chính xác một cách nhanh chóng để phục vụ khách hàng.
+[P639][normal] Sơ đồ tuần tự nhân viên cập nhật dữ liệu khách hàng
+[P640][normal] Mục đích của sơ đồ: Thể hiện quy trình thay đổi hoặc bổ sung thông tin cho các hồ sơ khách hàng đã tồn tại trong hệ thống. Sơ đồ mô tả luồng gửi yêu cầu cập nhật, quá trình tầng nghiệp vụ kiểm tra tính hợp lệ của dữ liệu mới trước khi ghi đè vào cơ sở dữ liệu. Việc này đảm bảo tính nhất quán và toàn vẹn của dữ liệu khách hàng sau mỗi lần chỉnh sửa.
+[P642][normal] Sơ đồ tuần tự quy trình nhân viên tạo mới hồ sơ khách hàng
+[P643][normal] Mục đích của sơ đồ: Đặc tả các bước nghiệp vụ cần thiết để thiết lập một thực thể khách hàng mới hoàn toàn trong hệ thống CRM. Quy trình bao gồm việc thu thập thông tin cơ bản, hệ thống kiểm tra sự trùng lặp (như email hoặc mã khách hàng) để tránh tạo rác dữ liệu. Khi dữ liệu hợp lệ, một bản ghi mới sẽ được khởi tạo và lưu trữ an toàn trong tầng dữ liệu.
+[P645][normal] Sơ đồ tuần tự quy trình nhân viên Kinh Doanh cập nhật lịch sử mua hàng
+[P646][normal] Mục đích của sơ đồ: Mô tả luồng tương tác khi nhân viên kinh doanh ghi nhận các giao dịch mua bán mới vào hồ sơ của khách hàng. Sơ đồ thể hiện sự liên kết giữa thông tin khách hàng và các chi tiết đơn hàng, giúp hệ thống tự động cập nhật doanh số và trạng thái khách hàng. Đây là cơ sở dữ liệu quan trọng để theo dõi hành vi mua sắm và thực hiện các phân tích kinh doanh sau này.
+[P649][normal] Sơ đồ tuần tự quy trình nhân viên CSKH xử lý phản hồi khách hàng
+[P650][normal] Mục đích của sơ đồ: Minh họa quy trình tiếp nhận và ghi nhận các ý kiến đóng góp từ phía khách hàng về dịch vụ hoặc sản phẩm. Sơ đồ mô tả việc tạo phiếu phản hồi, cập nhật nội dung xử lý và gửi thông báo xác nhận tới khách hàng khi hoàn tất. Mục tiêu là duy trì mối quan hệ tương tác liên tục và nâng cao mức độ hài lòng của khách hàng thông qua việc lắng nghe.
+[P652][normal] Sơ đồ tuần tự quy trình nhân viên CSKH xử lý khiếu nại
+[P653][normal] Mục đích của sơ đồ: Đặc tả các bước giải quyết các vấn đề phát sinh gây không hài lòng cho khách hàng một cách chuyên nghiệp. Sơ đồ thể hiện luồng từ khi tiếp nhận khiếu nại, phân loại mức độ ưu tiên, phối hợp xử lý giữa các bộ phận cho đến khi phản hồi kết quả cuối cùng cho khách hàng. Quy trình này giúp đảm bảo mọi khiếu nại đều được theo vết (traceability) và xử lý triệt để.
+[P655][normal] Sơ đồ tuần nhân viên Marketing tự tạo và gửi chiến dịch
+[P656][normal] Mục đích của sơ đồ: Mô tả quá trình triển khai các hoạt động quảng bá hoặc chăm sóc tự động tới tệp khách hàng mục tiêu. Sơ đồ thể hiện việc thiết lập mẫu nội dung (Email/SMS), lựa chọn nhóm khách hàng phù hợp và kích hoạt gửi thông báo qua hệ thống. Kết quả của chiến dịch được lưu lại để phục vụ cho công tác báo cáo và đánh giá hiệu quả các hoạt động Marketing.
+[P657][normal] Sơ đồ tuần tự giám đốc xem và xuất báo cáo
+[P659][Heading 2] 4.3 Thiết kế thành phần và triển khai
+[P660][Heading 3] 4.3.1 Thiết kế thành phần
+[P662][Heading 3] 4.3.2 Thiết kế triển khai
+[P665][Heading 1] CHƯƠNG 5: Xây dựng phần mềm quản lý khách hàng
+[P666][Heading 2] 5.1 Lựa chọn công nghệ và môi trường triển khai
+[P667][normal] Để đảm bảo tính khả thi, dễ bảo trì và khả năng mở rộng của hệ thống trong tương lai, hệ thống quản lý khách hàng (CRM) được xây dựng theo kiến trúc 3-Tier (3 lớp) với các công nghệ hiện đại như React và Supabase.
+[P668][Heading 2] 5.1.1 Giao diện người dùng (Frontend – Presentation Layer)
+[P669][normal] Hệ thống sử dụng ReactJS để xây dựng giao diện.
+[P670][normal] Khái niệm React:
+ React là thư viện JavaScript mã nguồn mở giúp xây dựng giao diện người dùng theo mô hình component-based, cho phép tái sử dụng và tối ưu hiệu năng thông qua Virtual DOM.
+[P671][normal] Công nghệ sử dụng:
+[P672][normal] ReactJS
+[P673][normal] HTML5, CSS3
+[P674][normal] JavaScript (ES6+)
+[P675][normal] Chức năng:
+[P676][normal] Hiển thị danh sách khách hàng
+[P677][normal] Tìm kiếm, lọc dữ liệu
+[P678][normal] Thêm, sửa, xóa thông tin
+[P679][normal] Gửi request đến backend
+[P680][Heading 2] 5.1.2 Xử lý nghiệp vụ (Application Layer – Supabase)
+[P681][normal] Hệ thống sử dụng Supabase để thay thế backend truyền thống.
+[P682][normal] Khái niệm Supabase:
+ Supabase là nền tảng Backend-as-a-Service (BaaS) cung cấp sẵn database, authentication và API, giúp phát triển nhanh mà không cần xây dựng backend từ đầu.
+[P683][normal] Vai trò:
+[P684][normal] Xử lý logic nghiệp vụ
+[P685][normal] Xác thực người dùng
+[P686][normal] Cung cấp API cho frontend
+[P687][normal] Kết nối database
+[P688][Heading 2] 5.1.3 Lớp dữ liệu (Data Layer – Database)
+[P689][normal] Hệ thống sử dụng PostgreSQL (thông qua Supabase).
+[P690][normal] Dữ liệu lưu trữ:
+[P691][normal] Thông tin khách hàng
+[P692][normal] Lịch sử tương tác
+[P693][normal] Nhân viên
+[P694][normal] Ghi chú chăm sóc khách hàng
+[P695][Heading 2] 5.1.4 Quản lý mã nguồn và triển khai
+[P696][normal] Git & GitHub:
+[P697][normal] Lưu trữ và quản lý mã nguồn
+[P698][normal] Theo dõi thay đổi
+[P699][normal] Hỗ trợ làm việc nhóm
+[P700][normal] Triển khai hệ thống:
+[P701][normal] Frontend: Vercel / Netlify
+[P702][normal] Backend + Database: Supabase Cloud
+[P703][normal] CI/CD:
+[P704][normal] Tự động cập nhật khi push code
+[P705][Heading 2] 5.1.5 Môi trường phát triển
+[P706][normal] Visual Studio Code
+[P707][normal] Chrome / Edge
+[P708][normal] Windows
+[P709][Heading 2] 5.1.6 Cài đặt hệ thống
+[P710][Heading 3] a) Giao diện
+[P712][Heading 2] 5.1.7 Đánh giá
+[P713][normal] Dễ phát triển và bảo trì
+[P714][normal] Chi phí thấp
+[P715][normal] Dễ mở rộng
+[P716][normal] Phù hợp dự án sinh viên
+[P717][Heading 1] 5.2 Sử dụng công cụ quản lý mã nguồn (Git/GitHub)
+[P718][Heading 2] 5.2.1 Giới thiệu
+[P719][normal] Trong quá trình phát triển hệ thống quản lý khách hàng (CRM), đặc biệt khi dự án được thực hiện theo nhóm và có nhiều chức năng khác nhau, việc quản lý mã nguồn đóng vai trò hết sức quan trọng.
+[P720][normal] Công cụ quản lý mã nguồn giúp:
+[P721][normal] Lưu trữ toàn bộ mã nguồn một cách tập trung
+[P722][normal] Theo dõi lịch sử thay đổi của hệ thống
+[P723][normal] Kiểm soát phiên bản phần mềm trong từng giai đoạn phát triển
+[P724][normal] Hỗ trợ nhiều thành viên làm việc đồng thời mà không gây xung đột
+[P725][normal] Trong dự án này, nhóm sử dụng:
+[P726][normal] Git: Hệ thống quản lý phiên bản phân tán (Distributed Version Control System) cho phép theo dõi và lưu trữ các thay đổi của mã nguồn
+[P727][normal] GitHub: Nền tảng lưu trữ mã nguồn trực tuyến, hỗ trợ quản lý dự án và làm việc nhóm hiệu quả
+[P728][Heading 2] 5.2.2 Mục đích sử dụng Git/GitHub trong dự án
+[P729][normal] Việc áp dụng Git và GitHub trong hệ thống CRM nhằm các mục đích sau:
+[P730][normal] Lưu trữ toàn bộ mã nguồn của hệ thống (React + Supabase) một cách an toàn
+[P731][normal] Theo dõi chi tiết lịch sử thay đổi của từng chức năng
+[P732][normal] Hỗ trợ nhiều thành viên cùng phát triển các module khác nhau
+[P733][normal] Giảm thiểu rủi ro mất dữ liệu trong quá trình làm việc
+[P734][normal] Cho phép khôi phục lại các phiên bản trước khi xảy ra lỗi
+[P735][normal] Hỗ trợ triển khai hệ thống thông qua tích hợp với các nền tảng cloud (CI/CD)
+[P736][normal] Tăng tính minh bạch và kiểm soát tiến độ phát triển dự án
+[P737][Heading 2] 5.2.3 Quy trình sử dụng Git/GitHub trong dự án
+[P738][normal] Trong quá trình phát triển hệ thống CRM, nhóm đã áp dụng quy trình quản lý mã nguồn theo các bước sau:
+[P739][Heading 3] a) Khởi tạo và thiết lập repository
+[P740][normal] Nhóm tiến hành tạo một repository trên GitHub để lưu trữ toàn bộ mã nguồn của hệ thống.
+[P741][normal] Repository bao gồm:
+[P742][normal] Mã nguồn Frontend (ReactJS)
+[P743][normal] Cấu hình và kết nối Supabase
+[P744][normal] Các file cấu hình môi trường (.env, config)
+[P745][normal] Tài liệu dự án
+[P746][normal] Việc tổ chức repository rõ ràng giúp dễ dàng quản lý và mở rộng hệ thống.
+[P747][Heading 3] b) Kết nối dự án với Git
+[P748][normal] Sau khi tạo repository, nhóm tiến hành khởi tạo Git trong project và liên kết với GitHub.
+[P749][normal] Các bước thực hiện:
+[P750][normal] Khởi tạo Git trong thư mục dự án
+[P751][normal] Thêm remote repository từ GitHub
+[P752][normal] Đồng bộ mã nguồn giữa local và remote
+[P753][normal] Điều này giúp đảm bảo mã nguồn luôn được quản lý tập trung và tránh thất thoát dữ liệu.
+[P754][Heading 3] c) Commit và quản lý phiên bản
+[P755][normal] Trong quá trình phát triển, mỗi khi hoàn thành một chức năng hoặc chỉnh sửa quan trọng, nhóm thực hiện commit để lưu lại trạng thái mã nguồn.
+[P756][normal] Nguyên tắc commit:
+[P757][normal] Commit theo từng chức năng nhỏ
+[P758][normal] Nội dung commit rõ ràng, ngắn gọn
+[P759][normal] Phản ánh đúng thay đổi đã thực hiện
+[P760][normal] Ví dụ:
+[P761][normal] “Xây dựng giao diện danh sách khách hàng”
+[P762][normal] “Thêm chức năng đăng nhập bằng Supabase Auth”
+[P763][normal] “Cập nhật chức năng tìm kiếm khách hàng”
+[P764][normal] Việc commit hợp lý giúp dễ dàng theo dõi tiến trình phát triển và hỗ trợ debug khi xảy ra lỗi.
+[P765][Heading 3] d) Làm việc nhóm và quản lý nhánh (Branch)
+[P766][normal] Để tránh xung đột khi nhiều thành viên cùng làm việc, nhóm sử dụng mô hình quản lý nhánh:
+[P767][normal] Nhánh main: chứa phiên bản ổn định của hệ thống
+[P768][normal] Nhánh develop (nếu có): tích hợp các chức năng trước khi đưa lên main
+[P769][normal] Nhánh feature: phát triển từng chức năng riêng biệt
+[P770][normal] Quy trình làm việc:
+[P771][normal] Tạo nhánh feature từ main/develop
+[P772][normal] Phát triển chức năng trên nhánh riêng
+[P773][normal] Kiểm tra và review code
+[P774][normal] Merge vào nhánh chính
+[P775][normal] Cách làm này giúp:
+[P776][normal] Giảm xung đột code
+[P777][normal] Dễ kiểm soát chất lượng
+[P778][normal] Tăng hiệu quả làm việc nhóm
+[P779][Heading 3] e) Đồng bộ và cập nhật mã nguồn
+[P780][normal] Trong quá trình làm việc, các thành viên thường xuyên thực hiện:
+[P781][normal] Pull: cập nhật mã nguồn mới nhất từ GitHub
+[P782][normal] Push: đẩy các thay đổi lên repository
+[P783][normal] Việc đồng bộ thường xuyên giúp:
+[P784][normal] Tránh xung đột khi merge
+[P785][normal] Đảm bảo tất cả thành viên làm việc trên phiên bản mới nhất
+[P786][Heading 3] f) Tích hợp CI/CD và triển khai
+[P787][normal] GitHub được tích hợp với nền tảng triển khai (Vercel / Supabase), giúp tự động hóa quá trình deploy.
+[P788][normal] Quy trình:
+[P789][normal] Khi push code lên GitHub
+[P790][normal] Hệ thống tự động build và deploy
+[P791][normal] Cập nhật phiên bản mới lên server
+[P792][normal] Điều này giúp:
+[P793][normal] Tiết kiệm thời gian triển khai
+[P794][normal] Giảm sai sót thủ công
+[P795][normal] Đảm bảo hệ thống luôn được cập nhật
+[P796][Heading 2] 5.2.4 Ứng dụng Git/GitHub trong hệ thống CRM
+[P797][normal] Trong dự án, GitHub được sử dụng để quản lý toàn bộ quá trình phát triển hệ thống, bao gồm:
+[P798][normal] Quản lý mã nguồn các chức năng:
+[P799][normal] Đăng ký / đăng nhập người dùng
+[P800][normal] Quản lý khách hàng (CRUD)
+[P801][normal] Tìm kiếm và lọc dữ liệu
+[P802][normal] Phân quyền người dùng
+[P803][normal] Theo dõi tiến độ làm việc của từng thành viên
+[P804][normal] Lưu trữ toàn bộ lịch sử phát triển hệ thống
+[P805][normal] Hỗ trợ kiểm tra và review code
+[P806][normal] Ngoài ra, GitHub còn được tích hợp với hệ thống triển khai giúp tự động cập nhật ứng dụng khi có thay đổi mới.
+[P807][Heading 2] 5.2.5 Đánh giá hiệu quả sử dụng
+[P808][normal] Việc sử dụng Git và GitHub mang lại nhiều lợi ích thiết thực:
+[P809][normal] Quản lý mã nguồn khoa học và có hệ thống
+[P810][normal] Giảm thiểu lỗi và xung đột trong quá trình phát triển
+[P811][normal] Tăng hiệu quả làm việc nhóm
+[P812][normal] Hỗ trợ kiểm soát tiến độ và chất lượng sản phẩm
+[P813][normal] Dễ dàng bảo trì và nâng cấp hệ thống
+[P814][Heading 2] 5.2.6 Kết luận
+[P815][normal] Git và GitHub là những công cụ không thể thiếu trong phát triển phần mềm hiện đại. Việc áp dụng hiệu quả các công cụ này trong dự án hệ thống quản lý khách hàng (CRM) đã giúp nhóm kiểm soát tốt mã nguồn, nâng cao chất lượng sản phẩm và đảm bảo hệ thống hoạt động ổn định.
+[P816][normal] Đây cũng là nền tảng quan trọng để hệ thống có thể tiếp tục mở rộng và phát triển trong tương lai
+
+=== TABLES ===
+[TABLE 1] rows=6 cols=4
+  [R1] Cấp độ | Tên gọi | Đặc điểm chính | Ví dụ minh họa
+  [R2] Level 1 | Initial (Sơ khai) | Quy trình tùy tiện, không ổn định, phụ thuộc vào kỹ năng cá nhân. Nguy cơ thất bại cao. | Nhóm sinh viên làm đồ án, ai nhớ gì làm nấy, không có quy chuẩn code.
+  [R3] Level 2 | Repeatable (Lặp lại) | Thiết lập chính sách quản lý dự án cơ bản (yêu cầu, cấu hình, đảm bảo chất lượng). | Công ty nhỏ đã có quy trình quản lý yêu cầu và lịch biểu cơ bản.
+  [R4] Level 3 | Defined (Xác định) | Quy trình được chuẩn hóa thành văn bản, áp dụng thống nhất toàn tổ chức. | Công ty có bộ quy chuẩn chung: Phân tích -> Thiết kế -> Code -> Test theo mẫu.
+  [R5] Level 4 | Managed (Quản lý) | Kiểm soát quy trình bằng các chỉ số định lượng. Dự báo được chất lượng sản phẩm. | Công ty đo được tỉ lệ lỗi (VD: 2 lỗi/1000 dòng code) để dự báo thời gian sửa lỗi.
+  [R6] Level 5 | Optimizing (Tối ưu) | Cải tiến liên tục dựa trên dữ liệu. Ngăn ngừa lỗi và áp dụng công nghệ mới. | Công ty tự động hóa quy trình để giảm tỉ lệ lỗi xuống mức tối thiểu.
+
+[TABLE 2] rows=7 cols=4
+  [R1] Sprint | Thời gian | Mục tiêu chính | Trách nhiệm thực hiện
+  [R2] Sprint 1 | Tuần 1 - 2 | Phân tích yêu cầu bài toán, thiết kế kiến trúc hệ thống và sơ đồ cơ sở dữ liệu (ERD). | Toàn bộ nhóm
+  [R3] Sprint 2 | Tuần 3 - 4 | Xây dựng chức năng cốt lõi: Quản lý thông tin và hồ sơ khách hàng. | Development Team
+  [R4] Sprint 3 | Tuần 5 - 6 | Xây dựng chức năng: Quản lý giao dịch mua bán & Tiếp nhận phản hồi/khiếu nại. | Development Team
+  [R5] Sprint 4 | Tuần 7 - 8 | Tích hợp các module hệ thống & Thực hiện kiểm thử toàn diện (Testing). | Toàn bộ nhóm
+  [R6] Sprint 5 | Tuần 9 - 10 | Chỉnh sửa lỗi (Fix bugs), tối ưu hóa hiệu năng (Refactoring) dựa trên phản hồi của Product Owner. | Development Team
+  [R7] Sprint 6 | Tuần 11 - 12 | Triển khai lên máy chủ, viết tài liệu hướng dẫn, bàn giao và họp tổng kết dự án. | Toàn bộ nhóm
+
+[TABLE 3] rows=5 cols=3
+  [R1] Nhóm nghiệp vụ | Phạm vi phân tích | Đối tượng chính
+  [R2] Quản trị khách hàng | Tập trung vào hợp nhất và chuẩn hóa dữ liệu đa kênh | CSKH, Sales
+  [R3] Điều phối Marketing | Tập trung vào phân khúc (Segmentation) và tự động hóa | Marketing
+  [R4] Báo cáo & Phân tích | Tập trung vào chuyển đổi dữ liệu thành thông tin hỗ trợ quyết định | Giám đốc
+  [R5] Quản trị hệ thống | Tập trung vào phân quyền (RBAC) và bảo mật dữ liệu | Admin
+
+[TABLE 4] rows=8 cols=3
+  [R1] Nhóm nghiệp vụ | Hệ thống hỗ trợ | Hệ thống không hỗ trợ
+  [R2] Quản lý hồ sơ khách hàng | Tạo mới, chỉnh sửa và lưu trữ hồ sơ khách hàng (họ tên, số điện thoại, email, lịch sử mua hàng…). Phân loại khách hàng theo các nhóm (VIP, thân thiết, tiềm năng…). Gắn thẻ (tag) và ghi chú phục vụ chăm sóc khách hàng. | Thu thập dữ liệu từ nguồn không xác thực. Xác minh danh tính bằng giấy tờ tùy thân.
+  [R3] Quản lý tương tác CSKH | Ghi nhận phản hồi, yêu cầu hỗ trợ và khiếu nại của khách hàng. Cập nhật tiến độ xử lý từng yêu cầu (ticket). Gửi thông báo tự động khi có cập nhật mới. Phân công ticket cho nhân viên phụ trách. | Tự động giải quyết khiếu nại thay nhân viên.Gọi điện CSKH tự động bằng AI.
+  [R4] Quản lý giao dịch và lịch sử mua hàng | Lưu trữ toàn bộ đơn hàng, giao dịch và hoạt động của khách hàng. Đồng bộ trạng thái đơn hàng từ hệ thống bán hàng sang CRM. Thống kê tần suất và giá trị mua theo từng khách hàng. | Thực hiện nghiệp vụ thanh toán hoặc hoàn tiền. Quản lý kho hoặc vận chuyển (chỉ tiếp nhận dữ liệu, không xử lý nghiệp vụ).
+  [R5] Chăm sóc khách hàng tự động | Gửi email/SMS chăm sóc định kỳ (chúc mừng sinh nhật, tri ân). Gợi ý chiến dịch chăm sóc theo nhóm khách hàng. | Tự động soạn nội dung Marketing hoàn chỉnh. Gọi điện chăm sóc khách hàng tự động.
+  [R6] Quản lý chiến dịch Marketing | Tạo và quản lý chiến dịch Email/SMS Marketing. Quản lý danh sách khách hàng tham gia chiến dịch. Theo dõi hiệu quả chiến dịch (tỷ lệ mở thư, tỷ lệ phản hồi). | Thiết kế banner, nội dung quảng cáo chuyên sâu.Triển khai quảng cáo Facebook/Google trả phí.
+  [R7] Báo cáo phân tích | Báo cáo khách hàng theo nhóm, khu vực, hành vi mua hàng. Báo cáo mức độ hài lòng khách hàng. Báo cáo số lượng ticket theo trạng thái. Phân tích tài chính cơ bản. Dự đoán churn hoặc doanh số bằng mô hình AI đơn giản. | Phân tích tài chính chuyên sâu.
+  [R8] Quản trị người dùng | Tạo tài khoản nhân viên. Phân quyền theo vai trò (Admin / CSKH / Marketing). Theo dõi hoạt động sử dụng hệ thống. | Quản lý tài khoản liên thông với nhiều nền tảng ngoài doanh nghiệp.Xác thực sinh trắc học nâng cao (FaceID, vân tay).
+
+[TABLE 5] rows=19 cols=6
+  [R1] Mã Use case | UC07 | UC07 | UC07 | Tên Use case | Thêm người dùng
+  [R2] Tác nhân chính | Admin | Admin | Admin | Admin | Admin
+  [R3] Mô tả | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó.
+  [R4] Sự kiện kích hoạt | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng".
+  [R5] Tiền điều kiện | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Admin | Chọn chức năng "Quản trị và phân quyền". | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Admin | Chọn "Thêm người dùng". | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Admin | Nhập thông tin người dùng mới gồm: Tên đăng nhập, mật khẩu, vai trò và thông tin liên hệ. | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu nhập vào. | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Kiểm tra trùng lặp tên đăng nhập trong Cơ sở dữ liệu (CSDL). | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Khởi tạo tài khoản và lưu thông tin vào CSDL. | 
+  [R13] Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Gán vai trò (mặc định hoặc theo lựa chọn) cho người dùng mới. | 
+  [R14] Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Hiển thị thông báo "Thêm người dùng thành công". | 
+  [R15]  |  | 9 | Admin | Xem danh sách người dùng đã cập nhật và kết thúc. | 
+  [R16] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+  [R17] Luồng sự kiện thay thế |  | 4a | Hệ thống | Nếu dữ liệu không hợp lệ: Hiển thị thông báo lỗi chi tiết và yêu cầu Admin chỉnh sửa lại thông tin. | 
+  [R18] Luồng sự kiện thay thế |  | 5a | Hệ thống | Nếu tên đăng nhập đã tồn tại: Hiển thị thông báo "Người dùng đã tồn tại" và yêu cầu nhập lại tên khác. | 
+  [R19] Hậu điều kiện | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng.
+
+[TABLE 6] rows=19 cols=6
+  [R1] Mã Use case | UC00 | UC00 | UC00 | Tên Use case | Đăng nhập
+  [R2] Tác nhân chính | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống
+  [R3] Mô tả | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn.
+  [R4] Sự kiện kích hoạt | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập.
+  [R5] Tiền điều kiện | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống.
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Người dùng hệ thống | Vào ứng dụng. | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị giao diện đăng nhập. | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Người dùng hệ thống | Nhập user, password. | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Người dùng hệ thống | Nhấn nút đăng nhập | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Kiểm tra thông tin user, password. | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Xác định thông tin hợp lệ | 
+  [R13] Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Xác định vai trò của người dùng | 
+  [R14] Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Hệ thống hiển thị giao diện theo quyền: - Nếu là Giám đốc: Hiển thị quyền quản trị tối cao (bao gồm quản lý Admin). - Nếu là Admin: Hiển thị quyền phân quyền cho các bộ phận Marketing, Kinh doanh, CSKH. - Nếu là Nhân viên: Hiển thị giao diện nghiệp vụ riêng biệt | 
+  [R15]  |  | 9 | Hệ thống | Kết thúc phiên đăng nhập thành công | 
+  [R16] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+  [R17] Luồng sự kiện thay thế |  | 5a | Hệ thống | Thông báo lỗi nếu thông tin không hợp lệ. | 
+  [R18] Luồng sự kiện thay thế |  | 5b | Người dùng hệ thống | Thông báo lỗi và yêu cầu bổ sung/chỉnh sửa. | 
+  [R19] Hậu điều kiện | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định.
+
+[TABLE 7] rows=19 cols=6
+  [R1] Mã Use case | UC01 | UC01 | UC01 | Tên Use case | Quản lý khách hàng
+  [R2] Tác nhân chính | Nhân viên Kinh doanh | Nhân viên Kinh doanh | Nhân viên Kinh doanh | Nhân viên Kinh doanh | Nhân viên Kinh doanh
+  [R3] Mô tả | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống.
+  [R4] Sự kiện kích hoạt | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu.
+  [R5] Tiền điều kiện | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh.
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên kinh doanh | Chọn chức năng "Quản lý khách hàng". | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Lấy danh sách khách hàng từ CSDL và hiển thị giao diện quản lý. | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Nhân viên kinh doanh | Lựa chọn một trong các thao tác nghiệp vụ (Thêm / Sửa / Xóa). | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Nhân viên kinh doanh | Thực hiện chi tiết thao tác (nhập thông tin mới, cập nhật hoặc xác nhận xóa) | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Cập nhật dữ liệu vào CSDL khách hàng. | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Kiểm tra và cập nhật trạng thái mới của dữ liệu. | 
+  [R13] Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Hiển thị lại danh sách khách hàng đã cập nhật. | 
+  [R14] Luồng sự kiện chính (Thành công) |  | 8 | Nhân viên kinh doanh | Xem thông tin khách hàng sau khi thay đổi | 
+  [R15] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+  [R16] Luồng sự kiện thay thế |  | 3a | Nhân viên kinh doanh | Nếu chọn thêm :  3a.1 Chọn “Thêm khách hàng”  3a.2 Nhập thông tin khách hàng mới | 
+  [R17] Luồng sự kiện thay thế |  | 3b | Nhân viên kinh doanh | Nếu chọn sửa :  3b.1 Chọn “Sửa thông tin khách hàng”  3b.2 Cập nhật các thông tin cần thay đổi | 
+  [R18] Luồng sự kiện thay thế |  | 3c | Nhân viên kinh doanh | Nếu chọn xóa :   3c.1  Chọn : “Xóa khách hàng”  3c.2  Xác nhận xóa tại thông báo của hệ thống | 
+  [R19] Hậu điều kiện | Thông tin khách hàng được cập nhật và bổ sung chính xác trong  CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong  CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong  CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong  CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong  CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng
+
+[TABLE 8] rows=23 cols=7
+  [R1] Mã Use case | UC03 | UC03 | UC03 | Tên Use case | Quản lý phản hồi/khiếu nại | Quản lý phản hồi/khiếu nại
+  [R2] Tác nhân chính | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH
+  [R3] Mô tả | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng.
+  [R4] Sự kiện kích hoạt | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống.
+  [R5] Tiền điều kiện | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH.
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên CSKH | Chọn trang "Phản hồi/khiếu nại". | Chọn trang "Phản hồi/khiếu nại". | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị danh sách tổng hợp các phản hồi/khiếu nại hiện có. | Hiển thị danh sách tổng hợp các phản hồi/khiếu nại hiện có. | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Nhân viên CSKH | Chọn một mục cụ thể cần xử lý từ danh sách. | Chọn một mục cụ thể cần xử lý từ danh sách. | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Hiển thị chi tiết lịch sử tương tác cũ liên quan đến mục đã chọn. | Hiển thị chi tiết lịch sử tương tác cũ liên quan đến mục đã chọn. | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Nhân viên CSKH | Phân loại khiếu nại và nhập nội dung hướng xử lý. | Phân loại khiếu nại và nhập nội dung hướng xử lý. | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Nhân viên CSKH | Xử lý và cập nhật trạng thái (Đang xử lý/ xong/) | Xử lý và cập nhật trạng thái (Đang xử lý/ xong/) | 
+  [R13] Luồng sự kiện chính (Thành công) |  | 7 | Nhân viên CSKH | Nhấn nút “Lưu xử lý” | Nhấn nút “Lưu xử lý” | 
+  [R14] Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Cập nhật trạng thái mới vào Cơ sở dữ liệu (CSDL). | Cập nhật trạng thái mới vào Cơ sở dữ liệu (CSDL). | 
+  [R15]  |  | 9 | Hệ thống | Lưu lại các thay đổi vào lịch sử hệ thống. | Lưu lại các thay đổi vào lịch sử hệ thống. | 
+  [R16]  |  | 10 | Hệ thống | Xác nhận đã hoàn tất xử lý và tiến hành đóng khiếu nại/phản hồi | Xác nhận đã hoàn tất xử lý và tiến hành đóng khiếu nại/phản hồi | 
+  [R17]  |  | 11 | Hệ thống | Thông báo kết quả ghi nhận thành công cho nhân viên. | Thông báo kết quả ghi nhận thành công cho nhân viên. | 
+  [R18]  |  | 12 | Nhân viên CSKH | Xem kết quả hệ thống thông báo | Xem kết quả hệ thống thông báo | 
+  [R19] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | Hành động | 
+  [R20] Luồng sự kiện thay thế |  | 6a | Nhân viên CSKH | Nếu chưa hoàn tất xử lý phản hồi/ khiếu nại cho khách hàng : Chọn trạng thái “Chưa xong” | Nếu chưa hoàn tất xử lý phản hồi/ khiếu nại cho khách hàng : Chọn trạng thái “Chưa xong” | 
+  [R21] Luồng sự kiện thay thế |  | 10a | Nhân viên CSKH | Duy trì trạng thái "Đang xử lý" và gửi thông báo/chuyển tiếp đến bộ phận cao hơn | Duy trì trạng thái "Đang xử lý" và gửi thông báo/chuyển tiếp đến bộ phận cao hơn | 
+  [R22] Hậu điều kiện | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi
+  [R23]  |  |  |  |  |  | 
+
+[TABLE 9] rows=22 cols=6
+  [R1] Mã Use case | UC05 | UC05 | UC05 | Tên Use case | Thiết lập chiến dịch Marketing
+  [R2] Tác nhân chính | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing
+  [R3] Mô tả | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn.
+  [R4] Sự kiện kích hoạt | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống.
+  [R5] Tiền điều kiện | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên Marketing | Chọn trang "Marketing". | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Lấy dữ liệu khách hàng từ cơ sở dữ liệu. | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Hệ thống | Hiển thị giao diện tạo chiến dịch. | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Nhân viên Marketing | Chọn nhóm khách hàng mục tiêu cho chiến dịch. | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Nhân viên Marketing | Thiết lập nội dung chiến dịch (thông điệp, hình ảnh...). | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Nhân viên   Marketing | Chọn kênh gửi (Email/SMS) và đặt lịch gửi. | 
+  [R13] Luồng sự kiện chính (Thành công) |  | 7 | Nhân Viên Marketing | Kiểm tra lại nội dung chiến dịch. | 
+  [R14] Luồng sự kiện chính (Thành công) |  | 8 | Nhân viên Marketing | Nhấn nút "Lưu chiến dịch". | 
+  [R15]  |  | 9 | Hệ thống | Lưu cấu hình chiến dịch vào Cơ sở dữ liệu (CSDL). | 
+  [R16]  |  | 10 | Hệ thống | Thực hiện gửi thông báo qua kênh đã chọn (Email/SMS). | 
+  [R17]  |  | 11 | Nhân viên Marketing | Theo dõi hiệu quả chiến dịch trên giao diện và kết thúc. | 
+  [R18] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+  [R19] Luồng sự kiện thay thế |  | 6a | Nhân viên Marketing | Chọn tùy chọn "Gửi thử" trước khi lưu chính thức. | 
+  [R20] Luồng sự kiện thay thế |  | 6b | Hệ thống | Gửi mẫu tin nhắn chiến dịch thử nghiệm tới địa chỉ/số điện thoại chỉ định. | 
+  [R21] Luồng sự kiện thay thế |  | 6c | Nhân viên Marketing | Kiểm tra nội dung thực tế nhận được | 
+  [R22] Hậu điều kiện | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê.
+
+[TABLE 10] rows=16 cols=7
+  [R1] Mã Use case | UC06 | UC06 | UC06 | Tên Use case | Xem báo cáo doanh số | Xem báo cáo doanh số
+  [R2] Tác nhân chính | Giám đốc | Giám đốc | Giám đốc | Giám đốc | Giám đốc | Giám đốc
+  [R3] Mô tả | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh.
+  [R4] Sự kiện kích hoạt | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành.
+  [R5] Tiền điều kiện | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán.
+  [R6] Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | Hành động | 
+  [R7] Luồng sự kiện chính (Thành công) |  | 1 | Giám đốc | Chọn chức năng "Xem báo cáo doanh số". | Chọn chức năng "Xem báo cáo doanh số". | 
+  [R8] Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị giao diện bộ lọc báo cáo. | Hiển thị giao diện bộ lọc báo cáo. | 
+  [R9] Luồng sự kiện chính (Thành công) |  | 3 | Giám đốc | Chọn các tiêu chí cần xem: Thời gian, nhóm khách hàng, hoặc sản phẩm. | Chọn các tiêu chí cần xem: Thời gian, nhóm khách hàng, hoặc sản phẩm. | 
+  [R10] Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Truy xuất dữ liệu giao dịch từ cơ sở dữ liệu (CSDL). | Truy xuất dữ liệu giao dịch từ cơ sở dữ liệu (CSDL). | 
+  [R11] Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Tổng hợp, phân tích dữ liệu và hiển thị báo cáo dưới dạng biểu đồ & bảng. | Tổng hợp, phân tích dữ liệu và hiển thị báo cáo dưới dạng biểu đồ & bảng. | 
+  [R12] Luồng sự kiện chính (Thành công) |  | 6 | Giám đốc | Xem và đánh giá các thông số trên báo cáo. | Xem và đánh giá các thông số trên báo cáo. | 
+  [R13] Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | Hành động | 
+  [R14] Luồng sự kiện thay thế |  | 4a | Hệ thống | Trường hợp không có dữ liệu:   4a.1. Hệ thống xác định không có bản ghi nào khớp với tiêu chí lọc. 4a.2. Hệ thống hiển thị thông báo "Không có dữ liệu". 4a.3. Hệ thống điều hướng quay lại bước 3 để Giám đốc chọn lại tiêu chí | Trường hợp không có dữ liệu:   4a.1. Hệ thống xác định không có bản ghi nào khớp với tiêu chí lọc. 4a.2. Hệ thống hiển thị thông báo "Không có dữ liệu". 4a.3. Hệ thống điều hướng quay lại bước 3 để Giám đốc chọn lại tiêu chí | 
+  [R15] Luồng sự kiện thay thế |  | 6a | Giám đốc | 6a.1. Giám đốc chọn tùy chọn "Xuất báo cáo" (PDF/Excel). 6a.2. Hệ thống thực hiện khởi tạo và tải tệp về máy. 6a.3. Hệ thống dẫn về điểm kết thúc sau khi tải xong. | 6a.1. Giám đốc chọn tùy chọn "Xuất báo cáo" (PDF/Excel). 6a.2. Hệ thống thực hiện khởi tạo và tải tệp về máy. 6a.3. Hệ thống dẫn về điểm kết thúc sau khi tải xong. | 
+  [R16] Hậu điều kiện | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ.
+
+[TABLE 11] rows=16 cols=4
+  [R1] Mã Use case | UC08 | Tên Use case | Đồng bộ dữ liệu từ POS
+  [R2] Tác nhân chính | Hệ thống POS / Admin |  | 
+  [R3] Mô tả | Hệ thống CRM thực hiện tiếp nhận và đồng bộ dữ liệu giao dịch từ hệ thống bán hàng (POS) nhằm đảm bảo dữ liệu khách hàng luôn nhất quán và chính xác. |  | 
+  [R4] Sự kiện kích hoạt | Phát sinh giao dịch mới tại hệ thống POS hoặc hệ thống POS gửi dữ liệu theo định kỳ. |  | 
+  [R5] Tiền điều kiện | 1. Hệ thống CRM và POS đã được thiết lập kết nối API thành công.    2. Các quy tắc định danh khách hàng (Customer Mapping) đã được cấu hình. |  | 
+  [R6] Luồng sự kiện chính (Thành công) | STT | Thực hiện bởi | Hành động
+  [R7]  | 1 | Hệ thống POS | Gửi dữ liệu giao dịch (mã hóa đơn, khách hàng, sản phẩm, giá trị) sang CRM.
+  [R8]  | 2 | Hệ thống CRM | Tiếp nhận luồng dữ liệu giao dịch từ POS.
+  [R9]  | 3 | Hệ thống CRM | Kiểm tra tính hợp lệ và cấu trúc của dữ liệu giao dịch nhận được.
+  [R10]  | 4 | Hệ thống CRM | Thực hiện lưu trữ thông tin giao dịch vào Cơ sở dữ liệu (CSDL) của CRM.
+  [R11]  | 5 | Hệ thống CRM | Tự động cập nhật lịch sử mua hàng và phân loại khách hàng tương ứng (nếu cần).
+  [R12]  | 6 | Hệ thống CRM | Xác nhận đồng bộ hoàn tất và gửi phản hồi thành công về POS.
+  [R13] Luồng sự kiện thay thế | STT | Thực hiện bởi | Hành động
+  [R14]  | 3a | Hệ thống CRM | Trường hợp dữ liệu không hợp lệ: Hệ thống thực hiện ghi log lỗi chi tiết để phục vụ công tác kiểm tra kỹ thuật.
+  [R15]  | 3b | Hệ thống CRM | Gửi thông báo lỗi về hệ thống POS hoặc Admin để yêu cầu kiểm tra lại kết nối/dữ liệu.
+  [R16] Hậu điều kiện | Dữ liệu giao dịch được cập nhật đồng bộ vào hồ sơ khách hàng trong CRM. Lịch sử mua hàng phản ánh chính xác trạng thái thực tế tại điểm bán. |  | 
+
+[TABLE 12] rows=9 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maKhachHang | - | int | Mã số định danh khách hàng
+  [R3] hoTen | - | String | Họ và tên khách hàng
+  [R4] soDienThoai | - | String | Số điện thoại liên lạc
+  [R5] email | - | String | Địa chỉ thư điện tử
+  [R6] diaChi | - | String | Địa chỉ thường trú
+  [R7] loaiKhachHang | - | String | Phân loại (Cá nhân/Doanh nghiệp)
+  [R8] trangThai | - | String | Trạng thái hoạt động
+  [R9] ngayTao | - | DateTime | Ngày đăng ký hệ thống
+
+[TABLE 13] rows=5 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] themKhachHang() | + | boolean | Thêm mới khách hàng vào hệ thống
+  [R3] suaThongTin() | + | boolean | Cập nhật thông tin khách hàng
+  [R4] xoaKhachHang() | + | boolean | Xóa khách hàng khỏi hệ thống
+  [R5] timKiem() | + | List | Tìm kiếm khách hàng theo tiêu chí
+
+[TABLE 14] rows=7 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maNguoiDung | - | int | Mã định danh người dùng
+  [R3] tenDangNhap | - | String | Tên tài khoản đăng nhập
+  [R4] matKhauHash | - | String | Mật khẩu (đã mã hóa)
+  [R5] hoTen | - | String | Họ tên người sử dụng
+  [R6] vaiTro | - | String | Quyền hạn trong hệ thống
+  [R7] trangThai | - | boolean | Trạng thái tài khoản
+
+[TABLE 15] rows=4 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] dangNhap() | + | boolean | Xác thực và đăng nhập vào hệ thống
+  [R3] dangXuat() | + | void | Thoát khỏi hệ thống hiện tại
+  [R4] doiMatKhau() | + | boolean | Thay đổi mật khẩu người dùng
+
+[TABLE 16] rows=4 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maVaiTro | - | int | Mã định danh vai trò
+  [R3] tenVaiTro | - | String | Tên vai trò (Admin, Staff,...)
+  [R4] moTa | - | String | Mô tả quyền hạn vai trò
+
+[TABLE 17] rows=6 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maDonHang | - | int | Mã số đơn hàng
+  [R3] maKhachHang | - | int | Mã khách hàng sở hữu đơn hàng
+  [R4] ngayDat | - | DateTime | Thời gian đặt hàng
+  [R5] tongTien | - | decimal | Tổng giá trị đơn hàng
+  [R6] trangThai | - | String | Trạng thái đơn hàng
+
+[TABLE 18] rows=4 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] taoDonHang() | + | boolean | Khởi tạo đơn hàng mới
+  [R3] huyDonHang() | + | boolean | Hủy bỏ đơn hàng hiện tại
+  [R4] tinhTongTien() | + | decimal | Tính toán giá trị đơn hàng
+
+[TABLE 19] rows=6 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maChiTiet | - | int | Mã chi tiết dòng hàng
+  [R3] maDonHang | - | int | Mã đơn hàng liên kết
+  [R4] tenSanPham | - | String | Tên sản phẩm/dịch vụ
+  [R5] soLuong | - | int | Số lượng mua
+  [R6] gia | - | decimal | Đơn giá sản phẩm
+
+[TABLE 20] rows=2 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] thanhTien() | + | decimal | Tính thành tiền (Số lượng * Giá)
+
+[TABLE 21] rows=9 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maPhieu | - | int | Mã số phiếu hỗ trợ
+  [R3] maKhachHang | - | int | Mã khách hàng gửi yêu cầu
+  [R4] maNguoiDung | - | int | Mã nhân viên phụ trách xử lý
+  [R5] noiDung | - | String | Nội dung yêu cầu hỗ trợ
+  [R6] mucDoUuTien | - | String | Mức độ khẩn cấp
+  [R7] trangThai | - | String | Trạng thái xử lý phiếu
+  [R8] ngayTao | - | DateTime | Ngày tiếp nhận phiếu
+  [R9] ngayXuLy | - | DateTime | Ngày cập nhật xử lý gần nhất
+
+[TABLE 22] rows=4 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] tiepNhanPhieu() | + | void | Xác nhận tiếp nhận phiếu
+  [R3] xuLyPhieu() | + | void | Ghi chú quá trình xử lý yêu cầu
+  [R4] hoanTatPhieu() | + | void | Đóng phiếu hỗ trợ
+
+[TABLE 23] rows=7 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maTuongTac | - | int | Mã ghi nhận tương tác
+  [R3] maKhachHang | - | int | Mã khách hàng tương tác
+  [R4] maNguoiDung | - | int | Mã nhân viên thực hiện
+  [R5] loaiTuongTac | - | String | Loại (Gọi điện, Email, Gặp mặt)
+  [R6] noiDung | - | String | Nội dung chi tiết trao đổi
+  [R7] ngayTao | - | DateTime | Ngày thực hiện tương tác
+
+[TABLE 24] rows=2 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] ghiNhanTuongTac() | + | void | Lưu lịch sử tương tác vào hệ thống
+
+[TABLE 25] rows=7 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maChienDich | - | int | Mã chiến dịch Marketing
+  [R3] tenChienDich | - | String | Tên chiến dịch
+  [R4] noiDung | - | String | Nội dung quảng bá
+  [R5] ngayBatDau | - | DateTime | Ngày kích hoạt
+  [R6] ngayKetThuc | - | DateTime | Ngày kết thúc
+  [R7] trangThai | - | String | Trạng thái chiến dịch
+
+[TABLE 26] rows=2 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] tinhHieuQua() | + | double | Tính toán tỷ lệ chuyển đổi
+
+[TABLE 27] rows=5 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] ma | - | int | Mã bản ghi liên kết
+  [R3] maChienDich | - | int | Mã chiến dịch tham chiếu
+  [R4] maKhachHang | - | int | Mã khách hàng mục tiêu
+  [R5] trangThaiPhanHoi | - | String | Phản hồi của khách
+
+[TABLE 28] rows=6 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maBaoCao | - | int | Mã số bản báo cáo
+  [R3] ngayLap | - | DateTime | Ngày tạo báo cáo
+  [R4] tuNgay | - | DateTime | Ngày bắt đầu lọc
+  [R5] denNgay | - | DateTime | Ngày kết thúc lọc
+  [R6] tongDoanhThu | - | decimal | Tổng doanh thu tính toán
+
+[TABLE 29] rows=4 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] xemBaoCao() | + | void | Hiển thị thông tin báo cáo
+  [R3] locTheoTieuChi() | + | void | Áp dụng bộ lọc dữ liệu
+  [R4] xuatBaoCao() | + | File | Xuất dữ liệu ra tệp tin
+
+[TABLE 30] rows=5 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maLog | - | int | Mã định danh dòng nhật ký
+  [R3] maNguoiDung | - | int | Mã nhân viên thực hiện
+  [R4] hanhDong | - | String | Loại thao tác thực hiện
+  [R5] thoiGian | - | DateTime | Thời điểm ghi nhận
+
+[TABLE 31] rows=2 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] chiTietHanhDong() | + | String | Truy xuất chi tiết nhật ký
+
+[TABLE 32] rows=5 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maDongBo | - | int | Mã phiên đồng bộ dữ liệu
+  [R3] maDonHang | - | int | Mã đơn hàng đồng bộ
+  [R4] thoiGian | - | DateTime | Thời gian đồng bộ
+  [R5] trangThai | - | String | Kết quả đồng bộ
+
+[TABLE 33] rows=2 cols=4
+  [R1] Phương thức | Phạm vi | Kiểu trả về | Mô tả
+  [R2] thucHienDongBo() | + | boolean | Quy trình gửi dữ liệu sang POS
+
+[TABLE 34] rows=4 cols=4
+  [R1] Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+  [R2] maMau | - | int | Mã số mẫu nội dung
+  [R3] tieuDe | - | String | Tiêu đề mẫu nội dung
+  [R4] noiDung | - | String | Nội dung chứa biến mẫu

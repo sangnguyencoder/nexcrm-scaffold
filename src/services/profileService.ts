@@ -1,5 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
-
 import { supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
 import { getDefaultAvatarUrl } from "@/lib/utils";
 import type { User } from "@/types";
@@ -54,6 +52,25 @@ type ManageProfileUserDeleteResponse = {
   user: ManagedAuthUser;
 };
 
+type ProfileDirectoryRow = {
+  id: string;
+  full_name: string;
+  role: User["role"];
+  department: string | null;
+  avatar_url: string | null;
+  is_active: boolean | null;
+};
+
+const PRIVILEGED_ROLES: User["role"][] = ["super_admin", "admin", "director"];
+
+function isPrivilegedRole(role: User["role"] | null | undefined) {
+  if (!role) {
+    return false;
+  }
+
+  return PRIVILEGED_ROLES.includes(role);
+}
+
 function toManagedUser(managed: ManagedAuthUser): User {
   const role = managed.role ?? "sales";
   const fullName = managed.full_name?.trim() || managed.email || `user-${managed.id.slice(0, 8)}`;
@@ -88,17 +105,6 @@ async function fetchProfileRow(id: string, options: ServiceRequestOptions = {}) 
   }
 
   return data;
-}
-
-function createSignupClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-      storageKey: `nexcrm-signup-${crypto.randomUUID()}`,
-    },
-  });
 }
 
 function isEdgeFunctionUnavailable(error: unknown) {
@@ -230,76 +236,83 @@ async function invokeProfileAdminAction<T>(
     body: payload,
   });
 
-  if (error) {
-    if (await isLegacyJwtVerificationError(error)) {
-      return invokeProfileAdminActionWithDelegatedAuthHeader<T>(payload);
+  if (!error) {
+    return data as T;
+  }
+
+  const originalError = error;
+  const shouldRetryWithDelegatedAuth =
+    (await isLegacyJwtVerificationError(originalError)) || isEdgeFunctionUnavailable(originalError);
+
+  if (shouldRetryWithDelegatedAuth) {
+    try {
+      return await invokeProfileAdminActionWithDelegatedAuthHeader<T>(payload);
+    } catch (delegatedError) {
+      if (
+        options.allowUnavailableFallback !== false &&
+        (isEdgeFunctionUnavailable(originalError) || isEdgeFunctionUnavailable(delegatedError))
+      ) {
+        console.warn(
+          "Supabase Edge Function manage-profile-user chưa sẵn sàng. Tạm fallback sang dữ liệu profiles.",
+        );
+        return null;
+      }
+
+      throw delegatedError;
     }
-
-    if (options.allowUnavailableFallback !== false && isEdgeFunctionUnavailable(error)) {
-      console.warn(
-        "Supabase Edge Function manage-profile-user chưa được deploy. Hệ thống đang fallback sang flow cũ ở frontend.",
-      );
-      return null;
-    }
-
-    throw error;
   }
 
-  return data as T;
-}
-
-async function createAuthUser(payload: ProfileCreateInput) {
-  const managed = await invokeProfileAdminAction<ManageProfileUserMutationResponse>({
-    action: "create",
-    email: payload.email,
-    password: payload.password,
-    full_name: payload.full_name,
-  });
-
-  if (managed?.user?.id) {
-    return managed.user;
-  }
-
-  const signupClient = createSignupClient();
-  const { data: signUpData, error: signUpError } = await signupClient.auth.signUp({
-    email: payload.email,
-    password: payload.password,
-    options: {
-      data: {
-        full_name: payload.full_name,
-      },
-    },
-  });
-
-  if (signUpError) {
-    throw signUpError;
-  }
-
-  const authUserId = signUpData.user?.id;
-  if (!authUserId) {
-    throw new Error("Supabase không trả về user id sau khi tạo tài khoản.");
-  }
-
-  return {
-    id: authUserId,
-    email: signUpData.user?.email ?? payload.email,
-  };
-}
-
-async function syncAuthUser(id: string, payload: ProfileUpdateInput) {
-  if (!payload.email && !payload.full_name) {
+  if (options.allowUnavailableFallback !== false && isEdgeFunctionUnavailable(originalError)) {
+    console.warn(
+      "Supabase Edge Function manage-profile-user chưa được deploy. Hệ thống đang fallback sang dữ liệu profiles.",
+    );
     return null;
   }
 
-  const managed = await invokeProfileAdminAction<ManageProfileUserMutationResponse>({
-    action: "update",
-    id,
-    email: payload.email,
-    full_name: payload.full_name,
-  });
+  throw originalError;
+}
 
-  if (managed?.user?.email) {
-    cacheProfileEmail(id, managed.user.email);
+async function createAuthUser(payload: ProfileCreateInput) {
+  const managed = await invokeProfileAdminAction<ManageProfileUserMutationResponse>(
+    {
+      action: "create",
+      email: payload.email,
+      password: payload.password,
+      full_name: payload.full_name,
+      role: payload.role,
+      department: payload.department,
+    },
+    { allowUnavailableFallback: false },
+  );
+
+  if (!managed?.user?.id) {
+    throw new Error("Không nhận được phản hồi hợp lệ từ API quản trị người dùng.");
+  }
+
+  return managed.user;
+}
+
+async function syncAuthUser(id: string, payload: ProfileUpdateInput) {
+  if (!payload.email && !payload.full_name && !payload.role && !payload.department) {
+    return null;
+  }
+
+  const managed = await invokeProfileAdminAction<ManageProfileUserMutationResponse>(
+    {
+      action: "update",
+      id,
+      email: payload.email,
+      full_name: payload.full_name,
+      role: payload.role,
+      department: payload.department,
+    },
+    { allowUnavailableFallback: false },
+  );
+
+  if (managed?.user?.id) {
+    if (managed.user.email) {
+      cacheProfileEmail(id, managed.user.email);
+    }
     return managed.user;
   }
 
@@ -356,6 +369,22 @@ export const profileService = {
     return withLatency(
       (async () => {
         ensureSupabaseConfigured();
+        const authUser = await getCurrentAuthUser();
+        const currentUserId = authUser?.id ?? null;
+        const currentUserEmail = (authUser?.email ?? getCachedProfileEmail(currentUserId ?? "", ""))
+          .trim()
+          .toLowerCase();
+
+        let currentProfileRole: User["role"] | null = null;
+        if (currentUserId) {
+          try {
+            const ownProfile = (await fetchProfileRow(currentUserId, options)) as ProfileRow;
+            currentProfileRole = ownProfile.role;
+          } catch {
+            currentProfileRole = null;
+          }
+        }
+
         let managed: ManageProfileUserListResponse | null = null;
         try {
           managed = await invokeProfileAdminAction<ManageProfileUserListResponse>({
@@ -372,8 +401,21 @@ export const profileService = {
           return managed.users.map(toManagedUser);
         }
 
+        if (isPrivilegedRole(currentProfileRole)) {
+          const { data, error } = await withAbortSignal(
+            supabase.from("profiles").select("*"),
+            options.signal,
+          ).order("created_at", { ascending: true });
+
+          if (error) {
+            throw error;
+          }
+
+          return ((data ?? []) as ProfileRow[]).map((profile) => toUser(profile));
+        }
+
         const { data, error } = await withAbortSignal(
-          supabase.from("profiles").select("*"),
+          supabase.from("profiles_directory").select("*"),
           options.signal,
         ).order("created_at", { ascending: true });
 
@@ -381,9 +423,28 @@ export const profileService = {
           throw error;
         }
 
-        return ((data ?? []) as ProfileRow[]).map((profile) =>
-          toUser(profile, getCachedProfileEmail(profile.id, "")),
-        );
+        return ((data ?? []) as ProfileDirectoryRow[]).map((profile) => {
+          const role = profile.role ?? "sales";
+          const canViewEmail = profile.id === currentUserId;
+          const normalizedEmail = canViewEmail
+            ? currentUserEmail || getCachedProfileEmail(profile.id, "")
+            : "";
+
+          if (normalizedEmail) {
+            cacheProfileEmail(profile.id, normalizedEmail);
+          }
+
+          return {
+            id: profile.id,
+            full_name: profile.full_name,
+            email: normalizedEmail,
+            role,
+            department: profile.department ?? "",
+            is_active: profile.is_active ?? true,
+            avatar_url: profile.avatar_url ?? getDefaultAvatarUrl(role),
+            has_profile: true,
+          };
+        });
       })(),
     );
   },
@@ -393,7 +454,7 @@ export const profileService = {
       (async () => {
         ensureSupabaseConfigured();
         const row = await fetchProfileRow(id, options);
-        return toUser(row, getCachedProfileEmail(id, ""));
+        return toUser(row);
       })(),
     );
   },
@@ -404,24 +465,42 @@ export const profileService = {
         ensureSupabaseConfigured();
         const authUser = await createAuthUser(payload);
         const currentUser = await getCurrentAuthUser();
-        const { data, error } = await supabase
-          .from("profiles")
-          .insert({
-            id: authUser.id,
-            full_name: payload.full_name,
-            role: payload.role,
-            department: payload.department,
-            avatar_url: getDefaultAvatarUrl(payload.role),
-            is_active: true,
-          })
-          .select("*")
-          .single();
+        const normalizedEmail = (authUser.email || payload.email || "").trim().toLowerCase();
+        let savedUser = toManagedUser({
+          ...authUser,
+          email: normalizedEmail,
+          full_name: authUser.full_name ?? payload.full_name,
+          role: authUser.role ?? payload.role,
+          department: authUser.department ?? payload.department,
+          avatar_url: authUser.avatar_url ?? getDefaultAvatarUrl(authUser.role ?? payload.role),
+          is_active: authUser.is_active ?? true,
+          has_profile: authUser.has_profile ?? true,
+        });
 
-        if (error) {
-          throw error;
+        if (!authUser.role || !authUser.department || authUser.has_profile === false) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .update({
+              email: normalizedEmail || null,
+              full_name: payload.full_name,
+              role: payload.role,
+              department: payload.department,
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", authUser.id)
+            .select("*")
+            .maybeSingle();
+
+          if (error) {
+            throw error;
+          }
+
+          if (data) {
+            savedUser = toUser(data, normalizedEmail);
+          }
         }
 
-        cacheProfileEmail(authUser.id, authUser.email || payload.email);
         void runBestEffort("profile.create.audit", () =>
           createAuditLog({
             action: "create",
@@ -429,13 +508,15 @@ export const profileService = {
             entityId: authUser.id,
             newData: {
               message: `Tạo thành viên ${payload.full_name}`,
-              role: payload.role,
+              role: savedUser.role,
+              department: savedUser.department,
+              email: savedUser.email,
             },
             userId: currentUser?.id ?? null,
           }),
         );
 
-        return toUser(data, authUser.email || payload.email);
+        return savedUser;
       })(),
     );
   },
@@ -447,20 +528,46 @@ export const profileService = {
         const previous = await fetchProfileRow(id);
         const currentUser = await getCurrentAuthUser();
         const authUser = await syncAuthUser(id, payload);
-        const { data, error } = await supabase
-          .from("profiles")
-          .update({
-            full_name: payload.full_name ?? previous.full_name,
-            role: payload.role ?? previous.role,
-            department: payload.department ?? previous.department,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", id)
-          .select("*")
-          .single();
+        const normalizedEmail = (
+          authUser?.email ??
+          payload.email ??
+          previous.email ??
+          getCachedProfileEmail(id, "")
+        )
+          .trim()
+          .toLowerCase();
+        let savedUser: User;
 
-        if (error) {
-          throw error;
+        if (authUser?.id) {
+          savedUser = toManagedUser({
+            ...authUser,
+            email: authUser.email ?? normalizedEmail,
+            full_name: authUser.full_name ?? payload.full_name ?? previous.full_name,
+            role: authUser.role ?? payload.role ?? previous.role,
+            department: authUser.department ?? payload.department ?? previous.department ?? "",
+            avatar_url: authUser.avatar_url ?? previous.avatar_url ?? getDefaultAvatarUrl(authUser.role ?? payload.role ?? previous.role),
+            is_active: authUser.is_active ?? previous.is_active ?? true,
+            has_profile: authUser.has_profile ?? true,
+          });
+        } else {
+          const { data, error } = await supabase
+            .from("profiles")
+            .update({
+              email: normalizedEmail || null,
+              full_name: payload.full_name ?? previous.full_name,
+              role: payload.role ?? previous.role,
+              department: payload.department ?? previous.department,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", id)
+            .select("*")
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          savedUser = toUser(data, normalizedEmail);
         }
 
         void runBestEffort("profile.update.audit", () =>
@@ -470,16 +577,16 @@ export const profileService = {
             entityId: id,
             oldData: previous as unknown as Record<string, unknown>,
             newData: {
-              message: `Cập nhật thành viên ${data.full_name}`,
-              role: data.role,
-              department: data.department,
-              email: authUser?.email ?? payload.email ?? getCachedProfileEmail(id, ""),
+              message: `Cập nhật thành viên ${savedUser.full_name}`,
+              role: savedUser.role,
+              department: savedUser.department,
+              email: savedUser.email,
             },
             userId: currentUser?.id ?? null,
           }),
         );
 
-        return toUser(data, authUser?.email ?? payload.email ?? getCachedProfileEmail(id, ""));
+        return savedUser;
       })(),
     );
   },

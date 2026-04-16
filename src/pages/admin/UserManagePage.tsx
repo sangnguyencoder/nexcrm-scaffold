@@ -28,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useUsersQuery, queryKeys } from "@/hooks/useNexcrmQueries";
 import { getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
 import { profileService } from "@/services/profileService";
+import { useAuthStore } from "@/store/authStore";
 import type { User } from "@/types";
 
 const baseUserSchema = z.object({
@@ -230,6 +231,7 @@ function UserModal({
 
 export function UserManagePage() {
   const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? null);
   const { data: users = [], isLoading } = useUsersQuery();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<User["role"] | "all">("all");
@@ -332,6 +334,11 @@ export function UserManagePage() {
       });
     },
   });
+
+  const roleUpdatingUserId = updateRole.isPending ? (updateRole.variables?.id ?? null) : null;
+  const togglingUserId = toggleStatus.isPending ? (toggleStatus.variables ?? null) : null;
+  const deletingUserId = deleteUser.isPending ? (deleteUser.variables ?? null) : null;
+  const resettingUserId = resetPassword.isPending ? (resetPassword.variables?.id ?? null) : null;
 
   const filteredUsers = useMemo(
     () =>
@@ -454,8 +461,15 @@ export function UserManagePage() {
                   <TableCell>
                     <Select
                       value={user.role}
-                      disabled={user.has_profile === false || updateRole.isPending}
-                      onChange={(event) => updateRole.mutate({ id: user.id, role: event.target.value as User["role"] })}
+                      disabled={user.has_profile === false || roleUpdatingUserId === user.id}
+                      onChange={(event) => {
+                        const nextRole = event.target.value as User["role"];
+                        if (currentUserId === user.id && user.role === "super_admin" && nextRole !== "super_admin") {
+                          toast.error("Super Admin không thể tự hạ quyền của chính mình.");
+                          return;
+                        }
+                        updateRole.mutate({ id: user.id, role: nextRole });
+                      }}
                       className={getRoleBadgeColor(user.role)}
                     >
                       <option value="super_admin">Super Admin</option>
@@ -471,10 +485,10 @@ export function UserManagePage() {
                     <label className="flex items-center gap-3">
                       <Switch
                         checked={user.is_active}
-                        disabled={user.has_profile === false || toggleStatus.isPending}
+                        disabled={user.has_profile === false || togglingUserId === user.id || currentUserId === user.id}
                         onChange={() => toggleStatus.mutate(user.id)}
                       />
-                      <span className="text-sm">{user.is_active ? "Active" : "Inactive"}</span>
+                      <span className="text-sm">{user.is_active ? "Đang hoạt động" : "Đã khóa"}</span>
                     </label>
                   </TableCell>
                   <TableCell>
@@ -494,14 +508,14 @@ export function UserManagePage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setResetPasswordTarget(user)}
-                        disabled={resetPassword.isPending}
+                        disabled={resettingUserId === user.id}
                       >
                         <KeyRound className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        disabled={user.has_profile === false || deleteUser.isPending}
+                        disabled={user.has_profile === false || deletingUserId === user.id || currentUserId === user.id}
                         onClick={() => setDeleteTarget(user)}
                       >
                         <Trash2 className="size-4 text-rose-500" />

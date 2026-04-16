@@ -1,0 +1,192 @@
+FILE: docs\GỢI Ý BỐ CỤC QUYỂN BÁO CÁO TIỂU LUẬN.pdf
+PAGES: 6
+
+=== PAGE 1 ===
+1 
+ 
+BÀI TẬP THẢO LUẬN NHÓM 
+TÊN HỌC PHẦN: CÔNG NGHỆ PHẦN MỀM 
+ 
+1. NỘI DUNG YÊU CẦU THEO TỪNG BUỔI  
+1.1 Bài 1: Đặc tả phần mềm  
+Thời điểm kiểm tra: buổi học 4 
+a) Mục tiêu 
+Sinh viên nắm vững những kiến thức tổng quan về công nghệ phần mềm. Biết vận dụng 
+những kiến thức đã học vào cuộc sống nói chung và thực tế nghề nghiệp nói riêng. Đứng trước 
+một yêu cầu trong thực tế sinh viên có kỹ năng xác định được bài toán, và đưa ra được hướng 
+giải quyết vấn đề. 
+b) Nội dung sinh viên phải biết  
+- Sinh viên nắm vững và tổng hợp được những kiến thức cơ bản trong lĩnh v ực công 
+nghệ phần mềm: Các khái niệm; qui trình quản lý. 
+- Nắm được các nội dung chính trong bộ tiêu chuẩn CMM, CMMI. Cách áp dụng. 
+ - Có hiểu biết về xu hướng hiện nay của lĩnh vực công nghệ phần mềm. 
+ - Có kỹ năng xây dựng: tài liệu đặc tả phần mềm. 
+c) Nội dung chủ đề thảo luận 
+Các nhóm trình bày/ thảo luận các vấn đề chính theo yêu cầu của giảng viên bao gồm: 
+1. Trình bày các nội dung chính trong bộ tiêu chuẩn CMM, CMMI. 
+- Cách áp dụng các mô hình này. 
+- Dẫn chứng bằng các công ty ở Việt Nam đã áp dụng thành công các mô hình này. 
+2. Trình bày và phân tích các xu hướng hiện đại trong lĩnh vực công nghệ phần mềm hiện 
+nay. 
+3. Lựa chọn một mô hình phát triển phần mềm để áp dụng cho bài tập nhóm. 
+4. Báo cáo: Bản đặc tả phần mềm 
+a. Phương pháp đặc tả 
+b. Xác định rõ ràng các yêu cầu phần mềm 
+c. Tài liệu đặc tả phần mềm 
+d. Bản đánh giá yêu cầu đã xác định được ở trên 
+e. Lập kế hoạch quản lý yêu cầu
+
+=== PAGE 2 ===
+2 
+ 
+d) Hướng dẫn/ Gợi ý 
+1. Bộ tiêu chuẩn CMM, CMMI 
+2. Xác định yêu cầu phần mềm: Tham khảo phụ lục 1 
+3. Tài liệu đặc tả phần mềm: Tham khảo phụ lục 2 
+-------------------------------------------------------------------------------------------------------- 
+1.2 Buổi 2: Lựa chọn mô hình hệ thống, Thiết kế và cài đặt phần mềm 
+Thời điểm kiểm tra: buổi học 7 
+a) Mục tiêu 
+Có kỹ năng lựa chọn được mô hình hệ thống phù hợp với yêu cầu bài toán. Phân tích 
+thiết kế được yêu cầu, và tiến hành cài đặt các yêu cầu cơ bản của phần mềm. 
+b) Nội dung sinh viên phải biết  
+- Hiểu được mô hình hoá hệ thống là gì? Và tại sao phải mô hình hoá hệ thống, phân 
+biệt được các mô hình h ệ thống, có khả năng lựa chọn và ứng dụng các mô hình h ệ thống 
+vào từng trường hợp cụ thể. 
+-  Biết cách áp d ụng các phương pháp phân tích thi ết kế hệ thống: theo hư ớng cấu 
+trúc, hướng đối tượng, hướng cấu phần. 
+- Bước đầu cài đặt được các chức năng cơ bản. 
+c) Nội dung chủ đề thảo luận 
+Các nhóm trình bày/ thảo luận các vấn đề chính theo yêu cầu của giảng viên bao gồm: 
+1. Thuyết trình về sự lựa chọn của nhóm trong việc chọn 1 mô hình hệ thống để phát triển 
+phần mềm. 
+2. Báo cáo tài liệu phân tích thiết kế phần mềm. 
+3. Lựa chọn ngôn ngữ lập trình, tiến hành cài đặt phần mềm (ít nhất sẽ phải lập trình được 
+giao diện + ½ chức năng trong hệ thống).  
+4. Báo cáo demo chương trình. 
+5. Sử dụng công cụ quản lý mã nguồn (ví dụ: Git/GitHub, ...) 
+d) Hướng dẫn/ Gợi ý 
+Lựa chọn mô hình hệ thống để phát triển phần mềm: xem trong nội dung bài giảng bài 
+5, bài 6. 
+--------------------------------------------------------------------------------------------------------
+
+=== PAGE 3 ===
+3 
+ 
+1.3 Buổi 3: Kiểm thử phần mềm, kế hoạch bảo trì, đào tạo, hoàn thiện phần mềm 
+Thời điểm kiểm tra: buổi học 9 
+a) Mục tiêu 
+- Nắm được quy trình kiểm thử phần mềm. Tìm hiểu chi tiết về kiểm thử thành phần 
+và kiểm thử hệ thống; các phương pháp được sử dụng. Có kỹ năng thiết kế các trường hợp 
+kiểm thử và sử dụng các công cụ giúp tự động kiểm thử. 
+- Lập kế hoạch bảo trì ph ần mềm, Lập kế hoạch đào t ạo phần mềm. Hoàn thi ện các 
+chức năng trên phần mềm cùng các mẫu biểu giấy tờ để kết thúc dự án. 
+b) Nội dung sinh viên phải biết  
+ - Nắm vững các phương pháp kiểm thử phần mềm. 
+ - Có hiểu biết về các công cụ giúp tự động kiểm thử. 
+ - Tiến hành kiểm thử trên phần mềm mà nhóm xây dựng. 
+ - Có kỹ năng lập kế hoạch bảo trì, đào tạo người sử dụng cho phần mềm. 
+- Nắm được các vấn đề liên quan đến bảo trì: phân lo ại, phương pháp, chi phí b ảo 
+trì … 
+- Hiểu được một số quy trình và các chiến lược cải tiến phần mềm 
+- Hoàn thiện phần mềm với đầy đủ các chức năng cơ bản. 
+c) Nội dung chủ đề thảo luận 
+Các nhóm trình bày/ thảo luận các vấn đề chính theo yêu cầu của giảng viên bao gồm: 
+1. Trình bày phương pháp kiểm thử mà nhóm lựa chọn 
+2. Giới thiệu tổng quan về công cụ kiểm thử mà nhóm sẽ sử dụng 
+3. Báo cáo kết quả kiểm thử thực tế trên phần mềm, đánh giá kết quả, và giải pháp khắc 
+phục (nếu có). 
+4. Báo cáo bản kế hoạch bảo trì phần mềm. 
+5. Báo cáo bản kế hoạch đào tạo phần mềm. 
+6. Báo cáo đề cương tổng kết kết thúc dự án phần mềm: xem phụ lục 4 
+d) Hướng dẫn/ Gợi ý 
+❖ Điều kiện kết thúc dự án: 
+- Đã hoàn thành các yêu cầu dự án
+
+=== PAGE 4 ===
+4 
+ 
+- Chưa hoàn thành các yêu cầu, nhưng có các yếu tố sau: 
+o Kinh phí hết, không được cấp thêm 
+o Thời hạn hết, không cho phép gia hạn 
+o Ban quản lý và nhà tài trợ quyết định dừng dự án 
+o Những lý do đặc biệt khác 
+❖ Các công việc cần thực hiện khi kết thúc dự án: 
+- Đóng gói dự án 
+o Đánh giá thành viên tham gia và kiến nghị lợi ích 
+o Hoàn thiện tài liệu, chứng từ, dữ liệu 
+o Cảm ơn người tham gia, giúp đỡ 
+o Xử lý vấn đề tổ chức, nguồn lực liên quan 
+- Tổng kết sau dự án 
+o Xác định mặt mạnh, mặt yếu của sản phẩm 
+o Đánh giá sự hài lòng của khách hàng 
+o Đánh giá mặt được, chưa được của công tác quản lý 
+o Bài học kinh nghiệm, bàn giao 
+- Thanh lý hợp đồng với khách, đối tượng khác. 
+ 
+2. GỢI Ý BỐ CỤC TRÌNH BÀY QUYỂN BÁO CÁO 
+Bảng phân công nhiệm vụ 
+Mục lục 
+Bảng danh mục các từ viết tắt (nếu có) 
+Bảng danh mục các hình vẽ (nếu có) 
+Bảng danh mục các biểu đồ (nếu có) 
+Lời nói đầu/ mở đầu (Nêu tầm quan trọng của vấn đề giải quyết; Tên chủ đề lựa chọn, phạm 
+vi liên quan đến vấn đề được đặt ra; Quá trình phát tri ển, hiện trạng vấn đề lựa chọn; Vai trò 
+và ý nghĩa của đề tài trong lĩnh vực công nghệ phần mềm nói riêng và công nghệ thông tin nói
+
+=== PAGE 5 ===
+5 
+ 
+chung). 
+Ghi chú: Tùy thuộc mỗi loại vấn đề mà việc trình bày nội dung các chương có thể có 
+cách bố trí và bố cục riêng (Đặt vấn đề- đưa ra bài toán cụ thể; Phương pháp, công cụ sử dụng; 
+Các bước giải quyết; Ưu, nhược điểm của cách giải quyết; Ví dụ minh họa; So sánh với các 
+giải pháp khác cho vấn đề tương tự; Các mẫu biểu liên quan) 
+Chương 1. Tổng quan về công nghệ phần mềm (8-10 trang) 
+- Các khái niệm cơ bản [1]. 
+- Các xu hướng CNPM hiện đại 
+- Vòng đời phần mềm 
+- Quy trình phát triển phần mềm [2] 
+- Trình bày về mô hình phát triển phần mềm mà nhóm sử dụng (VD: Mô hình thác 
+nước, Mô hình mẫu thử,….) 
+- Các chuẩn trong CNPM (VD: CMM/CMMi, ISO, IEEE…) 
+- …… 
+Chương 2. Lập kế hoạch dự án (Thời gian, kinh phí, nhân sự, phân công chi tiết, kết quả 
+dự kiến….) (5-10 trang) 
+Chương 3. Đặc tả phần mềm (8-10 trang) 
+- Khảo sát hiện trạng 
+- Mô tả/ phát biểu bài toán 
+- Tài liệu Đặc tả phần mềm 
+Chương 4. Phân tích thiết kế hệ thống 
+- Giải pháp thực hiện: Mô hình tổ chức hệ thống, CTDL, Thuật toán…. 
+Chương 5. Cài đặt Demo (“tên đề tài”) 
+- Đưa ảnh chụp khoảng 3-5 giao diện demo (Với mỗi ảnh giao diện cần có 1 đoạn 
+khoảng 3-5 dòng mô tả) 
+- Kiểm thử: đưa ra test report. 
+- Kế hoạch Bảo trì, đào tạo, hoàn thiện phần mềm 
+Kết luận (Đã làm được gì? Chưa làm được gì? Hướng phát triển?) 
+✓ Sự triển khai ứng dụng hiện tại và triển vọng của giải pháp 
+✓ Những vấn đề còn tồn tại cần nghiên cứu tiếp
+
+=== PAGE 6 ===
+6 
+ 
+✓ Những đề xuất có thể 
+Tài liệu tham khảo 
+[1] Tên tác giả, Tên tài liệu, NXB, Năm XB 
+[2] link website 
+Ghi chú: Nội dung trong 5 chương như trên các nhóm có thể sắp xếp lại sao cho hợp lý logic, 
+và có thể bổ sung thêm các n ội dung khác đ ể bài báo cáo c ủa nhóm được thuyết phục hơn, 
+hay hơn.    
+Sản phẩm cần nộp cuối kỳ:  
+1. Quyển báo cáo (Bản in): Trang đầu tiên là bản phân công nhiệm vụ của các thành viên 
+trong nhóm. 
+2. File: Quyển báo cáo, PP n ội dung thuyết trình, Video demo chương trình  -> Gửi file 
+cho lớp trưởng tổng hợp đủ -> gửi email cho cô.   
+3. Bản phân công nhiệm vụ thực hiện trong nhóm: -> Gửi file cho lớp trưởng tổng hợp đủ 
+-> gửi email cho cô. 
+ 
+3. HÌNH THỨC TRÌNH BÀY 
+✓ Font ch ữ Time new roman, c ỡ chữ 13, Spacing: Befor 0pt, After: 6pt, Line 
+spacing: 1.3. 
+✓ Khổ giấy a4, lề trên, dưới, phải 2cm, lề trái 3 cm.

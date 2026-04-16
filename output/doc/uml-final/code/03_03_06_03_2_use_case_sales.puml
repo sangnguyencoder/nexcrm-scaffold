@@ -1,0 +1,73 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [3.6.3.2] Phân rã Use Case Nhân viên Sales
+    left to right direction
+
+    actor "Nhân viên Sales" as Sales
+
+    rectangle "Module Sales CRM" {
+      usecase "Xác thực đăng nhập" as Login
+      usecase "Quản lý khách hàng" as ManageCustomer
+      usecase "Quản lý giao dịch" as ManageTransaction
+      usecase "Quản lý pipeline" as ManagePipeline
+      usecase "Tìm kiếm khách hàng" as SearchCustomer
+      usecase "Tạo khách hàng" as CreateCustomer
+      usecase "Cập nhật khách hàng" as UpdateCustomer
+      usecase "Gắn tag và ghi note" as TagNote
+      usecase "Phân công phụ trách" as AssignOwner
+      usecase "Tạo giao dịch" as CreateTransaction
+      usecase "Xem lịch sử mua hàng" as ViewTransactionHistory
+      usecase "Cập nhật trạng thái giao dịch" as UpdateTransactionStatus
+      usecase "Tạo cơ hội bán hàng" as CreateDeal
+      usecase "Cập nhật stage deal" as UpdateDealStage
+      usecase "Tạo task follow-up" as CreateTask
+    }
+
+    Sales --> ManageCustomer
+    Sales --> ManageTransaction
+    Sales --> ManagePipeline
+
+    ManageCustomer ..> Login : <<include>>
+    ManageCustomer ..> SearchCustomer : <<include>>
+    ManageCustomer ..> CreateCustomer : <<include>>
+    ManageCustomer ..> UpdateCustomer : <<include>>
+    ManageCustomer ..> TagNote : <<include>>
+    ManageCustomer ..> AssignOwner : <<include>>
+
+    ManageTransaction ..> Login : <<include>>
+    ManageTransaction ..> CreateTransaction : <<include>>
+    ManageTransaction ..> ViewTransactionHistory : <<include>>
+    ManageTransaction ..> UpdateTransactionStatus : <<include>>
+
+    ManagePipeline ..> Login : <<include>>
+    ManagePipeline ..> CreateDeal : <<include>>
+    ManagePipeline ..> UpdateDealStage : <<include>>
+    ManagePipeline ..> CreateTask : <<include>>
+    @enduml

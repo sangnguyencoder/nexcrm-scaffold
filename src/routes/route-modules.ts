@@ -16,6 +16,7 @@ function createLazyRoute(
 }
 
 const auditLogRoute = createLazyRoute(() => import("@/pages/admin/AuditLogPage"), "AuditLogPage");
+const posSyncRoute = createLazyRoute(() => import("@/pages/admin/PosSyncPage"), "PosSyncPage");
 const settingsRoute = createLazyRoute(() => import("@/pages/admin/SettingsPage"), "SettingsPage");
 const userManageRoute = createLazyRoute(() => import("@/pages/admin/UserManagePage"), "UserManagePage");
 const automationRoute = createLazyRoute(() => import("@/pages/automation/AutomationPage"), "AutomationPage");
@@ -44,6 +45,7 @@ const routePreloaders = [
   { matcher: /^\/campaigns/, load: campaignRoute.load },
   { matcher: /^\/admin\/users/, load: userManageRoute.load },
   { matcher: /^\/admin\/audit/, load: auditLogRoute.load },
+  { matcher: /^\/admin\/pos-sync/, load: posSyncRoute.load },
   { matcher: /^\/admin\/settings/, load: settingsRoute.load },
   { matcher: /^\/login/, load: loginRoute.load },
   { matcher: /^\/forbidden/, load: forbiddenRoute.load },
@@ -60,6 +62,7 @@ export function preloadRoutePath(pathname: string) {
 
 export const routeComponents = {
   AuditLogPage: auditLogRoute.component,
+  PosSyncPage: posSyncRoute.component,
   SettingsPage: settingsRoute.component,
   UserManagePage: userManageRoute.component,
   AutomationPage: automationRoute.component,

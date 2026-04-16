@@ -280,8 +280,8 @@ export function formatPaymentMethod(method: string): string {
 
 export function formatDealStage(stage: DealStage): string {
   const map: Record<DealStage, string> = {
-    lead: "Lead",
-    qualified: "Đã xác thực",
+    lead: "Tiếp cận",
+    qualified: "Đủ điều kiện",
     proposal: "Đề xuất",
     negotiation: "Đàm phán",
     won: "Thành công",

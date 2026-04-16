@@ -1,0 +1,1890 @@
+P2: TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN & TRUYỀN THÔNG – ĐẠI HỌC THÁI NGUYÊN
+P3: KHOA CÔNG NGHỆ THÔNG TIN
+P5: MÔN: Công Nghệ Phần Mềm
+P6: ĐỀ TÀI: XÂY DỰNG PHẦN MỀM QUẢN LÝ KHÁCH HÀNG
+P7: Sinh Viên Thực Hiện	:   Phạm Thị Nhung
+P8: Nguyễn Văn Sáng
+P9: Nguyễn Thị Khánh Hòa
+P10: Hà Quang Tiến
+P11: Vũ Trọng Tuyền
+P12: Lớp                             	:   KHMT K23A
+P13: Giảng viên hướng dẫn : Nguyễn Thị Cành
+P15: Thái Nguyên, Ngày…tháng…năm 20…
+P21: BẢNG PHÂN CÔNG NHIỆM VỤ
+P22: ⚠️ SỬA TAY: Điều chỉnh nhiệm vụ cho đúng phân công thực tế
+P24: LỜI NÓI ĐẦU
+P25: Trong bối cảnh doanh nghiệp ngày càng phụ thuộc vào dữ liệu và trải nghiệm khách hàng, nhu cầu xây dựng một hệ thống Customer Relationship Management (CRM) có khả năng quản lý tập trung hồ sơ khách hàng, lịch sử giao dịch, phản hồi và hoạt động chăm sóc sau bán hàng trở nên rất cấp thiết. Một hệ thống CRM được thiết kế tốt không chỉ giúp lưu trữ dữ liệu nhất quán mà còn hỗ trợ nhà quản lý theo dõi hiệu quả kinh doanh, chất lượng phục vụ và mức độ gắn kết của khách hàng theo thời gian.
+P26: Xuất phát từ yêu cầu đó, nhóm lựa chọn đề tài "Xây dựng phần mềm quản lý khách hàng" trong khuôn khổ học phần Công nghệ phần mềm. Sản phẩm được hiện thực hóa dưới dạng một ứng dụng web sử dụng React, Vite và Supabase, tập trung vào các chức năng cốt lõi của CRM như quản lý khách hàng, giao dịch, phản hồi - khiếu nại, chiến dịch marketing, dashboard báo cáo, pipeline bán hàng, tác vụ follow-up và quản trị người dùng.
+P27: Báo cáo này trình bày toàn bộ quá trình hình thành hệ thống theo hướng tiếp cận kỹ nghệ phần mềm: từ khảo sát nghiệp vụ, xác định và đánh giá yêu cầu, mô hình hóa use case - activity, thiết kế kiến trúc 3 lớp, đến xây dựng, kiểm thử, vận hành thử và đề xuất hướng phát triển. Nhóm đồng thời rà soát để nội dung báo cáo phản ánh đúng mức hiện thực hóa của project hiện tại, tránh mô tả vượt quá bằng chứng có trong hệ thống.
+P28: Với tinh thần cầu thị, nhóm kỳ vọng báo cáo vừa đáp ứng đúng yêu cầu học phần, vừa thể hiện được cách tiếp cận nghiêm túc đối với một sản phẩm CRM có định hướng phát triển theo mô hình SaaS trong tương lai. Nhóm xin chân thành cảm ơn giảng viên hướng dẫn và mong nhận được thêm các góp ý để tiếp tục hoàn thiện cả báo cáo lẫn hệ thống.
+P29: Mục Lục
+P32: Chương 1 : Tổng quan về công nghệ phần mềm
+P33: 1.1.Các khái niệm cơ bản
+P34: 1.1.1 Phần mềm
+P35: Nghĩa đơn giản nhất của phần mềm (software) là các chương trình chứa các dòng lệnh chỉ thị cho máy tính thực hiện một công việc nào đó. Đôi khi người ta gọi phần mềm là chương trình, cho dù thực tế thì phần mềm gồm nhiều chương trình và dữ liệu. Ví dụ: chương trình quản lý nhân sự, chương trình quản lý tín dụng...
+P36: Trong công nghệ phần mềm, người ta hiểu phần mềm: không chỉ là các chương trình, dữ liệu, mà còn gồm cả các tài liệu liên quan như các bản đặc tả,     thiết kế, hướng dẫn sử dụng, các thông tin cấu hình cần thiết để làm cho các chương trình này có thể vận hành một cách đúng đắn.
+P37: 1.1.2 Công nghệ (Engineering)
+P38: Công nghệ (Engineering) được định nghĩa là phương pháp hoặc cách thức thực hiện một công việc (cụ thể hoặc trừu tượng) dựa trên việc áp dụng các thành tựu khoa học một cách bài bản và hệ thống.
+P39: Mọi tiến trình công nghệ đều hướng tới việc sản xuất sản phẩm thông qua một quy trình (process) nghiêm ngặt. Một quy trình công nghệ chuẩn luôn phải xác định rõ 4 yếu tố cốt lõi:
+P40: Who (Ai): Nhân sự thực hiện và trách nhiệm.
+P41: What (Làm gì): Nội dung công việc và kết quả mong muốn.
+P42: When (Khi nào): Tiến độ và thời hạn.
+P43: How (Làm như thế nào): Phương pháp và công cụ sử dụng.
+P44: 1.1.3. Công nghệ phần mềm (Software Engineering - SE)
+P45: Công nghệ phần mềm là một ngành kỹ thuật (engineering discipline) chuyên biệt, tập trung vào tất cả các khía cạnh của quy trình phát triển sản phẩm phần mềm. Theo định nghĩa của Fritz Bauer, đây là việc “thiết lập và sử dụng các nguyên tắc khoa học nhằm tạo ra các sản phẩm phần mềm một cách kinh tế, hoạt động hiệu quả và tin cậy trên các hệ thống máy tính”.
+P46: Bản chất của Công nghệ phần mềm
+P47: Công nghệ phần mềm không chỉ là việc lập trình đơn thuần, mà là sự phối hợp đồng bộ giữa phương pháp, công cụ và quy trình nghiêm ngặt. Đặc điểm nổi bật của SE là tính định lượng và kỷ luật cao, chuyển đổi phần mềm từ mức khái niệm (yêu cầu khách hàng) sang mức vận hành thực tế (hệ thống phần mềm hoàn chỉnh, đóng gói) thông qua việc phát triển mới hoặc nâng cấp các hệ thống đã tồn tại.
+P48: 1.2 Các xu hướng công nghệ phần mềm hiện đại
+P49: Trong những năm gần đây, sự phát triển mạnh mẽ của công nghệ thông tin đã tạo ra nhiều xu hướng mới trong lĩnh vực công nghệ phần mềm. Các xu hướng này giúp nâng cao hiệu quả phát triển phần mềm, mở rộng khả năng xử lý dữ liệu và tạo ra nhiều ứng dụng thông minh phục vụ cho các lĩnh vực của đời sống. Một số xu hướng tiêu biểu hiện nay bao gồm:
+P50: 1.2.1 Internet of Things (IoT)
+P51: Internet of Things (IoT) là xu hướng kết nối các thiết bị vật lý với Internet để thu thập, trao đổi và xử lý dữ liệu. Các thiết bị như cảm biến, thiết bị gia dụng thông minh, xe hơi thông minh hay hệ thống nhà thông minh đều có thể kết nối và giao tiếp với nhau thông qua Internet.
+P52: Trong công nghệ phần mềm, IoT yêu cầu phát triển các hệ thống phần mềm có khả năng quản lý, xử lý dữ liệu thời gian thực và đảm bảo tính bảo mật cao. IoT đang được ứng dụng rộng rãi trong các lĩnh vực như nhà thông minh, y tế, nông nghiệp thông minh và quản lý đô thị.
+P53: 1.2.2 Trí tuệ nhân tạo (Artificial Intelligence) và Big Data
+P54: Trí tuệ nhân tạo (AI) là công nghệ cho phép máy tính mô phỏng các hoạt động trí tuệ của con người như học tập, suy luận và ra quyết định. Kết hợp với Big Data – công nghệ xử lý khối lượng dữ liệu lớn – AI giúp các hệ thống phần mềm có khả năng phân tích dữ liệu và đưa ra dự đoán chính xác.
+P55: Các ứng dụng phổ biến của AI và Big Data bao gồm hệ thống gợi ý sản phẩm, nhận dạng giọng nói, nhận diện hình ảnh, chatbot và phân tích dữ liệu kinh doanh. Đây là một trong những xu hướng quan trọng nhất trong phát triển phần mềm hiện nay.
+P56: 1.2.3 Thực tế ảo (Virtual Reality – VR) và Thực tế tăng cường (Augmented Reality – AR)
+P57: VR và AR là các công nghệ cho phép tạo ra môi trường ảo hoặc bổ sung thông tin ảo vào môi trường thực. Trong VR, người dùng được trải nghiệm hoàn toàn trong một không gian ảo thông qua các thiết bị chuyên dụng. Trong khi đó, AR bổ sung các yếu tố ảo vào môi trường thực thông qua màn hình điện thoại hoặc kính thông minh.
+P58: Các công nghệ này đang được ứng dụng trong nhiều lĩnh vực như giáo dục, giải trí, đào tạo kỹ năng, y tế và mô phỏng công nghiệp. Sự phát triển của VR/AR đang mở ra nhiều cơ hội mới cho các hệ thống phần mềm tương tác.
+P59: 1.2.4 Tự động hóa quy trình bằng robot (Robotic Process Automation – RPA)
+P60: Robotic Process Automation (RPA) là công nghệ cho phép tự động hóa các quy trình công việc lặp đi lặp lại trong doanh nghiệp thông qua các phần mềm robot. Các robot phần mềm có thể thực hiện các tác vụ như nhập dữ liệu, xử lý hóa đơn, kiểm tra thông tin hoặc gửi báo cáo.
+P61: Việc áp dụng RPA giúp giảm thiểu công việc thủ công, tăng năng suất làm việc và giảm sai sót trong quá trình xử lý dữ liệu. Đây là xu hướng quan trọng trong việc tự động hóa các hoạt động nghiệp vụ trong doanh nghiệp.
+P62: 1.2.5 Xác thực không mật khẩu (Passwordless Authentication)
+P63: Xác thực không mật khẩu là xu hướng bảo mật mới nhằm thay thế phương pháp đăng nhập bằng mật khẩu truyền thống. Thay vì sử dụng mật khẩu, người dùng có thể xác thực bằng các phương thức khác như sinh trắc học (vân tay, nhận diện khuôn mặt), mã OTP hoặc khóa bảo mật.
+P64: Công nghệ này giúp nâng cao tính bảo mật của hệ thống phần mềm, đồng thời mang lại trải nghiệm thuận tiện hơn cho người dùng. Hiện nay nhiều hệ thống phần mềm và dịch vụ trực tuyến đang dần chuyển sang sử dụng các phương thức xác thực hiện đại này.
+P65: 1.2.6 Liên hệ xu hướng CNPM với hệ thống CRM hiện đại
+P66: Những xu hướng công nghệ phần mềm hiện đại tác động trực tiếp đến cách nhóm thiết kế hệ thống CRM. Trước hết, AI và Big Data tạo nền tảng để hệ thống phân tích hành vi mua hàng, tần suất tương tác và giá trị giao dịch nhằm tự động phân loại khách hàng theo trường customer_type như VIP, loyal hoặc potential; đây là cơ sở cho cá nhân hóa chăm sóc và ưu tiên xử lý. Bên cạnh đó, RPA định hướng việc xây dựng các automation rules giúp gửi email hoặc SMS chăm sóc, nhắc lịch follow-up và kích hoạt quy trình hậu mãi mà không cần thao tác thủ công ở từng trường hợp. Về bảo mật, xu hướng Passwordless Authentication phù hợp với giải pháp Supabase Auth vì nền tảng này hỗ trợ Magic Link và OAuth để thay thế mật khẩu truyền thống, đồng thời cải thiện trải nghiệm đăng nhập. Cuối cùng, kiến trúc cloud-native được thể hiện qua việc sử dụng Supabase theo mô hình BaaS, giúp nhóm tập trung vào nghiệp vụ CRM thay vì phải tự quản trị hạ tầng máy chủ.
+P67: 1.3. Vòng đời phần mềm
+P68: 1.3.1 Khái niệm Vòng đời phần mềm
+P69: Vòng đời phát triển phần mềm (SDLC) là một khung quy trình có cấu trúc được thiết lập để quản lý và điều phối các hoạt động trong quá trình xây dựng, phát triển, thẩm định và tiến hóa các hệ thống phần mềm. SDLC đảm bảo rằng sản phẩm cuối cùng không chỉ đạt được chất lượng kỹ thuật mà còn thỏa mãn tối đa các yêu cầu của người dùng trong khuôn khổ ngân sách và thời hạn quy định.
+P70: 1.3.2 Các giai đoạn cốt lõi của SDLC
+P71: Một tiến trình SDLC tiêu chuẩn bao gồm 6 giai đoạn cốt lõi sau:
+P72: Xác định & Phân tích yêu cầu (Requirement Engineering): Giai đoạn nền tảng nhằm định nghĩa rõ phạm vi, chức năng và các giới hạn của hệ thống thông qua việc tương tác chặt chẽ với khách hàng.
+P73: Thiết kế hệ thống (Design): Chuyển đổi yêu cầu thành kiến trúc phần mềm, bao gồm thiết kế cơ sở dữ liệu, giao diện người dùng (UI/UX) và cấu trúc tổng thể của hệ thống.
+P74: Triển khai & Lập trình (Implementation): Hiện thực hóa các thiết kế kiến trúc thành mã nguồn (source code) thông qua các ngôn ngữ và công cụ lập trình cụ thể.
+P75: Thẩm định & Kiểm thử (Verification & Validation): Thực hiện các quy trình kiểm thử để bảo đảm sản phẩm vận hành đúng theo đặc tả kỹ thuật và kỳ vọng của người dùng.
+P76: Triển khai & Vận hành (Deployment): Đưa phần mềm vào môi trường thực tế để người dùng cuối sử dụng và theo dõi ổn định ban đầu của hệ thống.
+P77: Tiến hóa & Bảo trì (Maintenance & Evolution): Giai đoạn dài hạn tập trung vào sửa lỗi, cập nhật tính năng và tối ưu hóa hệ thống để thích nghi với nhu cầu vận hành thực tế.
+P78: 1.4. Quy trình phát triển phần mềm
+P79: 1.4.1 Định nghĩa và Bản chất
+P80: Quy trình phát triển phần mềm là một tập hợp các hoạt động có cấu trúc với mục đích xây dựng, phát triển và tiến hóa phần mềm. Đây là nền tảng quản trị giúp trả lời các câu hỏi chiến lược trong dự án: Làm gì (What)? Khi nào làm (When)? Ai làm (Who)? Làm như thế nào (How)? Ở đâu (Where)? Bằng công cụ gì (With what)? và Tiêu chí đánh giá là gì?
+P83: 1.4.2. Các hoạt động cốt lõi
+P84: Mọi quy trình phần mềm chuẩn đều bao gồm 4 nhóm hoạt động chính:
+P85: Xác định yêu cầu: Nhận diện và đặc tả rõ các mục tiêu, chức năng của sản phẩm phần mềm.
+P86: Phát triển (Development): Quá trình chuyển đổi các yêu cầu thành mã thực thi và kiến trúc hệ thống.
+P87: Thẩm định (Validation): Kiểm tra tính đúng đắn của phần mềm so với yêu cầu ban đầu để đảm bảo chất lượng.
+P88: Tiến hóa (Evolution): Các hoạt động sửa lỗi, bảo trì và thay đổi phần mềm nhằm đáp ứng các nhu cầu mới hoặc thay đổi từ môi trường vận hành.
+P89: 1.4.3. Đặc trưng của quy trình phần mềm
+P90: Tính gắn kết dự án: Mỗi quy trình không đứng tách biệt mà gắn liền với đặc thù của từng dự án cụ thể.
+P91: Tính cấu trúc xác định: Quy trình quy định rõ trình tự thực hiện công việc, phương pháp và công cụ hỗ trợ.
+P92: Kết quả đầu ra (Deliverable): Sản phẩm cuối cùng của quy trình là phần mềm đã được bàn giao, đóng gói và sẵn sàng vận hành.
+P93: 1.5. Các mô hình phát triển phần mềm và mô hình áp dụng cho dự án
+P94: Mô hình quy trình phần mềm là biểu diễn đơn giản hóa của quy trình phát triển, giúp kỹ sư định hướng công việc và kiểm soát dự án.
+P95: 1.5.1. Mô hình Thác nước (Waterfall Model)
+P96: Đây là mô hình quy trình hướng kế hoạch với các pha được thực hiện tuần tự, nghiêm ngặt; kết thúc pha trước mới được bắt đầu pha tiếp theo.
+P97: Ưu điểm: Dễ quản lý; tài liệu đầu ra đầy đủ; các mục tiêu rõ ràng, dễ thẩm tra.
+P98: Nhược điểm: Tính linh hoạt thấp, khó thay đổi yêu cầu sau khi đã chuyển pha; rủi ro cao do kiểm thử thực hiện ở cuối chu kỳ.
+P99: 1.5.2. Mô hình Chữ V (V-Model)
+P100: Là mô hình cải tiến từ Thác nước bằng cách thực hiện các hoạt động kiểm thử song song với từng giai đoạn phát triển.
+P101: Ưu điểm: Tính tổ chức cao; sự mơ hồ được phát hiện sớm thông qua việc lập kế hoạch kiểm thử ngay từ đầu.
+P102: Nhược điểm: Không linh hoạt với các dự án có yêu cầu thay đổi liên tục; thiếu sản phẩm làm việc trung gian.
+P103: 1.5.3. Mô hình Mẫu thử (Prototyping Model)
+P104: Tập trung vào việc xây dựng phiên bản mẫu thử sớm để làm rõ yêu cầu, sau đó tinh chỉnh qua nhiều vòng lặp trước khi xây dựng hệ thống hoàn chỉnh.
+P105: Ưu điểm: Thỏa mãn tốt yêu cầu người dùng; xác định yêu cầu mơ hồ nhanh chóng.
+P106: Nhược điểm: Cấu trúc hệ thống có thể chưa tối ưu; tốn chi phí và thời gian để xây dựng nhiều phiên bản thử nghiệm.
+P107: 1.5.4. Mô hình Xoắn ốc (Spiral Model)
+P108: Kết hợp giữa tư duy Thác nước, Mẫu thử và chú trọng vào việc phân tích rủi ro trong mỗi vòng lặp.
+P109: Ưu điểm: Quản lý rủi ro tốt; cho phép thay đổi và tiến hóa yêu cầu sau mỗi vòng xoắn; phù hợp với các hệ thống phức tạp, quy mô lớn.
+P110: Nhược điểm: Đòi hỏi kỹ năng đánh giá rủi ro cao từ quản trị dự án; chi phí quản lý vận hành lớn.
+P111: 1.5.5. Mô hình Tăng trưởng (Incremental Model)
+P112: Phát triển phần mềm theo từng phần nhỏ, mỗi phần hoàn thiện dần tính năng (chức năng) dựa trên sự ưu tiên của khách hàng.
+P113: Ưu điểm: Đáp ứng nhanh nhu cầu thị trường; khách hàng thấy được kết quả từng phần; rủi ro thấp do triển khai từng phần.
+P114: Nhược điểm: Đòi hỏi đơn vị phát triển phải có tiềm lực kỹ thuật và tài sản phần mềm sẵn có tốt.
+P115: 1.5.6. Mô hình Phát triển ứng dụng nhanh (RAD - Rapid Application Development)
+P116: Tập trung vào việc sử dụng các công cụ tự động, thành phần có sẵn và chú trọng khả năng tái sử dụng để rút ngắn thời gian phát triển (thường từ 60-90 ngày).
+P117: Ưu điểm: Tốc độ bàn giao sản phẩm rất nhanh; giảm thiểu rủi ro tích hợp.
+P118: Nhược điểm: Phụ thuộc nhiều vào công cụ hỗ trợ và năng lực của đội ngũ phát triển.
+P119: 1.5.7. Quy trình hợp nhất (RUP - Rational Unified Process)
+P120: Là quy trình phát triển phần mềm hướng đối tượng, kiến trúc tập trung, được điều chỉnh linh hoạt theo đặc thù của tổ chức.
+P121: Đặc điểm: Bao gồm các pha: Khởi đầu (Inception), Chi tiết (Elaboration), Xây dựng (Construction) và Thẩm định (Transition).
+P122: Ưu điểm: Cung cấp giải pháp toàn diện, quản lý chặt chẽ nhưng có độ uyển chuyển nhất định trong áp dụng.
+P123: 1.5.8. Mô hình phát triển phần mềm áp dụng cho dự án (Agile/Scrum)
+P124: Nhóm quyết định áp dụng mô hình Agile (Scrum) cho dự án CRM vì đây là mô hình tối ưu nhất để quản lý các yêu cầu nghiệp vụ phức tạp và thường xuyên thay đổi. Cụ thể như sau:
+P125: Khả năng thích ứng cao: Cho phép nhóm tiếp nhận và điều chỉnh yêu cầu của người dùng sau mỗi chu kỳ phát triển (Sprint), tránh được sự cứng nhắc của các mô hình truyền thống.
+P126: Giá trị sản phẩm liên tục: Agile tập trung vào việc tạo ra các tính năng chạy được (Working Software) ngay từ các Sprint đầu, giúp khách hàng thấy được tiến độ thực tế.
+P127: Cộng tác chặt chẽ: Thúc đẩy sự giao tiếp liên tục trong nhóm, từ đó giảm thiểu tối đa các hiểu lầm về nghiệp vụ CRM giữa các thành viên.
+P128: Nguyên tắc vận hành chính:
+P129: Tính lặp (Iterative): Dự án được chia nhỏ thành nhiều Sprint, mỗi Sprint là một vòng lặp hoàn chỉnh từ thiết kế đến kiểm thử.
+P130: Tính tiến hóa (Incremental): Hệ thống được xây dựng dần dần, mỗi Sprint hoàn thiện một nhóm tính năng (ví dụ: Sprint 1 làm module khách hàng, Sprint 2 làm module tương tác).
+P131: Tính minh bạch: Mọi thành viên đều nắm rõ tiến độ qua các buổi họp Daily Scrum hàng ngày.
+P132: Các hoạt động chủ đạo trong quy trình Scrum:
+P133: Product Backlog: Xây dựng danh sách các tính năng ưu tiên (yêu cầu nghiệp vụ CRM).
+P134: Sprint Planning: Lập kế hoạch chi tiết cho các công việc trong Sprint (2-4 tuần).
+P135: Daily Scrum: Họp nhanh 15 phút để đồng bộ công việc và xử lý rào cản.
+P136: Sprint Review/Retrospective: Demo sản phẩm và rút kinh nghiệm để cải thiện hiệu suất đội ngũ.
+P137: Ưu và nhược điểm đối với dự án:
+P138: Ưu điểm: Giảm thiểu rủi ro qua demo liên tục; linh hoạt trước thay đổi nghiệp vụ; tăng tính tự chủ cho đội ngũ phát triển.
+P139: Nhược điểm: Đòi hỏi sự cam kết cao từ các thành viên; yêu cầu kỹ năng quản lý nhóm tốt để tránh tình trạng làm việc lan man.
+P140: 1.6. Chuẩn CMM/CMMI
+P141: 1.6.1 Khái niệm
+P142: CMM (Capability Maturity Model): Là mô hình năng lực trưởng thành, một công cụ dùng để cải thiện và hoàn thiện các quy trình phát triển phần mềm thông qua phương pháp có cấu trúc để đánh giá thực tiễn và xác định lộ trình cải thiện.
+P143: CMMI (Capability Maturity Model Integration): Phiên bản kế thừa và tích hợp của CMM, giúp tổ chức tối ưu hóa hiệu suất không chỉ trong phần mềm mà còn trong phát triển sản phẩm và dịch vụ nói chung.
+P144: 1.6.2 Mục đích và Vai trò
+P145: Thiết lập lộ trình: Cải tiến quy trình liên tục, kiểm soát chất lượng sản phẩm và tiến độ dự án.
+P146: Tối ưu hóa nguồn lực: Nhận diện và loại bỏ các hoạt động kém hiệu quả để phân bổ nhân lực, tiền bạc và thời gian tốt nhất.
+P147: Quản lý chất lượng: Áp dụng các thực tiễn tốt nhất để đảm bảo và kiểm soát chất lượng đầu ra.
+P148: Tăng năng suất: Đơn giản hóa quy trình để tăng sản lượng mà không ảnh hưởng đến chất lượng.
+P149: 1.6.3 Các cấp độ trưởng thành trong CMM/CMMI
+P150: Mô hình được chia thành 5 cấp độ (Levels) từ thấp đến cao:
+P151: 1.6.4 Quy trình áp dụng CMMI trong doanh nghiệp
+P152: Để triển khai CMMI thành công, doanh nghiệp thường thực hiện qua 7 bước:
+P153: Đánh giá hiện trạng: Phân tích quy trình hiện tại để xác định mức trưởng thành thực tế.
+P154: Xác định mục tiêu: Chọn mức CMMI cần đạt (Level 2, 3...) và các quy trình trọng tâm.
+P155: Lập kế hoạch: Thành lập nhóm cải tiến quy trình (Process Improvement Team - PIT).
+P156: Chuẩn hóa quy trình: Thiết kế và ban hành tài liệu quy trình theo chuẩn CMMI.
+P157: Đào tạo & Áp dụng thử: Huấn luyện nhân viên và triển khai thí điểm vào các dự án.
+P158: Đánh giá nội bộ: Kiểm tra, sửa đổi quy trình để phù hợp với thực tế sản xuất.
+P159: Đánh giá chứng nhận: Mời tổ chức độc lập đánh giá và cấp chứng chỉ chính thức.
+P160: 1.6.5. Các doanh nghiệp Việt Nam tiêu biểu áp dụng thành công CMMI
+P161: FPT Software (FSOFT)
+P162: Trạng thái: Là đơn vị tiên phong tại Việt Nam đạt CMMI Level 5 (từ năm 2004 với bản CMM và 2006 với CMMI). Hiện tại đã đạt CMMI Level 5 phiên bản 2.0.
+P163: Hiệu quả ghi nhận: Năng lực quản lý tiến độ dự án tăng 67%.
+P164: Chất lượng sản phẩm tăng 13%.
+P165: Năng suất lao động tăng 33%.
+P166: Ứng dụng: Sử dụng CMMI làm "giấy thông hành" để chinh phục các thị trường khó tính như Nhật Bản, Mỹ và Châu Âu, quản lý các dự án triệu đô với quy trình kiểm soát lỗi nghiêm ngặt.
+P167: Viettel High Technology (VHT) - Tổng công ty Công nghiệp Công nghệ cao Viettel
+P168: Trạng thái: Đạt chứng chỉ CMMI-DEV Level 3 quốc tế (năm 2022) cho lĩnh vực nghiên cứu sản xuất thiết bị công nghệ cao.
+P169: Chi tiết: VHT áp dụng CMMI để chuẩn hóa quy trình phát triển sản phẩm từ phần cứng đến phần mềm trong các lĩnh vực quân sự và dân sự.
+P170: Hiệu quả: Việc áp dụng giúp VHT tối ưu hóa quy trình phối hợp giữa các nhóm nghiên cứu lớn, đảm bảo các thiết bị hạ tầng viễn thông (như 5G) đạt tiêu chuẩn chất lượng khắt khe nhất của quốc tế.
+P171: TMA Solutions
+P172: Trạng thái: Một trong những doanh nghiệp phần mềm lớn nhất Việt Nam đạt CMMI Level 5.
+P173: Chi tiết: TMA đã duy trì các quy trình chuẩn CMMI trong nhiều năm để phục vụ hơn 100 khách hàng từ 27 quốc gia.
+P174: Hiệu quả: CMMI Level 5 giúp TMA xây dựng niềm tin tuyệt đối với các khách hàng trong lĩnh vực Viễn thông và Tài chính - Ngân hàng, nơi sai sót phần mềm có thể gây hậu quả cực lớn. Quy trình định lượng tại đây cho phép quản lý rủi ro dự án một cách khoa học.
+P175: NashTech Vietnam
+P176: Trạng thái: Đạt chứng chỉ CMMI Level 5.
+P177: Hiệu quả: NashTech sử dụng CMMI để duy trì sự ổn định trong vận hành các dự án phức tạp về Cloud, Data Science và AI. Việc đạt cấp độ cao nhất giúp công ty này duy trì vị thế dẫn đầu trong xuất khẩu phần mềm tại thị trường Anh và khu vực Châu Á - Thái Bình Dương.
+P179: Chương 2 : Lập kế hoạch dự án
+P180: 2.1. Lý do chọn đề tài
+P181: Nhu cầu thị trường: Trong bối cảnh kinh tế số, các doanh nghiệp và tổ chức đang phát triển rất nhanh, đòi hỏi một hệ thống quản lý dữ liệu khách hàng chuyên nghiệp và tập trung để thấu hiểu hành vi người dùng. Một phần mềm quản trị quan hệ khách hàng (CRM) sẽ giúp doanh nghiệp tương tác tốt hơn, đáp ứng kịp thời các yêu cầu và tăng tính cạnh tranh trên thị trường.
+P182: Cơ hội thị trường: Thị trường phần mềm CRM hiện nay đang rất tiềm năng và là xu hướng tất yếu của chuyển đổi số, cung cấp cơ hội kinh doanh và phát triển lớn cho các công ty phần mềm. Việc xây dựng một giải pháp CRM hoàn thiện không chỉ mang lại giá trị kinh tế mà còn khẳng định năng lực công nghệ của đơn vị phát triển.
+P183: Sự tiện lợi và hiệu quả: Phần mềm CRM giúp cho công tác quản trị khách hàng trở nên đơn giản, khoa học và hiệu quả hơn. CRM giúp cho việc quản lý thông tin liên hệ, lịch sử giao dịch, phản hồi khiếu nại và các chiến dịch Marketing trở nên dễ dàng, đồng bộ và đạt độ chính xác cao.
+P184: Sự cần thiết: Một phần mềm CRM được thiết kế bài bản sẽ giúp doanh nghiệp quản lý dữ liệu chính xác, loại bỏ các sai sót và rủi ro thất thoát thông tin từ việc quản lý thủ công bằng giấy tờ hay Excel. Nó cũng giúp doanh nghiệp tối ưu hóa nguồn lực nhân sự, tiết kiệm thời gian và giảm thiểu chi phí vận hành đáng kể.
+P185: => Vì những lý do trên, việc lựa chọn đề tài "Xây dựng phần mềm quản lý khách hàng" là một sự lựa chọn hợp lý, có tính thực tiễn cao và tiềm năng phát triển mạnh mẽ trong tương lai.
+P186: 2.2. Sơ lược về dự án
+P187: Tên dự án: Xây dựng phần mềm quản lý khách hàng (CRM).
+P188: Tổng thời gian dự kiến: 03 tháng (chia thành 6 Sprint, mỗi Sprint kéo dài 2 tuần).
+P189: Tổng kinh phí dự kiến:150.000.000 VNĐ (150 triệu đồng). Để dự án triển khai hiệu quả, nguồn kinh phí này được phân bổ dự kiến theo tỷ trọng như sau:
+P190: Chi phí nhân sự (Lương cho đội ngũ phát triển, kiểm thử, quản lý): 60%
+P191: Chi phí hạ tầng kỹ thuật (Thuê Server, Cloud, bản quyền phần mềm): 20%
+P192: Chi phí đào tạo và chuyển giao công nghệ cho khách hàng: 10%
+P193: Chi phí dự phòng rủi ro: 10%
+P194: Nhân sự dự án và vai trò theo mô hình Scrum:
+P195: Phạm Thị Nhung - Vai trò Product Owner (Chủ sản phẩm): Chịu trách nhiệm thấu hiểu nghiệp vụ, định nghĩa các yêu cầu, quản lý Product Backlog và quyết định độ ưu tiên của các tính năng cần phát triển.
+P196: Vũ Trọng Tuyền & Nguyễn Thị Khánh Hòa - Vai trò Scrum Master: Chịu trách nhiệm điều phối quy trình Scrum, theo dõi tiến độ, tổ chức các cuộc họp (Daily Scrum, Sprint Planning...) và loại bỏ các rào cản cản trở công việc của đội ngũ.
+P197: Nguyễn Văn Sáng & Hà Quang Tiến - Vai trò Development Team (Nhóm phát triển): Trực tiếp thực hiện các công việc kỹ thuật bao gồm phân tích, thiết kế cơ sở dữ liệu, lập trình giao diện (UI/UX), lập trình hệ thống (Backend) và kiểm thử (Testing) để tạo ra sản phẩm hoàn chỉnh.
+P198: 2.3. Phân công công việc chi tiết (Theo các Sprint)
+P199: Quá trình phát triển dự án được chia nhỏ thành 6 vòng lặp (Sprint), mỗi vòng lặp kéo dài 2 tuần nhằm tạo ra các phần mềm có thể chạy được liên tục.
+P200: 2.4. Kết quả dự kiến của dự án
+P201: * Sản phẩm phần mềm hoàn thiện:
+P202: Phần mềm CRM: Ứng dụng quản trị khách hàng với 8 module chức năng: (M01) Auth & Phân quyền, (M02) Quản lý Khách hàng, (M03) Quản lý Giao dịch, (M04) Ticket/Khiếu nại, (M05) Chăm sóc tự động, (M06) Chiến dịch Marketing, (M07) Báo cáo & Dashboard, (M08) Quản trị hệ thống.
+P203: Cơ sở dữ liệu: Hệ thống CSDL được thiết kế tối ưu, đảm bảo tính nhất quán, bảo mật và khả năng mở rộng trong tương lai.
+P204: Giao diện người dùng (UI): Hệ thống giao diện trực quan, dễ sử dụng, tương thích với quy trình nghiệp vụ thực tế tại doanh nghiệp.
+P205: * Bộ tài liệu kỹ thuật chuẩn Công nghệ phần mềm:
+P206: Tài liệu đặc tả (SRS): Xác định rõ phạm vi, yêu cầu chức năng và phi chức năng của hệ thống.
+P207: Tài liệu thiết kế hệ thống: Bao gồm kiến trúc hệ thống, sơ đồ CSDL (ERD) và hệ thống biểu đồ UML (Use Case, Activity, Class, Sequence) giúp hình dung toàn bộ luồng logic của phần mềm.
+P208: * Giá trị thực tiễn và tính ứng dụng:
+P209: Chuyển đổi số: Hiện thực hóa việc thay thế các phương thức quản lý thủ công (Excel, giấy tờ) bằng hệ thống số hóa tập trung.
+P210: Tối ưu hóa quản trị: Cung cấp công cụ giúp doanh nghiệp theo dõi vòng đời khách hàng, từ đó cải thiện tỷ lệ chuyển đổi và chất lượng chăm sóc khách hàng.
+P211: Tính mở rộng: Kiến trúc phần mềm được thiết kế sẵn sàng cho việc tích hợp với các hệ thống bán hàng hay kế toán thông qua giao diện API.
+P212: 2.5. Phân tích rủi ro dự án
+P213: Trong quá trình thực hiện dự án, nhóm đã nhận diện các rủi ro có khả năng tác động đến chất lượng và tiến độ công việc để đưa ra phương án dự phòng:
+P214: Rủi ro về yêu cầu (Requirement Risk):
+P215: Yêu cầu hệ thống CRM phát sinh thêm các chức năng ngoài phạm vi dự kiến.
+P216: Sự thiếu hụt thông tin chi tiết về quy trình nghiệp vụ thực tế của doanh nghiệp.
+P217: Rủi ro về kỹ thuật (Technical Risk):
+P218: Sự không tương thích giữa các thành phần phần mềm hoặc cấu trúc Database chưa tối ưu khi tích hợp.
+P219: Khó khăn trong việc thiết lập kiến trúc tích hợp giữa CRM và hệ thống bán hàng bên ngoài.
+P220: Rủi ro về tiến độ (Schedule Risk):
+P221: Thời gian thực hiện các giai đoạn bị kéo dài do độ phức tạp của khâu phân tích dữ liệu.
+P222: Áp lực về khối lượng công việc khi triển khai lập trình và kiểm thử đồng thời.
+P223: Rủi ro về nguồn lực (Resource Risk):
+P224: Sự thay đổi nhân sự hoặc bất đồng trong việc phân bổ nhiệm vụ giữa các thành viên nhóm (Nhung, Hòa, Tuyền, Sáng, Tiến).
+P225: Giới hạn về kinh nghiệm của nhóm trong việc xử lý các tình huống bảo mật dữ liệu khách hàng phức tạp.
+P227: Chương 3 : Đặc tả phần mềm
+P228: 3.1 Khảo sát hiện trạng
+P229: Hiện nay, nhiều doanh nghiệp vừa và nhỏ (SMEs) tại Việt Nam vẫn đang duy trì phương thức quản lý khách hàng bằng các công cụ thủ công. Nhóm đã tiến hành khảo sát và tổng hợp được thực trạng như sau:
+P230: Sử dụng công cụ rời rạc:
+P231: Dữ liệu khách hàng chủ yếu được lưu trữ trên các file Excel cá nhân, sổ tay hoặc tệp ghi chú trên máy tính.
+P232: Thông tin thiếu tính đồng bộ, dẫn đến việc nhân viên không thể truy cập dữ liệu nhanh chóng khi cần.
+P233: Quy trình tương tác thiếu sự kết nối:
+P234: Việc trao đổi thông tin giữa các bộ phận (Marketing, Kinh doanh, Chăm sóc khách hàng) bị ngắt quãng, tạo ra "hố ngăn cách" về thông tin khách hàng.
+P235: Nhân viên không nắm được lịch sử mua hàng hoặc các khiếu nại trước đó, gây lãng phí thời gian và giảm lòng tin của khách hàng.
+P236: Thiếu khả năng báo cáo và phân tích:
+P237: Dữ liệu không được hệ thống hóa khiến việc thống kê báo cáo doanh số, tỷ lệ khách hàng tiềm năng hay hiệu suất nhân viên gặp nhiều khó khăn.
+P238: Ban lãnh đạo không có cái nhìn tổng quan (360 độ) về khách hàng để đưa ra các chiến lược kinh doanh chính xác.
+P239: Rủi ro thất thoát dữ liệu:
+P240: Khi nhân sự thay đổi hoặc thiết bị gặp sự cố, dữ liệu khách hàng rất dễ bị mất mát hoặc rò rỉ ra bên ngoài do thiếu hệ thống phân quyền và sao lưu (backup) tập trung.
+P241: 3.2 Mô tả bài toán
+P242: Hiện tại, quy trình quản lý khách hàng tại đơn vị đang vận hành theo cơ chế phân tán, thiếu sự kết nối giữa các nguồn dữ liệu và các bộ phận nghiệp vụ. Sự phụ thuộc vào công cụ thủ công (Excel, sổ tay) không chỉ tạo ra các "ốc đảo thông tin" riêng biệt mà còn hạn chế khả năng kiểm soát, phân tích và khai thác giá trị từ dữ liệu khách hàng. Hệ quả là doanh nghiệp đang bỏ lỡ cơ hội thấu hiểu khách hàng, lãng phí tài nguyên nhân sự trong việc xử lý dữ liệu và đối mặt với rủi ro bảo mật cao.
+P243: 3.3 Khái quát mô hình nghiệp vụ phần mềm CRM
+P244: Phần mềm Quản lý khách hàng (CRM) được xây dựng dựa trên nguyên lý tập trung vào dữ liệu (Data-Centric), đóng vai trò là công cụ số hóa toàn bộ quy trình tương tác giữa doanh nghiệp và khách hàng. Mô hình này không chỉ đơn thuần là nơi lưu trữ mà là một hệ thống luồng việc (Workflow) giúp chuyển đổi dữ liệu thô thành các giá trị quản trị thiết thực.
+P245: 3.3.1 Cấu trúc các thành phần nghiệp vụ cốt lõi
+P246: Để đảm bảo tính nhất quán với các yêu cầu chức năng sẽ trình bày ở phần sau, phần mềm được khái quát qua 03 phân hệ quản lý trọng tâm:
+P247: Quản trị thực thể Khách hàng (Customer Profile Management): Đây là hạt nhân của phần mềm, quản lý định danh khách hàng thông qua mã duy nhất. Thành phần này chịu trách nhiệm lưu trữ thông tin nền (nhân khẩu học, hành vi) và là gốc để liên kết với tất cả các hoạt động giao dịch, chăm sóc về sau.
+P248: Quản trị luồng Giao dịch và Tương tác (Transaction & Interaction Tracking): Thay vì quản lý đối tượng lưu trú, phần mềm tập trung ghi lại biến động của các "Sự kiện giao dịch". Mỗi đơn hàng hoặc yêu cầu hỗ trợ được coi là một bản ghi dữ liệu có trạng thái (Status), giúp người dùng theo dõi được lộ trình từ khi tiếp cận đến khi hoàn tất thanh toán.
+P249: Phân tích và Phân lớp khách hàng (Customer Analytics & Categorization): Dựa trên các dữ liệu lịch sử đã thu thập, phần mềm thực hiện các phép lọc và phân nhóm tự động. Điều này giúp doanh nghiệp xác định được các nhóm khách hàng chiến lược (VIP, tiềm năng) để áp dụng các chính sách chăm sóc khác biệt, thay vì quản lý dàn trải.
+P250: 3.3.2. Mô hình vận hành và Luồng dữ liệu (Data Flow)
+P251: Mô hình vận hành của phần mềm tuân thủ quy trình khép kín, đảm bảo tính toàn vẹn của thông tin:
+P252: Giai đoạn Thu thập: Dữ liệu được chuẩn hóa và nạp vào phần mềm, loại bỏ các thông tin trùng lặp để tạo ra "điểm nhìn duy nhất" về khách hàng.
+P253: Giai đoạn Xử lý: Người dùng tương tác với phần mềm để cập nhật các ghi chú tư vấn, trạng thái đơn hàng và phản hồi của khách hàng.
+P254: Giai đoạn Kết xuất: Phần mềm tổng hợp dữ liệu để xuất ra các báo cáo đo lường chỉ số kinh doanh, hỗ trợ cấp quản lý đưa ra các quyết định điều chỉnh kịp thời.
+P255: 3.3.3. Giá trị mục tiêu của mô hình
+P256: Việc áp dụng mô hình phần mềm này hướng tới các chuẩn mực chuyên nghiệp trong kỹ nghệ phần mềm:
+P257: Tính tập trung (Centralization): Loại bỏ sự rời rạc trong quản lý thông tin, đảm bảo mọi bộ phận đều tiếp cận cùng một nguồn dữ liệu chuẩn.
+P258: Tính vết (Traceability): Mọi thay đổi trong quan hệ với khách hàng đều được lưu vết lịch sử, phục vụ công tác kiểm tra và tối ưu hóa dịch vụ.
+P259: Tính sẵn sàng (Scalability): Cấu trúc phần mềm cho phép dễ dàng mở rộng thêm các trường thông tin hoặc tính năng mới tùy theo sự phát triển của doanh nghiệp mà không làm phá vỡ cấu trúc dữ liệu hiện tại.
+P260: 3.4 Phương pháp đặc tả phần mềm
+P261: Để đảm bảo tính nhất quán và khả năng mở rộng cho hệ thống Quản trị quan hệ khách hàng (CRM), nhóm thực hiện tiếp cận theo phương pháp phát triển hướng đối tượng (Object-Oriented Analysis and Design - OOAD). Việc lựa chọn phương pháp này xuất phát từ đặc thù của bài toán CRM, nơi các thực thể dữ liệu (Khách hàng, Đơn hàng, Chiến dịch) và các quy trình nghiệp vụ (Chăm sóc, Khiếu nại, Báo cáo) có sự tương tác qua lại phức tạp.
+P262: Cụ thể, phương pháp được triển khai qua các công cụ hỗ trợ sau:
+P263: Ngôn ngữ mô hình hóa thống nhất (UML): Được sử dụng làm ngôn ngữ chuẩn để trực quan hóa các yêu cầu. Thông qua sơ đồ Use Case, nhóm làm rõ phạm vi chức năng của từng Actor (Nhân viên Sales, Marketing, Admin); thông qua sơ đồ Activity, nhóm mô tả luồng xử lý nghiệp vụ thực tế cho từng quy trình cụ thể (như quy trình tiếp nhận khiếu nại hay đồng bộ dữ liệu từ POS).
+P264: Tiếp cận theo thành phần (Component-based approach): Nhóm phân rã hệ thống CRM thành các module chức năng độc lập (Quản lý khách hàng, Marketing tự động, Báo cáo Dashboards) nhằm tối ưu hóa quá trình phát triển theo mô hình Agile/Scrum. Cách tiếp cận này giúp nhóm dễ dàng thực hiện kiểm thử, đánh giá và cập nhật yêu cầu cho từng Sprint mà không làm ảnh hưởng đến cấu trúc tổng thể của hệ thống.
+P265: Việc áp dụng OOAD kết hợp với quy trình phát triển linh hoạt không chỉ giúp tài liệu đặc tả (SRS) trở nên minh bạch đối với tất cả thành viên trong nhóm, mà còn tạo nền tảng vững chắc cho giai đoạn cài đặt và kiểm thử phần mềm ở các chương tiếp theo
+P267: 3.5. Xác định yêu cầu hệ thống
+P268: Để định hình phạm vi phát triển cho hệ thống CRM, nhóm thực hiện phân tích dựa trên phương pháp tiếp cận từ trên xuống . Mục tiêu cốt lõi của giai đoạn này là thiết lập ranh giới hệ thống và định danh các thực thể tác động nhằm tạo tiền đề cho việc đặc tả chi tiết các luồng xử lý nghiệp vụ ở mục sau.
+P269: 3.5.1. Mô hình ngữ cảnh hệ thống
+P270: Hệ thống CRM được xem là hạt nhân dữ liệu phục vụ các bộ phận Kinh doanh, CSKH, Marketing, Giám đốc và Quản trị hệ thống. Ở phạm vi hiện tại, hệ thống chủ yếu quản lý dữ liệu nội bộ của CRM; các kết nối với hệ thống ngoại vi như POS, cổng thanh toán hoặc nền tảng gửi thông điệp được thiết kế ở mức sẵn sàng tích hợp và cấu hình, chưa xem như đã hoàn thiện đồng bộ hai chiều trong mọi kịch bản vận hành.
+P271: 3.5.1.1 Chiến lược tích hợp hệ thống bán hàng (POS Integration Strategy)
+P272: Một trong những thành phần quan trọng của hệ thống CRM là khả năng tiếp nhận dữ liệu giao dịch từ hệ thống bán hàng (POS) hiện có của doanh nghiệp. Nhóm đã khảo sát và đánh giá 3 phương án tích hợp tiêu biểu để lựa chọn hướng triển khai phù hợp với phạm vi MVP.
+P273: Lý do chọn: Ở phiên bản MVP, nhóm triển khai Polling Sync kết hợp Manual Import vì phù hợp với phạm vi đồ án và đặc thù các POS phổ biến tại Việt Nam. Webhook Push là định hướng phát triển tiếp theo khi tích hợp với POS đã đăng ký partner API.
+P274: 3.5.2. Ma trận chức năng chiến lược
+P275: Nhóm phân loại các yêu cầu chức năng dựa trên mức độ ưu tiên và đối tượng thụ hưởng, nhằm cung cấp cái nhìn tổng quan về phạm vi dự án trước khi đi sâu vào chi tiết kỹ thuật tại tài liệu SRS.
+P276: 3.5.3. Ràng buộc hệ thống
+P277: Các yêu cầu phi chức năng được định nghĩa như những "bộ lọc chất lượng" (Quality Gates) cho toàn bộ kiến trúc, đảm bảo hệ thống đáp ứng các tiêu chuẩn kỹ thuật khắt khe trước khi vận hành thực tế:
+P278: Hiệu năng: Hệ thống cần duy trì thời gian phản hồi hợp lý đối với các thao tác tra cứu, cập nhật khách hàng, giao dịch, ticket và báo cáo trong phạm vi dữ liệu của đồ án.
+P279: Bảo mật: Hệ thống áp dụng xác thực người dùng, phân quyền theo vai trò (Sales, CSKH, Marketing, Giám đốc, Admin) và lưu nhật ký các thao tác quan trọng để bảo vệ dữ liệu khách hàng.
+P280: Tính liên kết: Dữ liệu giao dịch, chăm sóc và báo cáo phải thống nhất trong nội bộ CRM. Riêng tích hợp POS hiện mới ở mức cấu hình và chuẩn bị kết nối, chưa khẳng định đồng bộ thời gian thực end-to-end trong toàn bộ hệ thống.
+P281: 3.5.4. Đánh giá yêu cầu
+P282: Bên cạnh việc liệt kê yêu cầu, nhóm thực hiện đánh giá mức độ ưu tiên, tính khả thi và mức hiện thực hóa của từng nhóm yêu cầu để bảo đảm phạm vi đồ án bám sát sản phẩm đang có. Cách làm này giúp tránh over-claim khi viết báo cáo và là cơ sở quyết định hạng mục nào thuộc phần đã triển khai, hạng mục nào chỉ nên trình bày ở mức định hướng.
+P284: 3.5.5. Kế hoạch quản lý yêu cầu
+P285: Nhóm áp dụng kế hoạch quản lý yêu cầu theo nguyên tắc: mọi thay đổi nghiệp vụ phải được đánh giá đồng thời trên use case, route giao diện, service nghiệp vụ, bảng dữ liệu và test case trước khi cập nhật vào project hoặc báo cáo. Nhờ đó, tài liệu đặc tả và sản phẩm thực tế luôn có cùng một nguồn tham chiếu.
+P287: 3.6. Tài Liệu đặc tả phần mềm
+P288: 3.6.1 Phạm vi hệ thống
+P289: Phạm vi hệ thống mô tả các chức năng mà hệ thống CRM sẽ hỗ trợ và các chức năng nằm ngoài phạm vi của giai đoạn triển khai hiện tại. Nội dung được phân nhóm nghiệp vụ tương ứng như sau:
+P291: 3.6.2 Xác định tác nhân
+P292: Dựa trên các Use Case ở mức nghiệp vụ, hệ thống CRM có 01 tác nhân tổng quát và 05 tác nhân nghiệp vụ chính trực tiếp tham gia và tương tác với hệ thống.
+P293: Người dùng hệ thống
+P294: Vai trò:
+P295: Người dùng hệ thống là tác nhân tổng quát đại diện cho tất cả các đối tượng có quyền truy cập và sử dụng hệ thống CRM.
+P296: Mục tiêu:
+P297: - Truy cập hệ thống CRM thông qua chức năng đăng nhập
+P298: - Thực hiện các chức năng nghiệp vụ tương ứng với vai trò được phân quyền
+P299: Ý nghĩa trong mô hình:
+P300: Người dùng hệ thống không đại diện cho một vai trò nghiệp vụ cụ thể mà được sử dụng nhằm mô hình hóa các chức năng dùng chung (đặc biệt là chức năng đăng nhập) cho tất cả các tác nhân cụ thể trong hệ thống.
+P301: Nhân viên Sale
+P302: Vai trò:
+P303: Nhân viên Sales là người trực tiếp làm việc với khách hàng trong hoạt động bán hàng, chịu trách nhiệm quản lý thông tin khách hàng và các giao dịch mua bán.
+P304: Mục tiêu:
+P305: - Quản lý thông tin khách hàng một cách đầy đủ và chính xác
+P306: - Ghi nhận và theo dõi lịch sử giao dịch của khách hàng
+P307: - Hỗ trợ hoạt động bán hàng hiệu quả hơn
+P308: Lý do là tác nhân chính:
+P309: Nhân viên Sales sử dụng hệ thống CRM thường xuyên để thực hiện các nghiệp vụ cốt lõi liên quan đến khách hàng và doanh thu. Các Use Case UC01 và UC02 phản ánh trực tiếp vai trò trung tâm của tác nhân này trong hoạt động kinh doanh của doanh nghiệp
+P310: Nhân viên Chăm sóc khách hàng
+P311: Vai trò:
+P312: Nhân viên CSKH là người tiếp nhận, xử lý các khiếu nại, phản hồi và thực hiện các hoạt động chăm sóc khách hàng sau bán.
+P313: Mục tiêu:
+P314: - Đảm bảo các khiếu nại và phản hồi của khách hàng được xử lý kịp thời
+P315: - Theo dõi lịch sử chăm sóc để nâng cao mức độ hài lòng của khách hàng
+P316: - Duy trì mối quan hệ lâu dài với khách hàng
+P317: Lý do là tác nhân chính:
+P318: Nhân viên CSKH tương tác trực tiếp với hệ thống, đóng vai trò quan trọng trong việc cải thiện trải nghiệm khách hàng và hình ảnh doanh nghiệp.
+P319: Nhân viên Marketing
+P320: Vai trò:
+P321: Nhân viên Marketing chịu trách nhiệm phân nhóm khách hàng, xây dựng và triển khai các chiến dịch marketing nhằm tiếp cận và chăm sóc khách hàng hiệu quả.
+P322: Mục tiêu:
+P323: - Phân loại khách hàng theo các tiêu chí phục vụ marketing
+P324: - Thiết lập và triển khai các chiến dịch marketing
+P325: - Theo dõi và đánh giá hiệu quả chiến dịch
+P326: Lý do là tác nhân chính:
+P327: Nhân viên Marketing sử dụng hệ thống CRM như một công cụ chính để lập kế hoạch, triển khai và đánh giá hoạt động marketing dựa trên dữ liệu khách hàng
+P328: Giám đốc
+P329: Vai trò:
+P330: Giám đốc là đối tượng sử dụng hệ thống ở mức quản lý, giám sát và ra quyết định chiến lược cho doanh nghiệp.
+P331: Mục tiêu:
+P332: - Theo dõi tình hình doanh thu và hiệu quả kinh doanh
+P333: - Phân tích dữ liệu khách hàng để hỗ trợ ra quyết định
+P334: - Định hướng chiến lược phát triển doanh nghiệp
+P335: Lý do là tác nhân chính: Giám đốc sử dụng hệ thống CRM để khai thác các báo cáo và phân tích dữ liệu tổng hợp, phục vụ cho công tác quản lý và điều hành.
+P336: Admin
+P337: Vai trò:
+P338: Quản trị hệ thống chịu trách nhiệm vận hành, quản lý người dùng và đảm bảo hệ thống CRM hoạt động ổn định, an toàn.
+P339: Mục tiêu:
+P340: - Quản lý tài khoản và quyền truy cập của người dùng
+P341: - Cấu hình các tham số hệ thống và kênh thông báo
+P342: - Đảm bảo tính bảo mật và ổn định của hệ thống
+P343: Lý do là tác nhân chính:
+P344: Quản trị hệ thống là tác nhân không thể thiếu để duy trì và kiểm soát hoạt động của hệ thống CRM trong toàn bộ quá trình vận hành.
+P345: 3.6.3 Use Case tổng quát (Business Use Case Diagram)
+P346: - Phần này trình bày toàn bộ các Use Case ở mức nghiệp vụ (business level), phản ánh các chức năng chính mà hệ thống cần cung cấp. Danh sách Use Case được phân nhóm theo từng tác nhân tham gia hệ thống.
+P347: UC00 – Đăng nhập
+P348: Người dùng hệ thống (Nhân viên Sales, Nhân viên CSKH, Nhân viên Marketing, Giám đốc, Quản trị hệ thống) thực hiện đăng nhập để truy cập hệ thống CRM, đăng xuất khi kết thúc phiên làm việc và yêu cầu khôi phục mật khẩu khi cần. Hệ thống xác thực tài khoản, quản lý phiên làm việc và xác định vai trò người dùng để cấp quyền sử dụng các chức năng phù hợp.
+P349: Nhóm Use Case của Nhân viên Sales
+P350: UC01 – Quản lý khách hàng
+P351: Nhân viên Sales tạo mới, cập nhật và tra cứu thông tin khách hàng. Hệ thống lưu trữ hồ sơ khách hàng, cho phép phân loại khách hàng theo các nhóm như khách mới, khách tiềm năng, khách thân thiết hoặc khách ngừng mua để hỗ trợ hoạt động kinh doanh.
+P352: UC02 – Quản lý giao dịch và lịch sử mua hàng
+P353: Nhân viên Sales tra cứu và theo dõi các giao dịch mua hàng của khách hàng. Hệ thống lưu thông tin giao dịch, phương thức thanh toán, trạng thái xử lý và liên kết lịch sử mua hàng với từng hồ sơ khách hàng để hỗ trợ bán hàng, chăm sóc và báo cáo doanh số.
+P354: Nhóm Use Case của Nhân viên Chăm sóc khách hàng
+P355: UC03 – Quản lý khiếu nại / phản hồi khách hàng
+P356: Nhân viên CSKH tiếp nhận phản hồi hoặc khiếu nại từ khách hàng, ghi nhận nội dung và phân loại vấn đề. Hệ thống lưu thông tin phản hồi, theo dõi trạng thái xử lý và cho phép cập nhật kết quả khi vấn đề được giải quyết.
+P357: UC04 – Quản lý chăm sóc khách hàng
+P358: Nhân viên CSKH theo dõi và quản lý các hoạt động chăm sóc khách hàng thông qua lịch sử tương tác, ticket, nhiệm vụ follow-up và các quy tắc chăm sóc. Hệ thống hỗ trợ ghi nhận kết quả chăm sóc, nhắc việc và cấu hình kịch bản gửi thông điệp; các kịch bản chạy nền định kỳ toàn phần là hướng hoàn thiện tiếp theo.
+P359: Nhóm Use Case của Nhân viên Marketing
+P360: UC05 – Quản lý chiến dịch Marketing
+P361: Nhân viên Marketing tạo và quản lý các chiến dịch marketing. Người dùng lựa chọn nhóm khách hàng mục tiêu, thiết lập nội dung chiến dịch và thực hiện gửi thông báo qua Email hoặc SMS. Hệ thống lưu thông tin chiến dịch và quản lý danh sách khách hàng nhận chiến dịch.
+P362: Nhóm Use Case của Giám đốc
+P363: UC06 – Báo cáo và phân tích dữ liệu
+P364: Giám đốc yêu cầu hệ thống hiển thị các báo cáo tổng hợp như doanh thu theo thời gian, doanh số theo khách hàng và hiệu quả chiến dịch marketing. Hệ thống tổng hợp dữ liệu từ các giao dịch và thông tin khách hàng để cung cấp báo cáo và phân tích hỗ trợ quá trình ra quyết định.
+P365: Nhóm Use Case của Quản trị hệ thống (Admin)
+P366: UC07 – Quản trị hệ thống
+P367: Quản trị hệ thống thực hiện quản lý tài khoản người dùng, bao gồm tạo mới, cập nhật hoặc khóa tài khoản khi cần. Admin cũng cấu hình các tham số hệ thống và thiết lập kết nối các dịch vụ thông báo như Email hoặc SMS    . Hệ thống lưu thông tin tài khoản, phân quyền truy cập theo vai trò và ghi nhận nhật ký hoạt động của người dùng.
+P368: UC08 – Đồng bộ POS
+P369: Hệ thống CRM cho phép cấu hình thông tin kết nối POS và chuẩn bị dữ liệu phục vụ tích hợp giao dịch từ hệ thống bán hàng. Ở phiên bản hiện tại, chức năng này mới được hiện thực hóa ở mức cấu hình và điểm kết nối quản trị, chưa được xem là luồng đồng bộ thời gian thực hoàn chỉnh giữa CRM và POS.
+P370: 3.6.3.1 Biểu đồ Use Case tổng quan
+P373: 3.6.3.2 Biểu đồ UseCase phân rã
+P374: ⚠️ [SỬA TAY - M05] Kiểm tra stereotype trong các biểu đồ phân rã theo quy tắc sau:
+- Dùng <<include>>: khi use case A BẮT BUỘC phải thực thi use case B để hoàn thành
+Ví dụ: Tạo giao dịch <<include>> Xác thực đăng nhập
+Ví dụ: Xem báo cáo <<include>> Lọc theo khoảng thời gian
+- Dùng <<extend>>: khi use case B là tùy chọn, chỉ xảy ra trong điều kiện đặc biệt
+Ví dụ: Tạo chiến dịch <<extend>> Gửi thử nội dung (chỉ khi user bấm 'Test send')
+Ví dụ: Quản lý ticket <<extend>> Leo thang ticket (chỉ khi priority = urgent và quá due_date)
+- KHÔNG dùng <<extend>> cho Đăng nhập → Đăng nhập là <<include>> từ mọi use case chính
+P375: Phân rã Use Case “Nhân viên Sales”
+P377: Phân rã Use Case “Nhân viên Sales”
+P378: Phân rã Use Case “Nhân viên CSKH”
+P380: Phân rã Use Case “Nhân viên CSKH”
+P381: Phân rã use case “Nhân viên Marketing”
+P383: Phân rã use case “Nhân viên Marketing”
+P385: Phân rã use case “Giám đốc”
+P387: Phân rã use case “Giám đốc”
+P388: Phân rã Use Case Admin
+P390: Phân rã Use Case Admin
+P391: 3.6.4 Đặc tả Use Case chi tiết bổ sung
+P392: Để bảo đảm mức chi tiết giữa các use case đồng đều, nhóm bổ sung đặc tả chi tiết cho các use case còn thiếu bảng mô tả đầy đủ, đồng thời ghi rõ mức hiện thực hóa của từng use case trong project hiện tại.
+P393: 3.6.4.1 UC02 - Quản lý giao dịch và lịch sử mua hàng
+P395: 3.6.4.2 UC04 - Quản lý chăm sóc khách hàng
+P397: 3.6.4.3 UC01 - Quản lý khách hàng
+P398: 3.6.4.4 UC03 - Quản lý khiếu nại / phản hồi
+P399: 3.6.4.5 UC05 - Quản lý chiến dịch Marketing
+P400: 3.6.4.6 UC06 - Báo cáo và phân tích dữ liệu
+P401: 3.6.4.7 UC07 - Quản trị hệ thống
+P402: 3.6.4.8 UC08 - POS Integration Configuration
+P403: 3.6.5 Ma trận truy vết yêu cầu
+P404: Để bảo đảm báo cáo và project có thể đối chiếu 1-1, nhóm xây dựng chuỗi truy vết từ yêu cầu tới use case, màn hình, service, bảng dữ liệu và test case. Ma trận này cũng là căn cứ để giải trình khi demo hoặc phản biện.
+P406: 3.6.6 Ghi chú về mức hiện thực hóa của các use case
+P407: Không phải mọi use case đều được hiện thực với cùng mức độ hoàn chỉnh tại thời điểm báo cáo. Vì vậy, nhóm ghi chú rõ trạng thái từng nhóm chức năng để phần thuyết minh, demo và phản biện luôn nhất quán với mã nguồn thực tế.
+P409: 3.6.7 Yêu cầu chức năng
+P410: - ID khách hàng, họ tên, số điện thoại, email, địa chỉ.
+P411: - Lịch sử giao dịch, lịch sử phản hồi và ghi chú.
+P412: - Phân loại khách hàng.
+P413: - Nguồn khách hàng (marketing, mua trực tiếp, giới thiệu, POS, online, nguồn khác).
+P414: - Lưu trữ và quản lý đầy đủ thông tin khách hàng
+P415: - Cập nhật lịch sử tương tác: gọi điện, phản hồi, email, hỗ trợ CSKH.
+P416: - Theo dõi lịch sử mua hàng dựa trên dữ liệu giao dịch được ghi nhận trong CRM hoặc cập nhật từ nguồn nội bộ phù hợp.
+P417: - Tìm kiếm khách hàng theo tên, số điện thoại, email, mã khách hàng.
+P418: - Hỗ trợ phân loại khách hàng: mới, tiềm năng, thân thiết, ngưng mua.
+P419: Người sử dụng:
+P420: - Nhân viên CSKH
+P421: - Nhân viên Sales
+P422: - Nhân viên Marketing
+P423: Thông tin cần quản lý:
+P424: - Trạng thái khách hàng: đang hoạt động / không hoạt động.
+P425: 3.6.7.1 Tiếp nhận và xử lý phản hồi – khiếu nại khách hàng
+P426: Mô tả chức năng:
+P427: - Tiếp nhận yêu cầu từ khách hàng qua nhiều kênh: điện thoại, email, tin nhắn, gặp trực tiếp.
+P428: - CSKH lập phiếu xử lý, phân loại vấn đề.
+P429: - Tự xử lý vấn đề đơn giản (qua thông tin tra cứu).
+P430: - Chuyển phiếu cho bộ phận chuyên môn nếu vấn đề phức tạp.
+P431: - Cập nhật trạng thái xử lý phiếu: đã nhận – đang xử lý – hoàn tất.
+P432: - Gửi thông báo kết quả xử lý cho khách hàng.
+P433: - Lưu trữ phiếu để truy xuất sau này.
+P434: Người sử dụng:
+P435: - Nhân viên CSKH
+P436: - Giám Đốc
+P437: - Bộ phận chuyên môn
+P438: - Admin
+P439: Thông tin cần quản lý:
+P440: - ID phiếu, nội dung phản hồi, mức độ ưu tiên.
+P441: - Nhân viên tiếp nhận, thời gian bắt đầu – kết thúc.
+P442: - Bộ phận xử lý, kết quả xử lý, ghi chú.
+P443: - Trạng thái phiếu.
+P444: 3.6.7.2 Quản lý giao dịch và lịch sử mua hàng
+P445: Mô tả chức năng:
+P446: - Ghi nhận dữ liệu đơn hàng hoặc giao dịch do bộ phận kinh doanh nhập trực tiếp hay cập nhật từ nguồn nghiệp vụ nội bộ.
+P447: - Lưu lại các giao dịch theo từng khách hàng.
+P448: - Đồng bộ số liệu báo cáo trong nội bộ CRM; phần đồng bộ POS tự động là hướng tích hợp mở rộng.
+P449: - Hỗ trợ thống kê khách hàng mua nhiều, mua ít, nhóm VIP.
+P450: Người sử dụng:
+P451: - CSKH
+P452: - Kinh doanh
+P453: - Marketing
+P454: - Giám đốc
+P455: Thông tin cần quản lý:
+P456: - Mã hóa đơn, ngày mua, sản phẩm đã mua, số lượng.
+P457: - Giá trị đơn hàng, phương thức thanh toán.
+P458: - Trạng thái thanh toán.
+P459: 3.6.7.3 Quản lý chiến dịch Marketing
+P460: Mô tả chức năng:
+P461: - Thu thập dữ liệu khách hàng từ nhiều nguồn.
+P462: - Phân nhóm khách hàng thủ công hoặc tự động.
+P463: - Thiết kế chiến dịch Email/SMS.
+P464: - Gửi chiến dịch theo tệp khách đã chọn.
+P465: - Theo dõi trạng thái chiến dịch và các phản hồi ghi nhận được sau khi gửi.
+P466: - Lưu trữ toàn bộ chiến dịch để phục vụ báo cáo.
+P467: Người sử dụng:
+P468: - Nhân viên Marketing
+P469: - Admin
+P470: Thông tin cần quản lý:
+P471: - Tệp khách hàng theo nhóm.
+P472: - Nội dung chiến dịch.
+P473: - Trạng thái chiến dịch, số lượng gửi và phản hồi ghi nhận được.
+P474: - Danh sách khách hàng tiềm năng sau chiến dịch.
+P475: 3.6.7.4 Báo cáo tổng hợp (CRM Dashboard)
+P476: Mô tả chức năng:
+P477: - Báo cáo doanh thu theo khách hàng.
+P478: - Báo cáo số lượng khiếu nại, số phiếu đã xử lý, thời gian xử lý.
+P479: - Báo cáo hiệu quả chiến dịch Marketing.
+P480: - Báo cáo khách hàng theo nhóm (VIP – tiềm năng – rời bỏ…).
+P481: - Xuất báo cáo ra Excel/PDF.
+P482: Người sử dụng:
+P483: - Ban Giám đốc
+P484: - Admin
+P485: - Marketing
+P486: - CSKH
+P487: - Kinh doanh
+P488: Thông tin cần quản lý:
+P489: - Số lượng khách mới, khách thân thiết.
+P490: - Các phiếu phản hồi theo thời gian.
+P491: - Doanh số theo từng khách hàng.
+P492: - Hiệu suất chiến dịch marketing.
+P493: 3.6.7.5 Chăm sóc khách hàng tự động
+P494: Mô tả chức năng:
+P495: Thiết lập quy tắc gửi thông điệp chăm sóc (Email, SMS hoặc thông báo) theo các kịch bản như chúc mừng sinh nhật, nhắc lịch hẹn hoặc ưu đãi sau mua hàng.
+P496: Phân nhóm khách hàng và kích hoạt tác vụ chăm sóc dựa trên điều kiện nghiệp vụ; một số kịch bản chạy định kỳ cần tiếp tục hoàn thiện ở lớp xử lý nền.
+P497: Giảm tải thao tác theo dõi thủ công cho nhân viên và tăng tính nhất quán của quá trình chăm sóc.
+P498: Người sử dụng:
+P499: Nhân viên Marketing, Nhân viên CSKH, Admin.
+P500: Thông tin cần quản lý:
+P501: Mẫu nội dung tin nhắn (Template), kịch bản tự động (Trigger), điều kiện gửi.
+P502: Danh sách khách hàng nhận tin (Segment).
+P503: Nhật ký lịch sử đã gửi, trạng thái gửi (Đã gửi/Lỗi/Đã xem)
+P504: 3.6.7.6 Quản trị người dùng
+P505: Mô tả chức năng:
+P506: Quản lý tài khoản truy cập hệ thống của nhân viên.
+P507: Phân quyền theo vai trò người dùng để giới hạn phạm vi sử dụng chức năng và hỗ trợ kiểm soát truy cập đối với dữ liệu CRM.
+P508: Kiểm soát nhật ký hoạt động (Log) để biết ai đã thực hiện thao tác gì trong hệ thống.
+P509: Người sử dụng:
+P510: Admin.
+P511: Thông tin cần quản lý:
+P512: Thông tin người dùng (Họ tên, bộ phận, tài khoản, mật khẩu).
+P513: Nhóm quyền, vai trò (Role-based access control).
+P514: Nhật ký đăng nhập và lịch sử thao tác quan trọng trên hệ thống.
+P517: 3.6.7.7 Quản lý pipeline, cơ hội bán hàng và nhiệm vụ follow-up
+P518: Mô tả chức năng:
+P519: - Quản lý cơ hội bán hàng theo các giai đoạn như lead, qualified, proposal, negotiation, won hoặc lost.
+P520: - Gắn cơ hội bán hàng với khách hàng cụ thể, nhân viên phụ trách và giá trị dự kiến.
+P521: - Tạo nhiệm vụ follow-up, theo dõi hạn xử lý, mức độ ưu tiên và trạng thái công việc.
+P522: - Hỗ trợ trưởng nhóm hoặc giám đốc theo dõi các cơ hội đang mở và các nhiệm vụ quá hạn.
+P523: Người sử dụng:
+P524: - Nhân viên Sales
+P525: - Giám đốc
+P526: - Admin
+P527: Thông tin cần quản lý:
+P528: - Mã deal, giai đoạn, giá trị dự kiến, người phụ trách.
+P529: - Mã task, thời hạn, ưu tiên, trạng thái và liên kết với khách hàng hoặc cơ hội bán hàng.
+P530: 3.6.8 Yêu cầu phi chức năng
+P531: 3.6.9 Sơ đồ Activity Diagram và đặc tả
+P532: Biểu đồ hoạt động cho chức năng thêm người dùng
+P536: Biểu đồ hoạt động cho chức năng “Đăng nhập”
+P539: Biểu đồ hoạt động cho chức năng “Quản lý khách hàng”
+P542: Biểu đồ hoạt động cho chức năng “quản lý phản hồi/khiếu nại”
+P545: Biểu đồ hoạt động cho chức năng “Thiết  lập chiến dịch Marketing”
+P549: Biểu đồ hoạt động cho chức năng “Quản lý giao dịch và lịch sử mua hàng”
+P553: Biểu đồ hoạt động cho chức năng “Xem báo cáo doanh số”
+P557: Biểu đồ hoạt động cho chức năng đồng bộ dữ liệu POS
+P561: Chương 4:Phân Tích Thiết Kế Hệ Thống
+P562: 4.1 Thiết kế kiến trúc hệ thống
+P563: 4.1.1. Khái niệm và vai trò của mô hình hóa hệ thống
+P564: Mô hình hóa hệ thống là quá trình xây dựng các biểu diễn trừu tượng (thông qua sơ đồ, biểu đồ hoặc ký hiệu) nhằm mô tả cấu trúc, thành phần và hành vi của hệ thống phần mềm. Việc mô hình hóa giúp đơn giản hóa các vấn đề phức tạp, từ đó hỗ trợ hiệu quả cho quá trình phân tích, thiết kế và triển khai hệ thống.
+P565: Ngôn ngữ UML (Unified Modeling Language) là công cụ chuẩn được sử dụng để mô tả, minh họa và tài liệu hóa các hệ thống phần mềm. Trong phân tích thiết kế, UML giúp nhóm biểu diễn nhất quán cả cấu trúc lẫn hành vi của hệ thống thông qua một tập ký hiệu chung.
+P566: Đối với hệ thống CRM của nhóm, UML được dùng để thể hiện các sơ đồ Use Case, Activity, Class và Sequence, qua đó liên kết yêu cầu nghiệp vụ với thiết kế kỹ thuật trước khi hiện thực hóa bằng mã nguồn. Cách tiếp cận này giúp nhóm dễ trao đổi, rà soát và truy vết logic hệ thống hơn.
+P567: Việc áp dụng mô hình hóa hệ thống mang lại nhiều lợi ích quan trọng, cụ thể:
+P568: Tạo sự thống nhất trong nhóm phát triển: Các thành viên có thể hiểu rõ cách thức hệ thống hoạt động thông qua các mô hình trực quan, từ đó giảm thiểu sai lệch trong quá trình trao đổi và triển khai.
+P569: Giảm thiểu rủi ro trong quá trình phát triển: Việc xây dựng “bản thiết kế” trước khi lập trình giúp phát hiện sớm các vấn đề tiềm ẩn, hạn chế sai sót khi coding.
+P570: Hỗ trợ bảo trì và mở rộng hệ thống: Các mô hình giúp việc theo dõi, chỉnh sửa và nâng cấp hệ thống trở nên dễ dàng và có hệ thống hơn trong tương lai.
+P571: 4.1.2. Phân biệt các mô hình kiến trúc phổ biến
+P572: Để lựa chọn được mô hình phù hợp, nhóm đã tiến hành xem xét và phân biệt các kiến trúc phần mềm đặc trưng: v
+P573: Mô hình Client-Server: Chia hệ thống thành máy khách (yêu cầu dịch vụ) và máy chủ (cung cấp dịch vụ).
+P574: Mô hình MVC (Model-View-Controller): Tách biệt giao diện (View), dữ liệu (Model) và điều khiển (Controller). Thường dùng mạnh cho các ứng dụng Web.
+P575: Mô hình 3-Tier (3 lớp): Chia phần mềm thành 3 tầng logic riêng biệt, thường được triển khai trên các thiết bị vật lý khác nhau để tăng tính bảo mật và hiệu suất.
+P576: 4.1.3. Lựa chọn mô hình 3-Tier (Kiến trúc 3 lớp) cho dự án
+P577: Sau khi phân tích đặc điểm của đề tài "Quản lý khách hàng", nhóm lựa chọn kiến trúc 3 lớp và ánh xạ trực tiếp mô hình này vào stack React + Vite + Supabase đang được sử dụng trong project thực tế.
+P578: a. Cấu trúc chi tiết của mô hình: Mô hình bao gồm 3 tầng chính:
+P579: Presentation Layer (Tầng giao diện): được xây dựng bằng React, TypeScript, Vite và React Router. Tầng này chịu trách nhiệm hiển thị màn hình, tiếp nhận thao tác nhập liệu, điều hướng giữa các route và phản hồi trạng thái cho người dùng.
+P580: Application/Service Layer (Tầng nghiệp vụ): được tổ chức qua các service và hook như customerService, transactionService, ticketService, automationService, campaignService, reportService, settingsService... Tầng này xử lý quy tắc nghiệp vụ, gọi Supabase API, kiểm tra dữ liệu đầu vào và phối hợp luồng xử lý giữa giao diện với cơ sở dữ liệu.
+P581: Data Layer (Tầng dữ liệu): sử dụng PostgreSQL trên Supabase để lưu trữ dữ liệu hệ thống thông qua các bảng như profiles, customers, transactions, deals, tasks, support_tickets, campaigns, automation_rules, app_settings, audit_logs... Đây là nơi đảm bảo tính bền vững, nhất quán và khả năng truy vết của dữ liệu.
+P582: b. Lý do nhóm lựa chọn mô hình 3 lớp: Việc chọn mô hình này giúp nhóm đạt được các mục tiêu sau:
+P583: Tách biệt rõ ràng giao diện, xử lý nghiệp vụ và lưu trữ dữ liệu, từ đó dễ xác định phạm vi ảnh hưởng khi thay đổi một chức năng.
+P584: Phù hợp với cách phân công công việc trong nhóm: giao diện, service nghiệp vụ và schema dữ liệu có thể phát triển song song nhưng vẫn liên kết qua hợp đồng dữ liệu chung.
+P585: Thuận lợi cho việc mở rộng hệ thống web lên các phiên bản cao hơn như tích hợp dịch vụ ngoài, bổ sung báo cáo hoặc nâng cấp cơ chế phân quyền.
+P586: Dễ kiểm thử và bảo trì vì mỗi tầng có trách nhiệm tương đối độc lập, giúp giảm lỗi dây chuyền và tăng khả năng truy vết.
+P587: Phù hợp với định hướng triển khai trên nền tảng cloud khi frontend có thể build độc lập, còn dữ liệu và xác thực do Supabase cung cấp theo mô hình dịch vụ.
+P588: Mặc dù báo cáo sử dụng khái niệm 3 lớp theo môn học, phần hiện thực trong project không triển khai theo mô hình BUS/DAL/DTO truyền thống mà theo hướng service layer + type/interface + schema dữ liệu, vẫn bảo đảm đúng tinh thần phân tầng logic.
+P589: 4.2 Phân tích hệ thống
+P590: Nhóm áp dụng phương pháp Phân tích thiết kế hướng đối tượng (OOAD) để xây dựng hệ thống. Phương pháp này tập trung vào việc xác định các đối tượng thực tế và mối quan hệ giữa chúng, mang lại các ý nghĩa then chốt:
+P591: Mô hình hóa thực tế: Trừu tượng hóa các thực thể (Khách hàng, Hóa đơn, Nhân viên) thành các đối tượng trong mã nguồn, giúp hệ thống gần gũi với nghiệp vụ thực tế.
+P592: Tính đóng gói (Encapsulation): Thay vì các lớp BUS/DAL tách biệt như mô hình desktop truyền thống, project hiện tại đóng gói nghiệp vụ thông qua các service module, hook và kiểu dữ liệu TypeScript để giảm phụ thuộc giữa giao diện với tầng dữ liệu.
+P593: Khả năng tái sử dụng: Nhờ tính kế thừa và đa hình, nhóm có thể tận dụng lại các cấu trúc mã nguồn đã viết, giúp tiết kiệm thời gian phát triển và mở rộng tính năng.
+P594: Dễ bảo trì: Phân chia hệ thống thành các lớp đối tượng độc lập giúp việc nâng cấp hoặc sửa lỗi trở nên đơn giản, không ảnh hưởng đến toàn bộ cấu trúc hệ thống.
+P595: 4.2.1. Thiết kế dữ liệu (Data Design)
+P596: Phần này chuẩn hóa lại mô hình dữ liệu ở mức kiến trúc SaaS CRM đa tenant. Nội dung cũ bên dưới vẫn được giữ lại để đối chiếu, nhưng phần mô tả sau đây là phiên bản đầy đủ và nhất quán hơn với stack React + Supabase của hệ thống.
+P597: Sơ đồ ERD đầy đủ được trình bày dưới đây theo 4 nhóm quan hệ chính:
+P598: NHÓM 1 — CORE ENTITIES (Thực thể cốt lõi):
+P599: Thực thể ORGANIZATIONS (Tổ chức):
+P600: Thực thể PROFILES (Người dùng — mở rộng auth.users):
+P601: Thực thể CUSTOMERS (Khách hàng):
+P602: NHÓM 2 — TRANSACTION & SUPPORT:
+P603: Thực thể TRANSACTIONS (Giao dịch):
+P604: Thực thể SUPPORT_TICKETS (Phiếu hỗ trợ):
+P605: NHÓM 3 — MARKETING & AUTOMATION:
+P606: Thực thể CAMPAIGNS (Chiến dịch marketing):
+P607: Thực thể AUTOMATION_RULES (Quy tắc chăm sóc tự động):
+P608: NHÓM 4 — SYSTEM & PIPELINE:
+P609: Thực thể DEALS (Cơ hội bán hàng — Sales Pipeline):
+P610: Thực thể TASKS (Nhiệm vụ follow-up):
+P611: Thực thể AUDIT_LOGS (Nhật ký hệ thống):
+P612: Bên cạnh các bảng chính nêu trên, hệ thống còn sử dụng các bảng vệ tinh như ticket_comments, customer_notes, tags, customer_tags, campaign_recipients, notifications, file_attachments và app_settings để hoàn thiện mô hình CRM 360°.
+P613: QUAN HỆ GIỮA CÁC THỰC THỂ (mô tả text thay cho diagram):
+P614: Theo thực hành tốt của PostgreSQL/Supabase, các khóa tenant như org_id, các khóa ngoại truy vấn nhiều như customer_id hoặc assigned_to cần được đánh index; JSONB chỉ nên dùng cho payload linh hoạt như items, target_segment hoặc trigger_config thay vì thay thế hoàn toàn cho mô hình quan hệ.
+P615: Thiết kế dữ liệu tập trung vào việc cấu trúc hóa thông tin nhằm đảm bảo tính toàn vẹn, tối ưu hóa khả năng truy xuất và lưu trữ của hệ thống.
+P616: Sơ đồ thực thể mối quan hệ (ERD): Nhóm sử dụng sơ đồ ERD để mô hình hóa các thực thể chính của hệ thống như Khách hàng, Tài khoản, Hóa đơn, Nhóm khách hàng... cùng các mối quan hệ logic giữa chúng.
+P617: Ý nghĩa: Sơ đồ này là cơ sở để xây dựng tầng dữ liệu (Data Tier) trong mô hình 3 lớp. Từ đây, các bảng trong cơ sở dữ liệu được thiết kế với đầy đủ các ràng buộc về khóa chính (Primary Key), khóa ngoại (Foreign Key) và các quy tắc kiểm soát dữ liệu chặt chẽ.
+P619: 4.2.2. Thiết kế logic hệ thống (Logic Design)
+P620: Dựa trên các yêu cầu chức năng từ tài liệu đặc tả, nhóm tiến hành thiết kế cấu trúc tĩnh và hành vi động của hệ thống thông qua các biểu đồ UML.
+P621: 4.2.2.1 Sơ đồ lớp chi tiết
+P622: Trong kiến trúc React + Supabase, Class Diagram được thể hiện ở 2 tầng: (1) Domain Model — định nghĩa các Interface TypeScript tương ứng với table trong DB; (2) Service Layer — các class/module xử lý business logic (không phải class OOP truyền thống). Cách tiếp cận này đúng với tinh thần OOAD nhưng phù hợp với đặc thù của nền tảng BaaS.
+P623: Vì vậy, phần mô tả sau chuẩn hóa lại class diagram theo naming tiếng Anh để đồng nhất với TypeScript types, Supabase schema và các service module trong mã nguồn.
+P624: CLASS: Customer (Khách hàng)
+P625: CLASS: Transaction (Giao dịch)
+P626: CLASS: SupportTicket (Phiếu hỗ trợ)
+P627: CLASS: Campaign (Chiến dịch marketing)
+P628: CLASS: AutomationRule (Quy tắc chăm sóc tự động)
+P629: CLASS: Deal (Cơ hội bán hàng)
+P630: CLASS: Task (Nhiệm vụ follow-up)
+P631: CLASS: AuditLog (Nhật ký)
+P632: CLASS: Profile (Người dùng)
+P633: Quan hệ giữa các class:
+P634: Customer "1..*" → "1" Organization (aggregation, org_id FK).
+P635: Transaction "N" → "1" Customer (association, customer_id FK).
+P636: SupportTicket "N" → "1" Customer (association).
+P637: Deal "N" → "1" Customer (association).
+P638: Task "N" → "0..1" Deal (association).
+P639: Campaign "M..N" → "N" Customer (association qua campaign_recipients).
+P640: Dưới đây là mô hình lớp ở mức khái niệm phục vụ phân tích thiết kế. Trong hiện thực mã nguồn, các thực thể này được ánh xạ chủ yếu sang interface/type TypeScript, service nghiệp vụ và các bảng dữ liệu trên Supabase thay vì đều tồn tại như lớp lập trình độc lập.
+P641: Lớp Khách hàng (KhachHang)
+P642: a. Thuộc tính
+P643: b. Phương thức
+P644: Lớp Tài khoản người dùng (NguoiDung)
+P645: a. Thuộc tính
+P646: b. Phương thức
+P647: Lớp Vai trò (VaiTro)
+P648: a. Thuộc tính
+P649: Lớp Đơn hàng (DonHang)
+P650: a. Thuộc tính
+P651: b. Phương thức
+P652: Lớp Chi tiết đơn hàng (ChiTietDonHang)
+P653: a. Thuộc tính
+P654: b. Phương thức
+P655: Lớp Phiếu hỗ trợ (PhieuHoTro)
+P656: a. Thuộc tính
+P657: b. Phương thức
+P658: Lớp Tương tác (TuongTac)
+P659: a. Thuộc tính
+P660: b. Phương thức
+P661: Lớp Chiến dịch (ChienDich)
+P662: a. Thuộc tính
+P663: b. Phương thức
+P664: Lớp Chiến dịch - Khách hàng (ChienDich_KhachHang)
+P665: a. Thuộc tính
+P666: Lớp Báo cáo doanh số (BaoCaoDoanhSo)
+P667: a. Thuộc tính
+P668: b. Phương thức
+P669: Lớp Nhật ký hệ thống (NhatKyHeThong)
+P670: a. Thuộc tính
+P671: b. Phương thức
+P672: Lớp Đồng bộ POS (DongBoPOS)
+P673: a. Thuộc tính
+P674: b. Phương thức
+P675: Lớp Mẫu nội dung (MauNoiDung)
+P676: a. Thuộc tính
+P680: 4.2.2.2 Sơ đồ tuần tự
+P681: Để chuẩn hóa các biểu đồ tuần tự theo đúng runtime của hệ thống React + Supabase + JWT + RLS, các luồng chính được mô tả lại như sau:
+P682: SEQUENCE 1 — Đăng nhập (Login Flow với Supabase Auth):
+P683: Participants: Browser, React App, Supabase Auth, PostgreSQL RLS, Zustand Store
+P684: 1. User nhập email/password → Browser
+P685: 2. Browser → React App: dispatch login action
+P686: 3. React App → Supabase Auth: signInWithPassword({email, password})
+P687: 4. Supabase Auth → PostgreSQL: validate credentials (bcrypt)
+P688: 5. PostgreSQL → Supabase Auth: user record confirmed
+P689: 6. Supabase Auth → React App: {access_token, refresh_token, user}
+P690: 7. React App → localStorage: store tokens (auto-managed by supabase-js)
+P691: 8. React App → Supabase DB: SELECT * FROM profiles WHERE id = auth.uid() [RLS: user chỉ đọc được profile của chính mình]
+P692: 9. PostgreSQL RLS → React App: {id, org_id, full_name, role, is_active}
+P693: 10. React App → Zustand Store: setUser({user, profile, role, orgId})
+P694: 11. Zustand Store → React Router: redirect to /dashboard
+P695: Alt: credentials sai → step 5 trả error → React App hiển thị "Email hoặc mật khẩu không đúng"
+P696: Alt: is_active = false → React App hiển thị "Tài khoản đã bị vô hiệu hóa"
+P697: SEQUENCE 2 — Tạo khách hàng mới:
+P698: 1. Sales user → /customers/new
+P699: 2. React form → Zod validation (phone regex, email format)
+P700: 3. If validation pass: React App → Supabase DB: INSERT INTO customers (org_id từ Zustand Store)
+P701: 4. PostgreSQL → trigger trg_customer_code: auto-gen KH-2024-NNNN
+P702: 5. PostgreSQL → trigger trg_audit_customers: INSERT INTO audit_logs
+P703: 6. RLS check: INSERT policy sales_insert_customers — verify org_id match + role in ('sales','admin','super_admin')
+P704: 7. Supabase DB → React App: {new customer record}
+P705: 8. TanStack Query → invalidateQueries(['customers'])
+P706: 9. React Router → navigate to /customers/:id (new customer detail)
+P707: Alt: phone đã tồn tại → DB error unique constraint → React App hiển thị "Số điện thoại đã tồn tại"
+P708: SEQUENCE 3 — Realtime Ticket Update:
+P709: 1. CSKH A cập nhật ticket status: open → in_progress
+P710: 2. React App → Supabase DB: UPDATE support_tickets SET status='in_progress'
+P711: 3. Supabase Realtime → broadcast: postgres_changes event {table:'support_tickets', type:'UPDATE'}
+P712: 4. CSKH B (đang xem /tickets) → useRealtimeTickets hook nhận event
+P713: 5. TanStack Query → invalidateQueries(['tickets']) → auto refetch
+P714: 6. CSKH B UI → cập nhật trạng thái ticket realtime không cần reload
+P715: [ĐÁNH DẤU SỬA TAY - M06]: Kiểm tra các sequence diagram hiện có trong file hình ảnh.
+P716: Nếu bất kỳ diagram nào dùng session-based auth (không có JWT/Bearer token) hoặc không có RLS check → cần vẽ lại theo flow trên.
+P717: Sơ đồ tuần tự nhân viên đăng nhập hệ thống
+P718: Mục đích của sơ đồ : Mô tả chi tiết quá trình xác thực danh tính của nhân viên khi truy cập vào hệ thống CRM. Sơ đồ thể hiện luồng tương tác giữa giao diện đăng nhập, tầng xử lý nghiệp vụ để kiểm tra thông tin tài khoản trong cơ sở dữ liệu. Kết quả trả về sẽ quyết định việc cấp quyền truy cập và điều hướng người dùng đến giao diện chức năng phù hợp với vai trò của họ.
+P720: Sơ đồ tuần tự nhân viên tìm kiếm thông tin khách hàng
+P721: Mục đích của sơ đồ: Minh họa các bước thực hiện khi nhân viên cần truy xuất dữ liệu của một khách hàng cụ thể từ hệ thống. Quy trình bắt đầu bằng việc nhập tiêu chí tìm kiếm (như tên, số điện thoại), sau đó hệ thống thực hiện truy vấn trong cơ sở dữ liệu và trả về kết quả hiển thị trên màn hình. Sơ đồ giúp đảm bảo nhân viên có thể tiếp cận thông tin chính xác một cách nhanh chóng để phục vụ khách hàng.
+P723: Sơ đồ tuần tự nhân viên cập nhật dữ liệu khách hàng
+P724: Mục đích của sơ đồ: Thể hiện quy trình thay đổi hoặc bổ sung thông tin cho các hồ sơ khách hàng đã tồn tại trong hệ thống. Sơ đồ mô tả luồng gửi yêu cầu cập nhật, quá trình tầng nghiệp vụ kiểm tra tính hợp lệ của dữ liệu mới trước khi ghi đè vào cơ sở dữ liệu. Việc này đảm bảo tính nhất quán và toàn vẹn của dữ liệu khách hàng sau mỗi lần chỉnh sửa.
+P726: Sơ đồ tuần tự quy trình nhân viên tạo mới hồ sơ khách hàng
+P727: Mục đích của sơ đồ: Đặc tả các bước nghiệp vụ cần thiết để thiết lập một thực thể khách hàng mới hoàn toàn trong hệ thống CRM. Quy trình bao gồm việc thu thập thông tin cơ bản, hệ thống kiểm tra sự trùng lặp (như email hoặc mã khách hàng) để tránh tạo rác dữ liệu. Khi dữ liệu hợp lệ, một bản ghi mới sẽ được khởi tạo và lưu trữ an toàn trong tầng dữ liệu.
+P729: Sơ đồ tuần tự quy trình Nhân viên Sales cập nhật lịch sử mua hàng
+P730: Mục đích của sơ đồ: Mô tả luồng tương tác khi Nhân viên Sales ghi nhận các giao dịch mua bán mới vào hồ sơ của khách hàng. Sơ đồ thể hiện sự liên kết giữa thông tin khách hàng và các chi tiết đơn hàng, giúp hệ thống tự động cập nhật doanh số và trạng thái khách hàng. Đây là cơ sở dữ liệu quan trọng để theo dõi hành vi mua sắm và thực hiện các phân tích kinh doanh sau này.
+P733: Sơ đồ tuần tự quy trình nhân viên CSKH xử lý phản hồi khách hàng
+P734: Mục đích của sơ đồ: Minh họa quy trình tiếp nhận và ghi nhận các ý kiến đóng góp từ phía khách hàng về dịch vụ hoặc sản phẩm. Sơ đồ mô tả việc tạo phiếu phản hồi, cập nhật nội dung xử lý và gửi thông báo xác nhận tới khách hàng khi hoàn tất. Mục tiêu là duy trì mối quan hệ tương tác liên tục và nâng cao mức độ hài lòng của khách hàng thông qua việc lắng nghe.
+P736: Sơ đồ tuần tự quy trình nhân viên CSKH xử lý khiếu nại
+P737: Mục đích của sơ đồ: Đặc tả các bước giải quyết các vấn đề phát sinh gây không hài lòng cho khách hàng một cách chuyên nghiệp. Sơ đồ thể hiện luồng từ khi tiếp nhận khiếu nại, phân loại mức độ ưu tiên, phối hợp xử lý giữa các bộ phận cho đến khi phản hồi kết quả cuối cùng cho khách hàng. Quy trình này giúp đảm bảo mọi khiếu nại đều được theo vết (traceability) và xử lý triệt để.
+P739: Sơ đồ tuần nhân viên Marketing tự tạo và gửi chiến dịch
+P740: Mục đích của sơ đồ: Mô tả quá trình triển khai các hoạt động quảng bá hoặc chăm sóc tự động tới tệp khách hàng mục tiêu. Sơ đồ thể hiện việc thiết lập mẫu nội dung (Email/SMS), lựa chọn nhóm khách hàng phù hợp và kích hoạt gửi thông báo qua hệ thống. Kết quả của chiến dịch được lưu lại để phục vụ cho công tác báo cáo và đánh giá hiệu quả các hoạt động Marketing.
+P741: Sơ đồ tuần tự giám đốc xem và xuất báo cáo
+P743: 4.3 Thiết kế thành phần và triển khai
+P744: 4.3.1 Thiết kế thành phần
+P745: Hệ thống frontend được tổ chức theo nguyên tắc Separation of Concerns với 5 tầng:
+P746: Tầng 1 — Pages:
+P747: /dashboard, /customers, /customers/:id, /transactions, /tickets, /tickets/:id, /campaigns, /automation, /pipeline, /reports, /admin/users, /admin/settings, /admin/audit. Trong mã nguồn hiện tại còn có route /admin/pos-sync để phục vụ cấu hình và vận hành tích hợp POS.
+P748: Tầng 2 — Layouts:
+P749: AppLayout (chứa Sidebar + Header cho khu vực đăng nhập), AuthLayout (login/forgot/reset), FullscreenLayout (phù hợp cho báo cáo hoặc màn hình in/xem toàn phần).
+P750: Tầng 3 — Components (tái sử dụng):
+P751: UI Atoms: Button, Input, Badge, Modal, Table, Dropdown, DatePicker, Toast.
+P752: Domain Components: CustomerCard, TicketStatusBadge, PriorityIcon, RevenueChart, CustomerPieChart, KPICard, DealKanbanCard.
+P753: Shared: Sidebar, Header, Breadcrumb, NotificationBell, GlobalSearch, PageLoader.
+P754: Tầng 4 — Hooks (business logic tái sử dụng):
+P755: Data hooks: useCustomers, useCustomer, useTransactions, useTickets, useCampaigns, useDashboard, useDeals, useTasks.
+P756: Mutation hooks: useCreateCustomer, useUpdateCustomer, useCreateTicket, useUpdateTicket, useCreateDeal, useUpdateTask.
+P757: Auth hooks: useAuth, usePermission.
+P758: Realtime hooks: useRealtimeTickets, useRealtimeNotifications.
+P759: UI hooks: useDebounce, usePagination, useLocalStorage.
+P760: Trong mã nguồn hiện tại, lớp hook này được hiện thực chủ yếu qua file useNexcrmQueries.ts với các hook như useCustomersQuery, useCustomerDetailQuery, useTicketsQuery, useDashboardStats, useDealsQuery, useTasksQuery và các query phụ trợ cho automation, audit, notifications, POS sync.
+P761: Tầng 5 — Services (Supabase API calls):
+P762: customerService | transactionService | ticketService | campaignService | automationService | reportService | dealService | taskService | authService | storageService | notificationService | settingsService.
+P763: Triển khai thực tế còn có dashboardService, profileService, auditService, posSyncService, communicationService và exportService. Việc tách service khỏi component giúp React giữ UI mỏng, còn TanStack Query và Zustand lần lượt quản lý server state và client session state theo đúng thực hành tốt hiện đại.
+P764: Thiết kế thành phần của hệ thống được tổ chức theo các nhóm module chính để bảo đảm mỗi chức năng CRM có ranh giới rõ ràng giữa giao diện, nghiệp vụ và dữ liệu.
+P765: - Nhóm giao diện gồm các trang Dashboard, Customers, Customer Detail, Transactions, Tickets, Automation, Campaigns, Reports, Pipeline và các trang Admin.
+P766: - Nhóm service nghiệp vụ gồm authService, customerService, transactionService, ticketService, taskService, dealService, automationService, campaignService, reportService, settingsService và auditService.
+P767: - Nhóm dữ liệu gồm các bảng nghiệp vụ trên Supabase như customers, transactions, deals, tasks, support_tickets, campaigns, automation_rules, app_settings và audit_logs.
+P768: - Cách phân tách này giúp mỗi thành phần có trách nhiệm rõ ràng và giảm phụ thuộc trực tiếp giữa giao diện với truy cập dữ liệu.
+P770: 4.3.2 Thiết kế triển khai
+P771: Hệ thống triển khai trên nền tảng Cloud theo mô hình:
+P772: [Browser / End Users]
+P773: Người dùng cuối truy cập CRM qua trình duyệt web bằng HTTPS, không cần cài đặt client riêng.
+P774: [Vercel CDN - Frontend]
+P775: React SPA build (static files).
+P776: Auto-deploy từ GitHub main branch khi dự án được liên kết với Vercel; đồng thời tạo preview deployment cho từng thay đổi.
+P777: Global CDN giúp cải thiện thời gian tải cho người dùng ở Việt Nam.
+P778: vercel.json được dùng để rewrite mọi route về /index.html nhằm hỗ trợ SPA routing.
+P779: [Supabase Cloud - Backend]
+P780: Auth Service (JWT, bcrypt).
+P781: PostgreSQL 15 Database.
+P782: Tables + RLS Policies.
+P783: Triggers (auto-gen codes, customer rollup).
+P784: RPC Functions (dashboard stats); trong mã nguồn hiện tại đã có hàm get_dashboard_snapshot để tổng hợp chỉ số dashboard.
+P785: pg_cron / scheduler là hướng triển khai phù hợp cho automation scheduler ở môi trường cloud.
+P786: Edge Functions (Deno runtime):
+P787: send-campaign / dispatch-communication (email/SMS delivery).
+P788: run-automation (daily cron, theo kiến trúc mục tiêu).
+P789: pos-sync / pos-sync-webhook (POS integration endpoint).
+P790: manage-profile-user (quản trị vòng đời tài khoản).
+P791: Realtime (WebSocket).
+P792: Storage (file attachments).
+P793: [External Services]
+P794: Resend.com (Email delivery).
+P795: SMS Provider (chờ cấu hình).
+P796: POS System API (polling sync).
+P797: Môi trường:
+P798: Development: localhost:5173 (Vite dev server) + Supabase local.
+P799: Staging: Vercel preview URL + Supabase staging project.
+P800: Production: Custom domain + Supabase production project.
+P801: Ở thời điểm hiện tại, repository vẫn có thể vận hành theo quy trình build/test thủ công trước khi deploy; tuy nhiên topology nêu trên là mô hình triển khai chuẩn và phù hợp nhất cho CRM SaaS dùng Vercel + Supabase.
+P802: Thiết kế triển khai hiện tại phù hợp với mô hình ứng dụng web một trang (SPA), trong đó giao diện được build bằng Vite và triển khai tĩnh, còn xác thực, cơ sở dữ liệu và các điểm tích hợp nền sử dụng dịch vụ Supabase Cloud.
+P803: - Frontend được build bằng Vite để tạo ra gói tĩnh và có thể triển khai trên Vercel, Netlify hoặc web server tương đương.
+P804: - Supabase Cloud cung cấp Auth, PostgreSQL, Realtime và các điểm mở rộng cho chức năng nền của hệ thống.
+P805: - Biến môi trường được sử dụng để khai báo URL dự án và khóa truy cập phía client theo đúng cấu hình triển khai.
+P806: - Ở thời điểm lập báo cáo, quy trình build/test vẫn được chạy thủ công có kiểm soát; CI/CD tự động hoàn chỉnh là phần mở rộng tiếp theo.
+P809: Chương 5: Xây dựng phần mềm quản lý khách hàng
+P810: 5.1 Lựa chọn công nghệ và môi trường triển khai
+P811: Để bảo đảm tính khả thi, dễ bảo trì và khả năng mở rộng trong phạm vi đồ án, hệ thống CRM được xây dựng theo kiến trúc 3 lớp với stack thực tế là React + Vite + Supabase. Việc lựa chọn công nghệ được định hướng bởi ba tiêu chí: phù hợp với năng lực nhóm, hỗ trợ phát triển nhanh nhưng vẫn tách lớp logic rõ ràng, và thuận lợi cho việc mở rộng theo hướng SaaS CRM.
+P812: 5.1.1 Giao diện người dùng (Frontend – Presentation Layer)
+P813: Hệ thống sử dụng React kết hợp TypeScript và Vite để xây dựng giao diện người dùng theo mô hình component-based.
+P814: Cách tiếp cận này giúp giao diện chia thành các thành phần tái sử dụng, quản lý điều hướng bằng React Router và phối hợp trạng thái dữ liệu với các hook/service một cách rõ ràng.
+P815: Công nghệ sử dụng:
+P816: React 19, TypeScript, Vite, React Router
+P817: Tailwind CSS, Radix UI, React Hook Form, Zod
+P818: TanStack Query, Zustand, Recharts, jsPDF, xlsx
+P819: Vai trò của tầng giao diện:
+P820: Hiển thị dashboard, danh sách và chi tiết khách hàng, giao dịch, ticket, pipeline, chiến dịch, báo cáo và các trang quản trị
+P821: Tổ chức form nhập liệu, tìm kiếm, lọc dữ liệu và điều hướng giữa các module
+P822: Phản hồi trạng thái thao tác, hiển thị thông báo lỗi/thành công và hỗ trợ người dùng trong quá trình làm việc
+P823: Gọi các service nghiệp vụ để đồng bộ với Supabase thay vì truy cập dữ liệu trực tiếp từ giao diện thô
+P824: 5.1.2 Xử lý nghiệp vụ (Application Layer – Supabase)
+P825: Tầng ứng dụng của hệ thống được tổ chức thông qua các service/hook ở phía client và các năng lực nền của Supabase như Auth, PostgreSQL, Realtime và Edge Functions. Cách triển khai này giúp nhóm không phải tự xây dựng một backend monolithic riêng nhưng vẫn giữ được ranh giới nghiệp vụ.
+P826: Supabase trong project đóng vai trò nền tảng backend-as-a-service, còn phần logic nghiệp vụ của hệ thống được quy hoạch trong các service module như authService, customerService, transactionService, ticketService, dealService, taskService, campaignService, automationService, reportService, settingsService và auditService.
+P827: Vai trò:
+P828: Xử lý xác thực, phân quyền theo vai trò và hồ sơ người dùng
+P829: Điều phối các thao tác CRUD, báo cáo, xuất dữ liệu, thông báo và lịch sử hoạt động
+P830: Kết nối giao diện với cơ sở dữ liệu, đồng thời gom logic nghiệp vụ về một tầng service dễ kiểm soát
+P831: Chuẩn bị nền cho các tích hợp như gửi thông điệp, automation và cấu hình kết nối hệ thống ngoài
+P832: 5.1.3 Lớp dữ liệu (Data Layer – Database)
+P833: Hệ thống sử dụng PostgreSQL thông qua Supabase để lưu trữ và truy vấn dữ liệu tập trung.
+P834: Các nhóm dữ liệu chính:
+P835: Hồ sơ người dùng và khách hàng: profiles, customers
+P836: Giao dịch và bán hàng: transactions, deals, tasks
+P837: CSKH và marketing: support_tickets, ticket_comments, campaigns, automation_rules, outbound_messages, notifications
+P838: Quản trị và truy vết: app_settings, audit_logs
+P839: 5.1.4 Quản lý mã nguồn và triển khai
+P840: Git và GitHub:
+P841: Lưu trữ và quản lý mã nguồn tập trung cho toàn bộ project React + Vite + Supabase
+P842: Theo dõi thay đổi theo từng chức năng, hỗ trợ làm việc nhóm và rà soát lịch sử chỉnh sửa
+P843: Là điểm tích hợp thuận tiện cho việc kết nối nền tảng triển khai khi cần
+P844: Triển khai hệ thống:
+P845: Frontend: build bằng Vite, phù hợp triển khai trên Vercel, Netlify hoặc hạ tầng web tĩnh tương đương
+P846: Backend, xác thực và cơ sở dữ liệu: Supabase Cloud
+P847: CI/CD:
+P848: Tại thời điểm báo cáo, repository chưa có workflow CI/CD chuyên biệt trong .github/workflows; việc kiểm thử và build đang được thực hiện thủ công có kiểm soát trước khi triển khai.
+P849: 5.1.5 Môi trường phát triển
+P850: Visual Studio Code, Node.js, Git
+P851: Trình duyệt Chrome hoặc Edge, Supabase project, môi trường cấu hình .env
+P852: Windows hoặc môi trường hỗ trợ Node.js tương đương
+P853: 5.1.6 Cài đặt hệ thống
+P854: a) Chuẩn bị môi trường
+P855: Cài đặt Node.js, npm, Visual Studio Code và tạo project Supabase tương ứng trước khi đồng bộ mã nguồn từ repository. Sau đó thực hiện npm install để cài đầy đủ dependency của project.
+P856: b) Cấu hình môi trường
+P857: Khai báo các biến môi trường cần thiết để frontend kết nối đúng với Supabase, tối thiểu gồm URL dự án và khóa public theo file .env mẫu của project.
+P858: c) Khởi tạo dữ liệu
+P859: Áp dụng schema dữ liệu Supabase, tạo các bảng cần thiết và chuẩn bị tài khoản người dùng tương ứng với các vai trò Sales, CSKH, Marketing, Director và Admin để phục vụ kiểm thử/demo.
+P860: d) Chạy hệ thống
+P861: Sử dụng npm run dev để khởi động môi trường phát triển. Sau khi chạy thành công, truy cập ứng dụng qua trình duyệt để kiểm tra luồng đăng nhập, dashboard và các module CRM chính.
+P862: e) Kiểm tra trước khi demo
+P863: Trước mỗi lần demo hoặc đóng gói phiên bản, nhóm thực hiện tối thiểu hai lệnh npm run test -- --run và npm run build để bảo đảm project đang ở trạng thái chạy được và không phát sinh lỗi build.
+P864: 5.1.7 Đánh giá
+P865: Kiến trúc triển khai gọn, phù hợp với phạm vi đồ án và thuận lợi cho việc phân công phát triển theo module.
+P866: Hệ thống đã hiện thực được các chức năng CRM cốt lõi như khách hàng, giao dịch, ticket, marketing campaign, dashboard báo cáo, pipeline, quản trị người dùng và audit cơ bản.
+P867: Chi phí triển khai ban đầu thấp nhờ tận dụng Supabase Cloud và mô hình frontend build tĩnh bằng Vite.
+P868: Hạn chế hiện tại là một số hạng mục tích hợp ngoài như POS sync end-to-end, CI/CD hoàn chỉnh, payment gateway và các kịch bản automation chạy nền cần tiếp tục hoàn thiện để đạt mức sản phẩm SaaS chuyên nghiệp.
+P869: 5.1.8 Kịch bản demo và minh họa giao diện
+P870: Để phần trình bày hệ thống có tính thuyết phục, nhóm chuẩn bị bộ ảnh minh họa và mô tả ngắn cho các màn hình trọng tâm. Các hình dưới đây cần được chụp trực tiếp từ hệ thống trước khi in/nộp báo cáo để bảo đảm thống nhất với phiên bản demo.
+P871: Hình 5.1. Dashboard tổng quan hệ thống
+P872: Hình 5.1. Màn hình Dashboard tổng quan - hiển thị các KPI chính (tổng khách hàng, doanh thu tháng, ticket đang mở, doanh thu theo tuần/tháng) và top 10 khách hàng VIP theo doanh thu. Giao diện được thiết kế theo mô hình dark theme với accent màu xanh điện (#3b82f6), tối ưu cho việc theo dõi nhiều chỉ số cùng lúc trong môi trường làm việc văn phòng.
+P873: [Chèn ảnh chụp màn hình Dashboard tại đây]
+P874: Màn hình này dùng để mở đầu phần demo vì thể hiện nhanh các KPI chính của hệ thống CRM.
+P875: Người xem có thể nhận thấy số lượng khách hàng, doanh thu, ticket và hiệu quả chiến dịch được tổng hợp tập trung.
+P876: Dashboard đóng vai trò liên kết dữ liệu từ khách hàng, giao dịch, marketing và chăm sóc khách hàng vào cùng một góc nhìn quản trị.
+P877: Đây là minh chứng rõ nhất cho khả năng tổng hợp dữ liệu của hệ thống trong phạm vi đồ án.
+P878: Hình 5.2. Hồ sơ khách hàng 360 độ
+P879: Hình 5.2. Màn hình hồ sơ khách hàng 360° tại route /customers/:id hiển thị toàn bộ thông tin khách hàng trên 6 tab: Thông tin cơ bản, Giao dịch, Ticket, Chăm sóc, File đính kèm và Nhật ký thay đổi. Đây là điểm tiếp cận dữ liệu tập trung (single source of truth), thay thế cho việc tra cứu thủ công trên nhiều file Excel rời rạc và giúp nhân viên khai thác lịch sử tương tác của khách hàng một cách nhất quán.
+P880: [Chèn ảnh chụp màn hình Customer Detail tại đây]
+P881: Ảnh này nên thể hiện chi tiết một khách hàng cụ thể cùng các thông tin định danh, phân loại và lịch sử liên quan.
+P882: Mục tiêu là chứng minh hệ thống không chỉ lưu danh sách khách hàng mà còn hỗ trợ quản lý hồ sơ tập trung theo từng đối tượng.
+P883: Khi trình bày, cần nhấn mạnh khả năng tra cứu nhanh, cập nhật thông tin và liên kết dữ liệu giao dịch/chăm sóc.
+P884: Đây là màn hình quan trọng để thể hiện tư duy CRM thay vì chỉ là phần mềm danh bạ.
+P885: Hình 5.3. Quản lý giao dịch và lịch sử mua hàng
+P886: Hình 5.3. Màn hình /transactions với bảng danh sách giao dịch có bộ lọc theo khách hàng, ngày và trạng thái thanh toán. Mỗi giao dịch được liên kết hai chiều với hồ sơ khách hàng, đồng thời tự động cập nhật total_spent và total_orders thông qua database trigger. Nhờ đó dữ liệu doanh số và lịch sử mua hàng luôn đồng bộ với các module báo cáo và chăm sóc khách hàng.
+P887: [Chèn ảnh chụp màn hình Transaction List tại đây]
+P888: Màn hình giao dịch minh chứng cho việc CRM theo dõi lịch sử mua hàng và tình trạng thanh toán của khách hàng.
+P889: Nên chọn ảnh có bộ lọc, danh sách giao dịch và liên kết với khách hàng để thể hiện rõ luồng nghiệp vụ.
+P890: Khi demo, có thể dẫn từ khách hàng sang giao dịch hoặc từ giao dịch sang báo cáo để cho thấy dữ liệu được sử dụng xuyên suốt.
+P891: Phần này cũng là cơ sở để giải thích vì sao doanh số và báo cáo tổng hợp có thể được hình thành trong hệ thống.
+P892: Hình 5.4. Xử lý phản hồi - khiếu nại và follow-up
+P893: Hình 5.4. Màn hình /tickets cung cấp hai chế độ xem Table View và Kanban Board, trong đó Kanban thể hiện rõ các trạng thái Open → In Progress → Pending → Resolved → Closed. Hệ thống hỗ trợ Realtime update: khi CSKH A thay đổi trạng thái ticket, giao diện của CSKH B tự động cập nhật mà không cần tải lại trang. Đây là minh chứng cho khả năng phối hợp xử lý khiếu nại theo thời gian thực trong môi trường nhiều người dùng.
+P894: [Chèn ảnh chụp màn hình Ticket hoặc Pipeline/Task tại đây]
+P895: Ảnh này cần thể hiện cách hệ thống tiếp nhận, phân loại và theo dõi trạng thái xử lý phản hồi hoặc nhiệm vụ follow-up.
+P896: Nhóm nên chụp màn hình ticket detail hoặc pipeline/task để chứng minh có quy trình chăm sóc khách hàng sau bán hàng.
+P897: Đây là điểm giúp hệ thống khác biệt với phần mềm bán hàng đơn thuần, vì có thêm lớp quản lý dịch vụ và hậu mãi.
+P898: Khi bảo vệ, phần này thường được giảng viên hỏi sâu nên cần chọn ảnh thể hiện rõ trạng thái, người phụ trách và thời hạn xử lý.
+P899: Hình 5.5. Chiến dịch marketing và chăm sóc tự động
+P900: Hình 5.5. Màn hình /campaigns quản lý chiến dịch Email/SMS marketing theo wizard 4 bước: thông tin, phân khúc khách hàng, soạn nội dung, xem lại và gửi. Module này kết hợp với /automation để cấu hình kịch bản chăm sóc tự động theo trigger như sinh nhật, khách không mua 30 ngày hoặc khách mới. Cách tổ chức này phản ánh định hướng CRM hiện đại, trong đó marketing và customer care được liên kết trên cùng một nền dữ liệu khách hàng.
+P901: [Chèn ảnh chụp màn hình Campaigns hoặc Automation tại đây]
+P902: Màn hình này dùng để minh chứng cho năng lực phân nhóm khách hàng, thiết lập chiến dịch và cấu hình quy tắc chăm sóc.
+P903: Nếu project mới ở mức manual run hoặc cấu hình rule, phần mô tả phải ghi đúng mức đó và không khẳng định quá khả năng hiện tại.
+P904: Người trình bày nên nhấn mạnh đây là nền để tiến tới CRM có khả năng marketing automation ở mức cao hơn.
+P905: Ảnh cần cho thấy tên chiến dịch hoặc quy tắc, trạng thái và các thông tin cốt lõi phục vụ việc theo dõi.
+P906: Chương 6: Kiểm thử, Bảo trì và Đào tạo phần mềm
+P907: 6.1. Kiểm thử phần mềm (Software Testing)
+P908: 6.1.1. Mục tiêu và vai trò của kiểm thử
+P909: Kiểm thử phần mềm là một giai đoạn then chốt trong vòng đời phát triển phần mềm (SDLC), đóng vai trò xác minh và thẩm định sản phẩm trước khi bàn giao. Đối với dự án "Phần mềm quản lý khách hàng", hoạt động kiểm thử hướng tới các mục tiêu cụ thể sau:
+P910: Xác minh tính đúng đắn (Verification): Đảm bảo các chức năng được xây dựng khớp với bản thiết kế hệ thống và các yêu cầu kỹ thuật (ví dụ: các ràng buộc dữ liệu tại form đăng ký khách hàng).
+P911: Thẩm định giá trị (Validation): Đảm bảo phần mềm đáp ứng đúng nhu cầu nghiệp vụ thực tế của người dùng cuối như nhân viên Sales, Marketing và Admin.
+P912: Phát hiện và loại bỏ rủi ro: Tìm kiếm các lỗi logic trong quá trình tính toán báo cáo, các lỗ hổng phân quyền và lỗi xử lý bất đồng bộ khi tương tác với cơ sở dữ liệu Supabase.
+P913: Nâng cao chất lượng trải nghiệm (UX): Đảm bảo giao diện phản hồi mượt mà, không có lỗi hiển thị trên các trình duyệt phổ biến.
+P914: 6.1.2. Phương pháp kiểm thử áp dụng
+P915: a. Tổng quan các phương pháp kiểm thử phổ biến
+P916: Trong ngành công nghệ phần mềm, có ba phương pháp tiếp cận chính để thực hiện kiểm thử:
+P917: Kiểm thử Hộp trắng (White-box Testing): Kiểm thử dựa trên việc hiểu rõ cấu trúc mã nguồn bên trong. Kiểm thử viên tập trung vào các luồng lệnh, vòng lặp, và các điều kiện logic của mã (Unit Test).
+P918: Kiểm thử Hộp đen (Black-box Testing): Kiểm thử viên không cần biết mã nguồn bên dưới. Hoạt động này tập trung hoàn toàn vào giao diện người dùng, kiểm tra xem với một đầu vào (Input) cho trước, hệ thống có trả về kết quả (Output) đúng như mong đợi hay không.
+P919: Kiểm thử Hộp xám (Gray-box Testing): Sự kết hợp giữa hai loại trên, nơi kiểm thử viên có kiến thức nhất định về cấu trúc dữ liệu bên trong để thiết kế các kịch bản kiểm thử giao diện hiệu quả hơn.
+P920: b. Lựa chọn phương pháp và Lý do áp dụng cho dự án
+P921: Nhóm quyết định áp dụng mô hình Kiểm thử kết hợp (Hybrid Testing) giữa Hộp trắng (tự động) và Hộp đen (thủ công) nhằm tối ưu hóa chất lượng sản phẩm:
+P922: 1. Áp dụng Kiểm thử Hộp trắng (Thông qua bộ TC-AUTO-01 đến 06):
+P923: Lý do: Hệ thống CRM sử dụng kiến trúc hiện đại (React + Supabase), nơi các logic xử lý dữ liệu bất đồng bộ và các Hook tùy chỉnh đóng vai trò "xương sống". Việc kiểm thử hộp trắng giúp xác minh các hàm xử lý này hoạt động chính xác tuyệt đối trước khi tích hợp lên giao diện.
+P924: Lợi ích: Phát hiện sớm các lỗi logic (Shift-left Testing), đảm bảo tính bảo mật tại tầng mã nguồn và giúp việc bảo trì sau này trở nên an toàn hơn (không làm hỏng các tính năng cũ khi cập nhật code mới).
+P925: 2. Áp dụng Kiểm thử Hộp đen (Thông qua bộ TC-MAN-01 đến 09):
+P926: Lý do: CRM là phần mềm dành cho người dùng nghiệp vụ, do đó trải nghiệm trên giao diện (UI) là yếu tố sống còn. Kiểm thử hộp đen cho phép nhóm đóng vai trò là người dùng thực tế để đánh giá các luồng nghiệp vụ liên thông (End-to-End) như: tạo khách hàng -> lập giao dịch -> kiểm tra dashboard.
+P927: Lợi ích: Đảm bảo hệ thống hoạt động ổn định trên các trình duyệt (Chrome, Edge) và đảm bảo các yêu cầu về tính dễ dùng, tốc độ phản hồi của giao diện đáp ứng mong đợi của khách hàng.
+P928: Kết luận: Việc phối hợp cả hai phương pháp giúp nhóm kiểm soát chất lượng từ "trong ra ngoài". Kiểm thử Hộp trắng đảm bảo nền tảng mã nguồn vững chắc, trong khi Kiểm thử Hộp đen đảm bảo sản phẩm cuối cùng thân thiện và hoạt động đúng kịch bản nghiệp vụ.
+P929: 6.1.3. Công cụ kiểm thử sử dụng
+P930: Để đảm bảo tính chính xác và hiệu quả trong quá trình kiểm thử hệ thống CRM, nhóm đã lựa chọn bộ đôi công cụ hiện đại, tối ưu cho hệ sinh thái React + Vite + Supabase:
+P931: a. Phần mềm kiểm thử chính: Vitest
+P932: Giới thiệu: Vitest là một khung kiểm thử (Testing Framework) thế hệ mới được xây dựng trên nền tảng của Vite. Đây là công cụ chủ đạo được nhóm sử dụng để thực thi các kịch bản kiểm thử tự động (TC-AUTO).
+P933: Lý do lựa chọn:
+P934: Tương thích tuyệt đối: Vì dự án sử dụng Vite làm công cụ đóng gói (Bundler), Vitest cho phép sử dụng chung cấu hình, giúp môi trường kiểm thử đồng nhất với môi trường phát triển thực tế.
+P935: Tốc độ và Hiệu năng: Vitest sử dụng cơ chế thực thi song song (Worker Threads), giúp chạy hàng loạt bài test logic chỉ trong vài giây.
+P936: Hỗ trợ TypeScript: Nhóm có thể kiểm tra chặt chẽ các kiểu dữ liệu và logic nghiệp vụ mà không cần cấu hình phức tạp.
+P937: Phạm vi áp dụng: Thực hiện các bài kiểm thử đơn vị (Unit Test) cho các hàm xử lý logic và kiểm thử tích hợp (Integration Test) cho các Hook tương tác với Supabase.
+P938: b. Công cụ kiểm thử giao diện và hiệu năng: Chrome DevTools
+P939: Giới thiệu: Chrome DevTools là bộ công cụ hỗ trợ lập trình viên được tích hợp sẵn trong trình duyệt Google Chrome, đóng vai trò then chốt trong quá trình kiểm thử thủ công (TC-MAN).
+P940: Lý do lựa chọn:
+P941: Kiểm tra luồng dữ liệu (Network tab): Cho phép nhóm theo dõi trực tiếp các yêu cầu (Request) và phản hồi (Response) từ API của Supabase, đảm bảo dữ liệu khách hàng được truyền tải chính xác.
+P942: Kiểm tra giao diện (Elements tab): Giúp điều chỉnh CSS, kiểm tra lỗi bố cục (Layout) và đảm bảo tính thẩm mỹ trên nhiều độ phân giải khác nhau (Responsive).
+P943: Gỡ lỗi thời gian thực (Console tab): Phát hiện nhanh các lỗi thực thi JavaScript hoặc các cảnh báo bảo mật ngay khi người dùng thao tác trên phần mềm.
+P944: Phạm vi áp dụng: Thực hiện kiểm thử Hộp đen (Black-box), tập trung vào trải nghiệm người dùng, tính ổn định của giao diện và kết nối dữ liệu thực tế.
+P945: 6.1.4. Đánh giá sự phù hợp của công cụ
+P946: Sự phối hợp giữa Vitest và Chrome DevTools tạo nên một quy trình kiểm thử toàn diện:
+P947: Vitest đảm nhận phần "chìm" (Logic & Mã nguồn): Giúp phát hiện sớm các lỗi sai trong thuật toán, tính toán báo cáo và các điều kiện ràng buộc dữ liệu.
+P948: Chrome DevTools đảm nhận phần "nổi" (Giao diện & Tương tác): Đảm bảo người dùng cuối có trải nghiệm mượt mà, giao diện đúng thiết kế và dữ liệu hiển thị nhất quán trên trình duyệt.
+P950: 6.2. Kế hoạch bảo trì phần mềm (Software Maintenance)
+P951: 6.2.1. Khái niệm và mục tiêu của bảo trì
+P952: Bảo trì phần mềm là quá trình sửa đổi hệ thống sau khi đã bàn giao nhằm mục đích khắc phục lỗi, cải thiện hiệu suất hoặc thích nghi với sự thay đổi của môi trường vận hành. Đối với dự án CRM, hoạt động bảo trì hướng tới các mục tiêu:
+P953: Tính liên tục: Đảm bảo hệ thống luôn sẵn sàng để nhân viên truy cập dữ liệu khách hàng.
+P954: Tính toàn vẹn: Bảo vệ cơ sở dữ liệu khách hàng khỏi các lỗi logic hoặc sự cố hệ thống.
+P955: Tính thích nghi: Đảm bảo ứng dụng chạy tốt trên các phiên bản trình duyệt mới và hạ tầng Cloud (Supabase).
+P956: 6.2.2. Phân loại các hoạt động bảo trì áp dụng cho hệ thống CRM
+P957: Dựa trên đặc thù công nghệ React và Supabase, nhóm thiết lập kế hoạch bảo trì theo 4 nhóm chuẩn:
+P958: Bảo trì khắc phục (Corrective Maintenance):
+P959: Sửa lỗi phát sinh tại các form nhập liệu khách hàng, lỗi hiển thị Dashboard khi dữ liệu bị trống.
+P960: Khắc phục các sự cố về xử lý bất đồng bộ (Async/Await) khi tương tác với API của Supabase gây ra tình trạng treo giao diện.
+P961: Bảo trì thích nghi (Adaptive Maintenance):
+P962: Cập nhật các thư viện phụ thuộc (npm packages) như React, Vite khi có các bản vá lỗi bảo mật mới.
+P963: Điều chỉnh cấu hình kết nối và khóa bảo mật (API Keys) khi hạ tầng Supabase thay đổi chính sách hoặc nâng cấp phiên bản.
+P964: Bảo trì hoàn thiện (Perfective Maintenance):
+P965: Tối ưu hóa mã nguồn (Refactoring) để tăng tốc độ tải trang và phản hồi của các biểu đồ báo cáo.
+P966: Nâng cấp các tính năng lọc khách hàng, xuất báo cáo Excel theo yêu cầu thực tế phát sinh của doanh nghiệp.
+P967: Hoàn thiện giao diện người dùng (UI/UX) dựa trên phản hồi sau buổi demo.
+P968: Bảo trì phòng ngừa (Preventive Maintenance):
+P969: Thiết lập quy trình sao lưu (Backup) dữ liệu khách hàng định kỳ để phòng ngừa rủi ro mất mát dữ liệu.
+P970: Rà soát và tối ưu các quy tắc bảo mật hàng (Row Level Security - RLS) trên Supabase để ngăn chặn rò rỉ thông tin khách hàng.
+P971: 6.2.3. Quy trình thực hiện và Dự toán nguồn lực bảo trì
+P972: a) Quy trình thực hiện bảo trì (Maintenance Workflow)
+P973: Để đảm bảo việc chỉnh sửa mã nguồn không gây ra các lỗi hệ thống (side effects) và duy trì tính ổn định của phần mềm CRM, nhóm áp dụng quy trình bảo trì 5 bước tiêu chuẩn:
+P974: Tiếp nhận và Phân tích (Request & Analysis): Nhóm tiếp nhận yêu cầu thay đổi hoặc thông báo lỗi từ người dùng qua nhật ký hệ thống. Sau đó, tiến hành phân tích phạm vi ảnh hưởng của việc sửa đổi đối với các module liên quan (ví dụ: việc sửa logic tính toán Giao dịch có thể ảnh hưởng đến biểu đồ trên Dashboard).
+P975: Lập kế hoạch chỉnh sửa (Planning): Xác định loại bảo trì (Khắc phục, Thích nghi, Hoàn thiện hay Phòng ngừa) và phân công thành viên phụ trách xử lý trên các nhánh mã nguồn riêng biệt (Git branch).
+P976: Thực thi và Kiểm thử đơn vị (Implementation & Unit Testing): Tiến hành điều chỉnh mã nguồn trên môi trường phát triển (Local). Ngay sau khi sửa đổi, nhóm sử dụng bộ công cụ Vitest để chạy lại các bản kiểm thử tự động (TC-AUTO), đảm bảo logic nội tại của hàm/component vẫn chính xác.
+P977: Kiểm thử hồi quy (Regression Testing): Đây là bước quan trọng nhất. Nhóm thực hiện lại các kịch bản kiểm thử hộp đen (TC-MAN) trên giao diện để chắc chắn rằng các chức năng cũ không bị ảnh hưởng bởi những thay đổi mới.
+P978: Triển khai và Giám sát (Deployment & Monitoring): Cập nhật phiên bản mới lên hạ tầng Cloud (Vercel/Supabase). Nhóm tiếp tục theo dõi hiệu năng hệ thống trong 24h đầu tiên để đảm bảo bản vá hoạt động ổn định.
+P979: b) Dự toán nguồn lực và Chiến lược ưu tiên
+P980: Việc duy trì hệ thống CRM đòi hỏi sự phân bổ nguồn lực hợp lý để tối ưu hóa chi phí và hiệu quả vận hành:
+P981: Về Nhân lực: Nhóm cắt cử 01 thành viên đóng vai trò kiểm soát cấu hình và tiếp nhận phản hồi. Trong giai đoạn cao điểm (ngay sau bàn giao), toàn bộ nhóm sẽ ưu tiên cho Bảo trì khắc phục (Corrective) để xử lý lỗi phát sinh.
+P982: Về Công cụ & Hạ tầng: * Tận dụng gói miễn phí (Free Tier) của Supabase cho đến khi quy mô dữ liệu khách hàng vượt ngưỡng 500MB hoặc 50.000 bản ghi.
+P983: Sử dụng GitHub Actions để tự động hóa quá trình kiểm thử và build mỗi khi có bản cập nhật bảo trì.
+P984: Chiến lược ưu tiên:
+P985: Ưu tiên cao nhất (Ngắn hạn): Sửa các lỗi bảo mật dữ liệu khách hàng và lỗi gây ngừng trệ hệ thống.
+P986: Ưu tiên trung hạn: Bảo trì phòng ngừa (Backup dữ liệu định kỳ) và bảo trì thích nghi theo các cập nhật của trình duyệt.
+P987: Ưu tiên dài hạn: Bảo trì hoàn thiện để nâng cấp trải nghiệm người dùng dựa trên xu hướng thị trường.
+P989: 6.2.4. Bảng kế hoạch bảo trì chi tiết
+P993: 5.1.9 Báo cáo kiểm thử thực tế
+P994: Tại thời điểm rà soát báo cáo ngày 15/04/2026, nhóm thực hiện lại kiểm thử tự động và build project để lấy minh chứng cập nhật nhất. Kết quả cho thấy 10 file test với 29 test case đều đạt, đồng thời quá trình build production hoàn thành thành công, không phát sinh TypeScript error.
+P995: a) Kết quả kiểm thử tự động
+P997: b) Bảng kiểm thử nghiệm thu trước demo
+P999: Ghi chú về phương pháp kiểm thử: Tổng cộng nhóm thực hiện [⚠️SỬA TAY: điền số] test case, trong đó [số] test case pass, [số] test case fail và đã được sửa, [số] test case thuộc hạng mục chưa triển khai. Kết quả build production: npm run build hoàn thành không có TypeScript error và 29/29 unit test pass.
+P1000: 5.1.10 Kế hoạch bảo trì phần mềm
+P1001: Kế hoạch bảo trì được xây dựng theo bốn nhóm chuẩn của công nghệ phần mềm nhằm bảo đảm hệ thống có thể tiếp tục vận hành, sửa lỗi và nâng cấp sau khi kết thúc giai đoạn đồ án.
+P1003: 5.1.11 Kế hoạch đào tạo người dùng
+P1004: Do hệ thống CRM có nhiều vai trò người dùng, nhóm xây dựng kế hoạch đào tạo ngắn gọn theo vai trò để bảo đảm mỗi nhóm người dùng nắm được đúng chức năng cần sử dụng trong demo và khi vận hành thử.
+P1006: 5.2 Sử dụng công cụ quản lý mã nguồn (Git/GitHub)
+P1007: 5.2.1 Giới thiệu
+P1008: Trong quá trình phát triển hệ thống quản lý khách hàng (CRM), đặc biệt khi dự án được thực hiện theo nhóm và có nhiều chức năng khác nhau, việc quản lý mã nguồn đóng vai trò hết sức quan trọng.
+P1009: Công cụ quản lý mã nguồn giúp:
+P1010: Lưu trữ toàn bộ mã nguồn một cách tập trung
+P1011: Theo dõi lịch sử thay đổi của hệ thống
+P1012: Kiểm soát phiên bản phần mềm trong từng giai đoạn phát triển
+P1013: Hỗ trợ nhiều thành viên làm việc đồng thời mà không gây xung đột
+P1014: Trong dự án này, nhóm sử dụng:
+P1015: Git: Hệ thống quản lý phiên bản phân tán (Distributed Version Control System) cho phép theo dõi và lưu trữ các thay đổi của mã nguồn
+P1016: GitHub: Nền tảng lưu trữ mã nguồn trực tuyến, hỗ trợ quản lý dự án và làm việc nhóm hiệu quả
+P1017: 5.2.2 Mục đích sử dụng Git/GitHub trong dự án
+P1018: Việc áp dụng Git và GitHub trong hệ thống CRM nhằm các mục đích sau:
+P1019: Lưu trữ toàn bộ mã nguồn của hệ thống (React + Supabase) một cách an toàn
+P1020: Theo dõi chi tiết lịch sử thay đổi của từng chức năng
+P1021: Hỗ trợ nhiều thành viên cùng phát triển các module khác nhau
+P1022: Giảm thiểu rủi ro mất dữ liệu trong quá trình làm việc
+P1023: Cho phép khôi phục lại các phiên bản trước khi xảy ra lỗi
+P1024: Hỗ trợ quản lý phiên bản và là nền tảng thuận tiện để kết nối triển khai; phần CI/CD tự động hoàn chỉnh được xác định là hạng mục nâng cấp tiếp theo chứ chưa xem là đã hoàn thiện trong repository hiện tại.
+P1025: Tăng tính minh bạch và kiểm soát tiến độ phát triển dự án
+P1026: 5.2.3 Quy trình sử dụng Git/GitHub trong dự án
+P1027: Trong quá trình phát triển hệ thống CRM, nhóm đã áp dụng quy trình quản lý mã nguồn theo các bước sau:
+P1028: a) Khởi tạo và thiết lập repository
+P1029: Nhóm tiến hành tạo một repository trên GitHub để lưu trữ toàn bộ mã nguồn của hệ thống.
+P1030: Repository bao gồm:
+P1031: Mã nguồn Frontend (ReactJS)
+P1032: Cấu hình và kết nối Supabase
+P1033: Các file cấu hình môi trường (.env, config)
+P1034: Tài liệu dự án
+P1035: Việc tổ chức repository rõ ràng giúp dễ dàng quản lý và mở rộng hệ thống.
+P1036: b) Kết nối dự án với Git
+P1037: Sau khi tạo repository, nhóm tiến hành khởi tạo Git trong project và liên kết với GitHub.
+P1038: Các bước thực hiện:
+P1039: Khởi tạo Git trong thư mục dự án
+P1040: Thêm remote repository từ GitHub
+P1041: Đồng bộ mã nguồn giữa local và remote
+P1042: Điều này giúp đảm bảo mã nguồn luôn được quản lý tập trung và tránh thất thoát dữ liệu.
+P1043: c) Commit và quản lý phiên bản
+P1044: Trong quá trình phát triển, mỗi khi hoàn thành một chức năng hoặc chỉnh sửa quan trọng, nhóm thực hiện commit để lưu lại trạng thái mã nguồn.
+P1045: Nguyên tắc commit:
+P1046: Commit theo từng chức năng nhỏ
+P1047: Nội dung commit rõ ràng, ngắn gọn
+P1048: Phản ánh đúng thay đổi đã thực hiện
+P1049: Ví dụ:
+P1050: “Xây dựng giao diện danh sách khách hàng”
+P1051: “Thêm chức năng đăng nhập bằng Supabase Auth”
+P1052: “Cập nhật chức năng tìm kiếm khách hàng”
+P1053: Việc commit hợp lý giúp dễ dàng theo dõi tiến trình phát triển và hỗ trợ debug khi xảy ra lỗi.
+P1054: d) Làm việc nhóm và quản lý nhánh (Branch)
+P1055: Để hạn chế xung đột khi nhiều thành viên cùng làm việc, nhóm thống nhất nguyên tắc quản lý nhánh theo hướng đơn giản, phù hợp với quy mô dự án.
+P1056: Nhánh main: lưu phiên bản ổn định và làm mốc tích hợp chính của hệ thống.
+P1057: Nhánh feature hoặc nhánh làm việc cá nhân: dùng để phát triển từng cụm chức năng trước khi hợp nhất về main.
+P1058: Trong một số giai đoạn thử nghiệm giao diện/chức năng, nhóm có thể tạo nhánh tạm để kiểm tra trước khi rà soát lại mã nguồn.
+P1059: Quy trình làm việc:
+P1060: Tách nhánh từ main cho từng cụm chức năng hoặc nhiệm vụ cụ thể
+P1061: Phát triển chức năng trên nhánh riêng, tự kiểm thử và đồng bộ lại với repository
+P1062: Rà soát thay đổi trước khi hợp nhất để giảm nguy cơ ảnh hưởng sang module khác
+P1063: Hợp nhất vào main khi chức năng đạt mức ổn định và phù hợp với yêu cầu đã chốt
+P1064: Cách làm này giúp:
+P1065: Giảm xung đột code
+P1066: Dễ kiểm soát chất lượng
+P1067: Tăng hiệu quả làm việc nhóm
+P1068: e) Đồng bộ và cập nhật mã nguồn
+P1069: Trong quá trình làm việc, các thành viên thường xuyên thực hiện:
+P1070: Pull: cập nhật mã nguồn mới nhất từ GitHub
+P1071: Push: đẩy các thay đổi lên repository
+P1072: Việc đồng bộ thường xuyên giúp:
+P1073: Tránh xung đột khi merge
+P1074: Đảm bảo tất cả thành viên làm việc trên phiên bản mới nhất
+P1075: f) Kết nối triển khai và định hướng CI/CD
+P1076: GitHub hiện được sử dụng như kho mã nguồn trung tâm và là điểm kết nối thuận tiện với nền tảng triển khai khi nhóm cần công bố phiên bản demo.
+P1077: Thực trạng hiện tại:
+P1078: Repository chưa có workflow GitHub Actions riêng để chạy test, build và deploy hoàn toàn tự động.
+P1079: Nhóm đang thực hiện kiểm thử và build có kiểm soát bằng các lệnh npm run test -- --run và npm run build trước khi triển khai.
+P1080: Việc triển khai bản demo có thể kết nối với nền tảng hosting phù hợp sau khi hoàn tất bước kiểm tra thủ công.
+P1081: Ý nghĩa của cách làm hiện tại:
+P1082: Đủ phù hợp với phạm vi đồ án, giúp nhóm kiểm soát được chất lượng phiên bản trước khi công bố demo
+P1083: Tránh mô tả vượt hiện trạng của repository về mặt tự động hóa DevOps
+P1084: Tạo nền để bổ sung CI/CD đầy đủ trong giai đoạn nâng cấp sau
+P1085: 5.2.4 Ứng dụng Git/GitHub trong hệ thống CRM
+P1086: Trong dự án, GitHub được sử dụng để quản lý toàn bộ quá trình phát triển hệ thống, bao gồm:
+P1087: Quản lý mã nguồn các chức năng:
+P1088: Đăng ký / đăng nhập người dùng
+P1089: Quản lý khách hàng (CRUD)
+P1090: Tìm kiếm và lọc dữ liệu
+P1091: Phân quyền người dùng
+P1092: Theo dõi tiến độ làm việc của từng thành viên
+P1093: Lưu trữ toàn bộ lịch sử phát triển hệ thống
+P1094: Hỗ trợ kiểm tra và review code
+P1095: Ngoài vai trò quản lý phiên bản, GitHub còn là đầu mối thuận tiện để kết nối triển khai khi cần; tuy nhiên việc cập nhật ứng dụng chưa được tự động hóa bằng workflow CI/CD riêng trong repository hiện tại.
+P1096: 5.2.5 Đánh giá hiệu quả sử dụng
+P1097: Việc sử dụng Git và GitHub mang lại nhiều lợi ích thiết thực:
+P1098: Quản lý mã nguồn khoa học và có hệ thống
+P1099: Giảm thiểu lỗi và xung đột trong quá trình phát triển
+P1100: Tăng hiệu quả làm việc nhóm
+P1101: Hỗ trợ kiểm soát tiến độ và chất lượng sản phẩm
+P1102: Dễ dàng bảo trì và nâng cấp hệ thống
+P1103: 5.2.6 Kết luận
+P1104: Git và GitHub là những công cụ không thể thiếu trong phát triển phần mềm hiện đại. Việc áp dụng hiệu quả các công cụ này trong dự án hệ thống quản lý khách hàng (CRM) đã giúp nhóm kiểm soát tốt mã nguồn, nâng cao chất lượng sản phẩm và đảm bảo hệ thống hoạt động ổn định.
+P1105: Đây cũng là nền tảng quan trọng để hệ thống có thể tiếp tục mở rộng và phát triển trong tương lai
+P1107: 5.3 Kết luận chương
+P1108: Chương 5 cho thấy hệ thống CRM đã được hiện thực hóa ở mức có thể demo thuyết phục đối với các chức năng cốt lõi: quản lý khách hàng, giao dịch, phản hồi - khiếu nại, marketing campaign, pipeline, báo cáo và quản trị cơ bản. Đồng thời, chương này cũng chỉ rõ các phần mới dừng ở mức cấu hình hoặc định hướng phát triển như POS sync end-to-end, CI/CD hoàn chỉnh và một số automation chạy nền để tránh sai lệch giữa báo cáo với project thực tế.
+P1109: Chương 6 : Kết luận và hướng phát triển
+P1110: 6.1 Kết quả đạt được
+P1111: Trong phạm vi học phần Công nghệ phần mềm, nhóm đã hoàn thành được các kết quả trọng tâm sau: (1) xây dựng bộ tài liệu phân tích - thiết kế tương đối đầy đủ gồm tác nhân, use case, activity, kiến trúc và mô hình dữ liệu; (2) hiện thực hệ thống CRM dạng web bằng React + Vite + Supabase; (3) triển khai được các module cốt lõi gồm đăng nhập, quản lý khách hàng, giao dịch, ticket, marketing campaign, automation rule, pipeline, báo cáo, quản trị người dùng, audit log và cấu hình hệ thống; (4) kiểm thử tự động và build project thành công tại thời điểm hoàn thiện báo cáo.
+P1112: Về mặt định lượng, hệ thống đã đáp ứng được 7/8 module theo kế hoạch đề ra (87.5%), với 29/29 unit test case pass và production build thành công không có TypeScript error. Module POS Sync đạt mức cấu hình tích hợp (50% của mục tiêu), dự kiến hoàn thiện luồng Polling Sync đầy đủ trong iteration tiếp theo. Tổng cộng hơn [⚠️SỬA TAY: điền số] commits được ghi nhận trên GitHub repository trong suốt 3 tháng phát triển.
+P1113: 6.2 Hạn chế hiện tại
+P1114: Bên cạnh các kết quả đã đạt được, hệ thống vẫn còn một số giới hạn cần nhìn nhận thẳng thắn. Thứ nhất, tích hợp POS mới ở mức cấu hình và chuẩn bị kết nối, chưa đủ bằng chứng để khẳng định đồng bộ thời gian thực hoàn chỉnh. Thứ hai, repository chưa có workflow CI/CD tự động riêng nên khâu kiểm thử và build hiện vẫn do nhóm thực hiện thủ công có kiểm soát. Thứ ba, payment gateway và một số cơ chế vận hành ở mức SaaS như billing, multi-tenant hoặc automation nền dài hạn chưa thuộc phạm vi hiện thực hóa của phiên bản này. Thứ tư, một số hạng mục bảo mật và phân quyền dữ liệu vẫn cần tiếp tục hardening nếu muốn vận hành ở quy mô lớn hơn.
+P1115: 6.3 Hướng phát triển
+P1116: Trong giai đoạn tiếp theo, nhóm định hướng mở rộng hệ thống theo ba nhóm ưu tiên. Nhóm thứ nhất là hoàn thiện các hạng mục bắt buộc để tăng độ khớp giữa báo cáo và sản phẩm, bao gồm chuẩn hóa minh chứng demo, siết chặt phân quyền dữ liệu và hoàn thiện thêm các kịch bản automation. Nhóm thứ hai là nâng cấp trải nghiệm và khả năng vận hành như hoàn thiện lịch chạy nền cho campaign/automation, tăng cường audit và chuẩn hóa quy trình triển khai. Nhóm thứ ba là định hướng SaaS CRM chuyên nghiệp hơn với các tính năng như POS sync hai chiều, payment gateway, multi-tenant, billing/subscription và quan sát vận hành ở mức thương mại hóa.
+P1117: TÀI LIỆU THAM KHẢO
+P1118: [1] Ian Sommerville, Software Engineering, Pearson.
+P1119: [2] Roger S. Pressman, Bruce R. Maxim, Software Engineering: A Practitioner's Approach, McGraw-Hill.
+P1120: [3] React Documentation. Truy cập tại: https://react.dev/ (ngày truy cập 15/04/2026).
+P1121: [4] Vite Documentation. Truy cập tại: https://vite.dev/ (ngày truy cập 15/04/2026).
+P1122: [5] Supabase Documentation. Truy cập tại: https://supabase.com/docs (ngày truy cập 15/04/2026).
+P1123: [6] Git Documentation. Truy cập tại: https://git-scm.com/doc (ngày truy cập 15/04/2026).
+P1124: [7] GitHub Documentation. Truy cập tại: https://docs.github.com/ (ngày truy cập 15/04/2026).
+P1125: [14] Cockburn, A. "Writing Effective Use Cases". Addison-Wesley, 2001.
+P1126: [13] TanStack. "TanStack Query v5 Documentation". Truy cập tại: https://tanstack.com/query/v5 (ngày truy cập 15/04/2026).
+P1127: [12] PostgreSQL Global Development Group. "PostgreSQL 15 Documentation". Truy cập tại: https://www.postgresql.org/docs/15/ (ngày truy cập 15/04/2026).
+P1128: [11] Supabase. "Row Level Security". Truy cập tại: https://supabase.com/docs/guides/auth/row-level-security (ngày truy cập 15/04/2026).
+P1129: [10] HubSpot. "The Ultimate Guide to CRM". Truy cập tại: https://blog.hubspot.com/crm/ (ngày truy cập 15/04/2026).
+P1130: [9] Salesforce. "What is CRM?". Truy cập tại: https://www.salesforce.com/crm/what-is-crm/ (ngày truy cập 15/04/2026).
+P1131: [8] Tài liệu hướng dẫn và gợi ý bố cục báo cáo tiểu luận do giảng viên cung cấp.
+--- TABLE 1 ---
+T1R1: STT | Họ và tên | Nhiệm vụ cụ thể | Mức độ hoàn thành (%) | Ký tên
+T1R2: 1 | Phạm Thị Nhung | Product Owner: Phân tích yêu cầu, quản lý product backlog, viết đặc tả use case, soạn tài liệu SRS | [ĐÁNH DẤU: SỬA TAY] | ___
+T1R3: 2 | Nguyễn Văn Sáng | Lead Developer: Thiết kế kiến trúc hệ thống, thiết kế database schema, lập trình Frontend React + Supabase integration | [ĐÁNH DẤU: SỬA TAY] | ___
+T1R4: 3 | Nguyễn Thị Khánh Hòa | Scrum Master: Điều phối Sprint, viết chương 1, 2, kiểm thử hệ thống, viết test report | [ĐÁNH DẤU: SỬA TAY] | ___
+T1R5: 4 | Hà Quang Tiến | Developer: Lập trình UI/UX các module CRM, viết chương 4 thiết kế kỹ thuật, vẽ UML diagrams | [ĐÁNH DẤU: SỬA TAY] | ___
+T1R6: 5 | Vũ Trọng Tuyền | Scrum Master: Viết chương 5, 6, kế hoạch kiểm thử, bảo trì, đào tạo, quản lý Git/GitHub | [ĐÁNH DẤU: SỬA TAY] | ___
+--- TABLE 2 ---
+T2R1: Cấp độ | Tên gọi | Đặc điểm chính | Ví dụ minh họa
+T2R2: Level 1 | Initial (Sơ khai) | Quy trình tùy tiện, không ổn định, phụ thuộc vào kỹ năng cá nhân. Nguy cơ thất bại cao. | Nhóm sinh viên làm đồ án, ai nhớ gì làm nấy, không có quy chuẩn code.
+T2R3: Level 2 | Repeatable (Lặp lại) | Thiết lập chính sách quản lý dự án cơ bản (yêu cầu, cấu hình, đảm bảo chất lượng). | Công ty nhỏ đã có quy trình quản lý yêu cầu và lịch biểu cơ bản.
+T2R4: Level 3 | Defined (Xác định) | Quy trình được chuẩn hóa thành văn bản, áp dụng thống nhất toàn tổ chức. | Công ty có bộ quy chuẩn chung: Phân tích -> Thiết kế -> Code -> Test theo mẫu.
+T2R5: Level 4 | Managed (Quản lý) | Kiểm soát quy trình bằng các chỉ số định lượng. Dự báo được chất lượng sản phẩm. | Công ty đo được tỉ lệ lỗi (VD: 2 lỗi/1000 dòng code) để dự báo thời gian sửa lỗi.
+T2R6: Level 5 | Optimizing (Tối ưu) | Cải tiến liên tục dựa trên dữ liệu. Ngăn ngừa lỗi và áp dụng công nghệ mới. | Công ty tự động hóa quy trình để giảm tỉ lệ lỗi xuống mức tối thiểu.
+--- TABLE 3 ---
+T3R1: Sprint | Thời gian dự kiến | Mục tiêu chính | Tiêu chí hoàn thành | Trách nhiệm
+T3R2: Sprint 1 | [SỬA TAY: điền ngày] | Phân tích yêu cầu, ERD, kiến trúc | ERD hoàn chỉnh, Use Case approved | Toàn nhóm
+T3R3: Sprint 2 | [SỬA TAY: điền ngày] | Module Auth + Quản lý KH | Login/CRUD KH pass TC-MAN-01, 02 | Dev Team
+T3R4: Sprint 3 | [SỬA TAY: điền ngày] | Giao dịch + Ticket | TC-MAN-03, 04 pass | Dev Team
+T3R5: Sprint 4 | [SỬA TAY: điền ngày] | Campaign + Automation + Dashboard | TC-MAN-05, 06 pass | Dev Team
+T3R6: Sprint 5 | [SỬA TAY: điền ngày] | Pipeline + Admin + Audit | TC-MAN-07, 08 pass, Build success | Dev Team
+T3R7: Sprint 6 | [SỬA TAY: điền ngày] | Fix bugs, tài liệu, demo | 19/19 TC-AUTO pass, TC-BUILD pass | Toàn nhóm
+--- TABLE 4 ---
+T4R1: Phương án | Mô tả | Ưu điểm | Nhược điểm | Phù hợp với
+T4R2: Polling Sync (Kéo định kỳ) | CRM gọi API của POS theo lịch (mỗi 15-30 phút) để lấy giao dịch mới | Không cần POS hỗ trợ webhook; đơn giản triển khai | Độ trễ dữ liệu 15-30 phút; tạo load API | KiotViet, Haravan API
+T4R3: Webhook Push | POS tự động gọi endpoint CRM sau mỗi giao dịch | Dữ liệu realtime; không tạo load dư | POS phải hỗ trợ outbound webhook; cần HMAC security | Shopify, WooCommerce
+T4R4: Manual Import | Admin tải file CSV từ POS, CRM parse và import | Không phụ thuộc API; hoạt động với mọi POS | Thủ công; dễ sai sót; không realtime | Mọi hệ thống POS
+--- TABLE 5 ---
+T5R1: Nhóm nghiệp vụ | Phạm vi phân tích | Đối tượng chính
+T5R2: Quản trị khách hàng | Tập trung vào hợp nhất và chuẩn hóa dữ liệu đa kênh | CSKH, Sales
+T5R3: Điều phối Marketing | Tập trung vào phân khúc (Segmentation) và tự động hóa | Marketing
+T5R4: Báo cáo & Phân tích | Tập trung vào chuyển đổi dữ liệu thành thông tin hỗ trợ quyết định | Giám đốc
+T5R5: Quản trị hệ thống | Tập trung vào phân quyền (RBAC) và bảo mật dữ liệu | Admin
+--- TABLE 6 ---
+T6R1: Nhóm yêu cầu | Mức ưu tiên | Khả thi trong đồ án | Mức hiện thực hóa hiện tại | Nhận xét
+T6R2: Xác thực và phân quyền vai trò | Cao | Cao | Đã triển khai | Có đăng nhập, route guard, quản lý hồ sơ người dùng và phân vai trò cơ bản
+T6R3: Quản lý khách hàng 360 độ | Cao | Cao | Đã triển khai | Có danh sách khách hàng, chi tiết khách hàng, phân loại và tra cứu dữ liệu
+T6R4: Quản lý giao dịch và lịch sử mua hàng | Cao | Cao | Đã triển khai | Có module transactions, liên kết với hồ sơ khách hàng và báo cáo
+T6R5: Phản hồi - khiếu nại khách hàng | Cao | Cao | Đã triển khai | Có support tickets, trạng thái xử lý, chi tiết phiếu và lịch sử cập nhật
+T6R6: Dashboard và báo cáo tổng hợp | Cao | Cao | Đã triển khai | Có dashboard, reports, export Excel/PDF
+T6R7: Pipeline, deal và task follow-up | Trung bình | Trung bình | Đã triển khai | Có route /pipeline, dealService, taskService phục vụ theo dõi cơ hội bán hàng
+T6R8: Campaign và automation CSKH | Trung bình | Trung bình | Đã triển khai một phần | Có quản lý chiến dịch, quy tắc tự động và manual run; một số kịch bản chạy nền còn cần hoàn thiện
+T6R9: POS sync | Trung bình | Trung bình | Mức cấu hình tích hợp | Hiện có phần cấu hình/chuẩn bị kết nối, chưa chứng minh đồng bộ POS thời gian thực end-to-end
+T6R10: CI/CD và payment gateway | Thấp | Thấp | Chưa triển khai | Nên chuyển sang hướng phát triển để tránh mô tả vượt quá hiện trạng code
+T6R11: Bảo mật, audit và truy vết | Cao | Trung bình | Đã triển khai cơ bản | Có auth, audit log, cấu hình hệ thống; cần hardening thêm nếu mở rộng quy mô vận hành
+--- TABLE 7 ---
+T7R1: Hoạt động | Cách thực hiện | Đầu ra mong muốn | Thời điểm | Người phụ trách
+T7R2: Thu thập yêu cầu | Tổng hợp từ đề bài, gợi ý giảng viên, nghiệp vụ CRM và phạm vi demo | Danh sách yêu cầu ban đầu | Đầu kỳ và trước mỗi đợt chỉnh sửa lớn | Nhóm trưởng + BA
+T7R3: Phân loại ưu tiên | Chia yêu cầu thành bắt buộc, nên có, hướng phát triển | Backlog theo mức ưu tiên | Sau khi khảo sát yêu cầu | Cả nhóm
+T7R4: Kiểm soát thay đổi | Mọi thay đổi phải nêu rõ ảnh hưởng đến UI, service, DB, test và báo cáo | Biên bản thay đổi/nghiệp vụ cập nhật | Khi có đề xuất mới | Nhóm trưởng + kỹ thuật
+T7R5: Truy vết yêu cầu | Duy trì ma trận yêu cầu -> use case -> route -> service -> bảng dữ liệu -> test case | Traceability matrix | Xuyên suốt dự án | BA + kỹ thuật
+T7R6: Nghiệm thu nội bộ | Đối chiếu yêu cầu với màn hình demo, dữ liệu và kết quả kiểm thử | Danh sách yêu cầu đạt/chưa đạt | Trước demo và trước nộp báo cáo | QA + presenter
+T7R7: Cập nhật tài liệu | Mỗi thay đổi được phản ánh đồng thời ở báo cáo, slide và hướng dẫn sử dụng | Bộ tài liệu thống nhất | Sau mỗi vòng chỉnh sửa | Lead báo cáo
+--- TABLE 8 ---
+T8R1: Nhóm nghiệp vụ | Hệ thống hỗ trợ | Hệ thống không hỗ trợ
+T8R2: Quản lý hồ sơ khách hàng | Tạo mới, chỉnh sửa và lưu trữ hồ sơ khách hàng (họ tên, số điện thoại, email, lịch sử mua hàng…). Phân loại khách hàng theo các nhóm (VIP, thân thiết, tiềm năng…). Gắn thẻ (tag) và ghi chú phục vụ chăm sóc khách hàng. | Thu thập dữ liệu từ nguồn không xác thực. Xác minh danh tính bằng giấy tờ tùy thân.
+T8R3: Quản lý tương tác CSKH | Ghi nhận phản hồi, yêu cầu hỗ trợ và khiếu nại của khách hàng. Cập nhật tiến độ xử lý từng yêu cầu (ticket). Gửi thông báo tự động khi có cập nhật mới. Phân công ticket cho nhân viên phụ trách. | Tự động giải quyết khiếu nại thay nhân viên.Gọi điện CSKH tự động bằng AI.
+T8R4: Quản lý giao dịch và lịch sử mua hàng | Lưu trữ toàn bộ đơn hàng, giao dịch và hoạt động của khách hàng. Đồng bộ trạng thái đơn hàng từ hệ thống bán hàng sang CRM. Thống kê tần suất và giá trị mua theo từng khách hàng. | Thực hiện nghiệp vụ thanh toán hoặc hoàn tiền. Quản lý kho hoặc vận chuyển (chỉ tiếp nhận dữ liệu, không xử lý nghiệp vụ).
+T8R5: Chăm sóc khách hàng tự động | Gửi email/SMS chăm sóc định kỳ (chúc mừng sinh nhật, tri ân). Gợi ý chiến dịch chăm sóc theo nhóm khách hàng. | Tự động soạn nội dung Marketing hoàn chỉnh. Gọi điện chăm sóc khách hàng tự động.
+T8R6: Quản lý chiến dịch Marketing | Tạo và quản lý chiến dịch Email/SMS Marketing. Quản lý danh sách khách hàng tham gia chiến dịch. Theo dõi hiệu quả chiến dịch (tỷ lệ mở thư, tỷ lệ phản hồi). | Thiết kế banner, nội dung quảng cáo chuyên sâu.Triển khai quảng cáo Facebook/Google trả phí.
+T8R7: Báo cáo phân tích | Báo cáo khách hàng theo nhóm, khu vực, hành vi mua hàng. Báo cáo mức độ hài lòng khách hàng. Báo cáo số lượng ticket theo trạng thái. Phân tích tài chính cơ bản. Dự đoán churn hoặc doanh số bằng mô hình AI đơn giản. | Phân tích tài chính chuyên sâu.
+T8R8: Quản trị người dùng | Tạo tài khoản nhân viên. Phân quyền theo vai trò (Admin / CSKH / Marketing). Theo dõi hoạt động sử dụng hệ thống. | Quản lý tài khoản liên thông với nhiều nền tảng ngoài doanh nghiệp.Xác thực sinh trắc học nâng cao (FaceID, vân tay).
+--- TABLE 9 ---
+T9R1: Thuộc tính | Nội dung
+T9R2: Mã use case | UC02
+T9R3: Tác nhân chính | Nhân viên Sales, Nhân viên CSKH, Marketing, Giám đốc
+T9R4: Mục tiêu | Tra cứu, cập nhật và theo dõi lịch sử giao dịch gắn với từng khách hàng để phục vụ bán hàng, chăm sóc và báo cáo doanh số
+T9R5: Tiền điều kiện | Người dùng đã đăng nhập và có quyền truy cập dữ liệu giao dịch; hồ sơ khách hàng đã tồn tại trong hệ thống
+T9R6: Hậu điều kiện | Giao dịch được ghi nhận hoặc cập nhật đúng với khách hàng liên quan; dữ liệu báo cáo có thể sử dụng ngay sau khi đồng bộ nội bộ
+T9R7: Luồng chính | 1) Người dùng mở màn hình giao dịch hoặc chi tiết khách hàng. 2) Hệ thống hiển thị danh sách và bộ lọc giao dịch. 3) Người dùng tra cứu hoặc cập nhật thông tin giao dịch. 4) Hệ thống lưu dữ liệu, cập nhật lịch sử mua hàng và phản ánh vào báo cáo.
+T9R8: Luồng thay thế | Không tìm thấy khách hàng; thông tin thanh toán chưa hợp lệ; người dùng chỉ có quyền xem mà không có quyền cập nhật
+T9R9: Dữ liệu sử dụng | Mã giao dịch, mã khách hàng, ngày giao dịch, giá trị đơn hàng, phương thức thanh toán, trạng thái, ghi chú
+T9R10: Màn hình/route liên quan | /transactions, /customers/:id, /reports
+T9R11: Service liên quan | transactionService, reportService
+T9R12: Bảng dữ liệu liên quan | transactions, customers
+T9R13: Mức hiện thực hóa | Đã triển khai trong project. Riêng việc đồng bộ tự động từ POS không được xem là đã hoàn chỉnh ở phiên bản hiện tại.
+--- TABLE 10 ---
+T10R1: Thuộc tính | Nội dung
+T10R2: Mã use case | UC04
+T10R3: Tác nhân chính | Nhân viên CSKH, Marketing, Admin
+T10R4: Mục tiêu | Theo dõi lịch sử chăm sóc, tạo nhiệm vụ follow-up, cấu hình kịch bản chăm sóc và ghi nhận kết quả tương tác với khách hàng
+T10R5: Tiền điều kiện | Người dùng đã đăng nhập; khách hàng đã có hồ sơ trong hệ thống; các cấu hình gửi thông điệp hoặc automation đã được khai báo ở mức phù hợp
+T10R6: Hậu điều kiện | Lịch sử chăm sóc, nhiệm vụ follow-up hoặc quy tắc automation được lưu lại và có thể tra cứu lại trong CRM
+T10R7: Luồng chính | 1) CSKH mở hồ sơ khách hàng hoặc module liên quan. 2) Người dùng tạo tác vụ chăm sóc hoặc cập nhật kết quả xử lý. 3) Khi cần, người dùng cấu hình chiến dịch/quy tắc gửi thông điệp. 4) Hệ thống lưu lịch sử, trạng thái và các thông tin phục vụ lần chăm sóc tiếp theo.
+T10R8: Luồng thay thế | Thiếu dữ liệu cấu hình gửi thông điệp; khách hàng không thuộc nhóm áp dụng; tác vụ quá hạn cần được gán lại hoặc cập nhật thời hạn
+T10R9: Dữ liệu sử dụng | Nhóm khách hàng, nội dung chăm sóc, thời hạn follow-up, người phụ trách, trạng thái tác vụ, mẫu thông điệp, điều kiện kích hoạt
+T10R10: Màn hình/route liên quan | /customers/:id, /tickets, /automation, /campaigns, /pipeline
+T10R11: Service liên quan | taskService, ticketService, automationService, communicationService
+T10R12: Bảng dữ liệu liên quan | tasks, support_tickets, automation_rules, outbound_messages, customers
+T10R13: Mức hiện thực hóa | Đã triển khai một phần. Project hiện có quản lý tác vụ/pipeline, ticket, chiến dịch và quy tắc automation; một số kịch bản chạy nền định kỳ vẫn thuộc phần cần nâng tiếp.
+--- TABLE 11 ---
+T11R1: Thuộc tính | Nội dung
+T11R2: Mã use case | UC01
+T11R3: Tên | Quản lý khách hàng (360° Customer Profile)
+T11R4: Tác nhân chính | sales (CRUD), cskh (read + note), marketing (read + segment), admin (full)
+T11R5: Tác nhân thứ cấp | Supabase PostgreSQL trigger sinh customer_code và trigger cập nhật total_spent/total_orders; cơ chế export CSV nội bộ
+T11R6: Mục tiêu | Quản lý hồ sơ khách hàng 360 độ, cho phép tạo mới, cập nhật, phân loại, gắn thẻ, ghi chú và phân công nhân sự phụ trách trong cùng tổ chức.
+T11R7: Tiền điều kiện | Người dùng đã đăng nhập hợp lệ qua Supabase Auth; profiles.role đã được phân quyền; bản ghi organization tồn tại; người dùng thuộc đúng org_id cần thao tác.
+T11R8: Hậu điều kiện | Thành công: hồ sơ khách hàng được lưu hoặc cập nhật, customer_code được sinh tự động, tag/note/assigned_to được liên kết đúng, chỉ số total_spent và total_orders được đồng bộ theo giao dịch. / Thất bại: dữ liệu không được lưu, hệ thống giữ nguyên trạng thái trước đó và trả thông báo lỗi cho người dùng.
+T11R9: Luồng chính | 1) Người dùng đăng nhập và truy cập route /customers. 2) Hệ thống hiển thị danh sách khách hàng kèm filter và search. 3) Người dùng mở form tạo mới hoặc chỉnh sửa; Zod validation kiểm tra phone theo regex Việt Nam, email là tùy chọn. 4) Khi tạo mới, hệ thống sinh customer_code theo mẫu KH-YYYY-NNNN qua trigger. 5) Người dùng gán tag, ghi note và cập nhật thông tin hồ sơ 360 độ. 6) Người dùng gán assigned_to cho nhân viên phụ trách phù hợp. 7) Khi có giao dịch mới, hệ thống tự cập nhật total_spent, total_orders và last_order_at qua trigger.
+T11R10: Luồng thay thế | A1: Người dùng chỉ có quyền xem thì hệ thống cho phép tra cứu danh sách và chi tiết nhưng khóa thao tác CRUD. A2: Marketing truy cập theo segment để lọc customer_type, tags hoặc province trước khi khai thác dữ liệu chiến dịch. A3: Người dùng xuất danh sách khách hàng ra CSV để phục vụ báo cáo hoặc đối soát nội bộ.
+T11R11: Luồng ngoại lệ | E1: Số điện thoại đã tồn tại trong cùng organization thì hệ thống báo lỗi duplicate và gợi ý merge. E2: Người dùng không thuộc đúng org_id hoặc vi phạm RLS thì yêu cầu bị từ chối. E3: Trigger sinh mã hoặc cập nhật aggregate lỗi thì hệ thống rollback transaction và ghi log.
+T11R12: Dữ liệu sử dụng | UUID id, org_id, customer_code, full_name, phone, email, address, province, date_of_birth, gender, customer_type (new/potential/loyal/vip/inactive), source, assigned_to, total_spent, total_orders, last_order_at, custom_fields.
+T11R13: Màn hình/route liên quan | /customers, /customers/new, /customers/:id
+T11R14: Service liên quan | customerService (getList, getById, create, update, softDelete, exportCSV)
+T11R15: Bảng dữ liệu liên quan | customers, profiles, customer_tags, tags, customer_notes
+T11R16: Mức hiện thực hóa | Đã triển khai
+--- TABLE 12 ---
+T12R1: Thuộc tính | Nội dung
+T12R2: Mã use case | UC03
+T12R3: Tên | Quản lý khiếu nại / phản hồi (Support Ticket System)
+T12R4: Tác nhân chính | cskh (full), sales (tạo + xem), admin (full + assign)
+T12R5: Tác nhân thứ cấp | Supabase Realtime channel 'tickets-changes'; dịch vụ thông báo nội bộ; khách hàng là thực thể liên quan nhưng không truy cập trực tiếp hệ thống nội bộ.
+T12R6: Mục tiêu | Tiếp nhận, phân loại, theo dõi và xử lý khiếu nại hoặc phản hồi của khách hàng theo vòng đời ticket có kiểm soát.
+T12R7: Tiền điều kiện | Người dùng đã đăng nhập; customer_id hợp lệ trong cùng tổ chức; người tạo hoặc người được phân công có quyền truy cập module ticket.
+T12R8: Hậu điều kiện | Thành công: ticket được tạo với ticket_code hợp lệ, trạng thái và người phụ trách được cập nhật đúng, comment và satisfaction_score được lưu. / Thất bại: ticket không được tạo hoặc cập nhật, trạng thái giữ nguyên và hệ thống hiển thị lỗi xử lý.
+T12R9: Luồng chính | 1) Người dùng tiếp nhận phản hồi và mở route /tickets/new. 2) Người dùng điền form gồm customer_id, title, description, category, priority và channel. 3) Hệ thống tự sinh ticket_code theo mẫu TK-YYYY-NNNN. 4) Ticket được assign cho nhân viên CSKH phụ trách. 5) CSKH cập nhật trạng thái open → in_progress → pending → resolved → closed. 6) Người dùng thêm comment nội bộ (is_internal=true) hoặc public theo nhu cầu phối hợp xử lý. 7) Khi đóng ticket, hệ thống ghi nhận satisfaction_score từ 1 đến 5. 8) Mọi thay đổi được phát lên Supabase Realtime channel 'tickets-changes'.
+T12R10: Luồng thay thế | A1: Sales chỉ tạo ticket và theo dõi tiến độ xử lý ticket do mình khởi tạo. A2: Admin có thể gán lại ticket cho nhân viên CSKH khác khi quá tải hoặc cần leo thang nội bộ. A3: Ticket có thể được chuyển về trạng thái pending khi cần chờ phản hồi thêm từ khách hàng.
+T12R11: Luồng ngoại lệ | E1: customer_id không hợp lệ hoặc thuộc org khác thì hệ thống từ chối tạo ticket. E2: Người dùng cố cập nhật trạng thái khi không có quyền thì yêu cầu bị chặn bởi RLS/policy. E3: Kết nối realtime lỗi thì hệ thống vẫn lưu dữ liệu chính nhưng hiển thị cảnh báo đồng bộ live không khả dụng.
+T12R12: Dữ liệu sử dụng | ticket_code, customer_id, title, description, category (complaint/feedback/inquiry/return/other), priority (low/medium/high/urgent), channel (phone/email/direct/chat/social), assigned_to, status, satisfaction_score, is_internal, created_by, due_date, timestamps.
+T12R13: Màn hình/route liên quan | /tickets, /tickets/new, /tickets/:id
+T12R14: Service liên quan | ticketService, notificationService, realtime subscription cho tickets-changes
+T12R15: Bảng dữ liệu liên quan | support_tickets, ticket_comments, customers, notifications, audit_logs
+T12R16: Mức hiện thực hóa | Đã triển khai
+--- TABLE 13 ---
+T13R1: Thuộc tính | Nội dung
+T13R2: Mã use case | UC05
+T13R3: Tên | Quản lý chiến dịch Marketing (Campaign Management)
+T13R4: Tác nhân chính | marketing (full), admin (full), director (read-only)
+T13R5: Tác nhân thứ cấp | Supabase Edge Function send-campaign; email provider/SMS provider cấu hình ngoài hệ thống
+T13R6: Mục tiêu | Xây dựng, lên lịch, gửi và theo dõi chiến dịch marketing theo từng nhóm khách hàng mục tiêu.
+T13R7: Tiền điều kiện | Người dùng đã đăng nhập; dữ liệu khách hàng, tags và province có sẵn để xây target_segment; provider gửi email/SMS đã được cấu hình nếu muốn gửi thực tế.
+T13R8: Hậu điều kiện | Thành công: chiến dịch được lưu, recipient_count được tính toán, chiến dịch được gửi ngay hoặc lên lịch và các chỉ số gửi được cập nhật. / Thất bại: chiến dịch chỉ lưu ở trạng thái draft hoặc scheduled lỗi, hệ thống ghi nhận failed_count và hiển thị nguyên nhân.
+T13R9: Luồng chính | 1) Marketing tạo chiến dịch mới. 2) Người dùng chọn channel: email, sms hoặc both. 3) Người dùng định nghĩa target_segment theo customer_type, tags và province. 4) Hệ thống tính recipient_count dựa trên segment. 5) Người dùng soạn nội dung với biến động như {name}, {customer_code}. 6) Người dùng chọn gửi ngay hoặc thiết lập scheduled_at. 7) Hệ thống gọi Edge Function send-campaign để xử lý gửi. 8) Hệ thống theo dõi sent_count, opened_count và failed_count để phục vụ báo cáo.
+T13R10: Luồng thay thế | A1: Director chỉ xem báo cáo chiến dịch và không được thay đổi cấu hình gửi. A2: Admin có thể can thiệp chỉnh sửa hoặc hủy chiến dịch khi cần. A3: Chiến dịch có thể được lưu ở draft trước khi gửi thật.
+T13R11: Luồng ngoại lệ | E1: Provider email/SMS chưa cấu hình thì hệ thống không thực hiện gửi và báo cần cấu hình integration. E2: Segment không có người nhận hợp lệ thì campaign không được kích hoạt gửi. E3: Edge Function send-campaign trả lỗi thì failed_count tăng và trạng thái chiến dịch chuyển sang cảnh báo.
+T13R12: Dữ liệu sử dụng | campaign_name, channel, target_segment, recipient_count, content_template, variables, scheduled_at, sent_count, opened_count, failed_count, status, org_id, created_by.
+T13R13: Màn hình/route liên quan | /campaigns, /campaigns/new, /campaigns/:id
+T13R14: Service liên quan | campaignService, send-campaign Edge Function, notificationService
+T13R15: Bảng dữ liệu liên quan | campaigns, campaign_recipients, customers, customer_tags, tags, notifications
+T13R16: Mức hiện thực hóa | Một phần (UI và data model đã có, Edge Function cần cấu hình provider)
+--- TABLE 14 ---
+T14R1: Thuộc tính | Nội dung
+T14R2: Mã use case | UC06
+T14R3: Tên | Báo cáo và phân tích dữ liệu (CRM Analytics Dashboard)
+T14R4: Tác nhân chính | director (full view + export), admin (full), sales (limited: own data)
+T14R5: Tác nhân thứ cấp | Supabase PostgreSQL RPC get_dashboard_stats, get_revenue_chart, get_top_customers; engine export CSV/Excel
+T14R6: Mục tiêu | Cung cấp dashboard phân tích doanh thu, khách hàng và ticket để hỗ trợ vận hành và ra quyết định.
+T14R7: Tiền điều kiện | Người dùng đã đăng nhập; dữ liệu giao dịch, khách hàng, ticket và campaign đã tồn tại; quyền truy cập dashboard đã được cấp theo role.
+T14R8: Hậu điều kiện | Thành công: dashboard hiển thị đúng KPI theo khoảng thời gian, biểu đồ và bảng top customer được render, file export được tạo thành công. / Thất bại: hệ thống không render được một phần widget, trả thông báo lỗi truy vấn hoặc export.
+T14R9: Luồng chính | 1) Người dùng truy cập /dashboard. 2) Hệ thống gọi RPC get_dashboard_stats(org_id, from, to). 3) Hệ thống hiển thị KPI cards gồm total_customers, new_customers, total_revenue, total_orders, open_tickets, resolved_tickets, avg_ticket_time_hrs. 4) Revenue chart dùng Recharts LineChart với filter ngày/tuần/tháng qua get_revenue_chart(). 5) Dashboard hiển thị biểu đồ tròn phân loại khách hàng. 6) Hệ thống lấy top 10 customers by revenue qua get_top_customers(). 7) Người dùng export dữ liệu ra CSV hoặc Excel khi cần.
+T14R10: Luồng thay thế | A1: Sales chỉ xem dữ liệu do mình phụ trách hoặc dữ liệu đã được giới hạn theo policy. A2: Admin và director có thể thay đổi khoảng thời gian để so sánh xu hướng. A3: Nếu không có dữ liệu ở kỳ được chọn, dashboard hiển thị trạng thái empty-state thay vì lỗi.
+T14R11: Luồng ngoại lệ | E1: RPC lỗi hoặc timeout thì hệ thống hiển thị thông báo không tải được số liệu. E2: Người dùng không có quyền export thì nút export bị ẩn hoặc trả lỗi authorization. E3: Dữ liệu input không đồng nhất giữa các bảng thì hệ thống ghi log và bỏ qua bản ghi lỗi trong truy vấn tổng hợp.
+T14R12: Dữ liệu sử dụng | org_id, from_date, to_date, total_customers, new_customers, total_revenue, total_orders, open_tickets, resolved_tickets, avg_ticket_time_hrs, revenue series, customer_type distribution, top customer list.
+T14R13: Màn hình/route liên quan | /dashboard, /reports
+T14R14: Service liên quan | reportService hoặc analyticsService; RPC get_dashboard_stats(), get_revenue_chart(), get_top_customers()
+T14R15: Bảng dữ liệu liên quan | transactions, customers, support_tickets, campaigns, campaign_recipients, audit_logs
+T14R16: Mức hiện thực hóa | Đã triển khai
+--- TABLE 15 ---
+T15R1: Thuộc tính | Nội dung
+T15R2: Mã use case | UC07
+T15R3: Tên | Quản trị hệ thống (System Administration)
+T15R4: Tác nhân chính | admin (user management + settings), super_admin (full system access)
+T15R5: Tác nhân thứ cấp | Supabase Auth, notification service, audit log subsystem
+T15R6: Mục tiêu | Quản trị tài khoản, cấu hình hệ thống, theo dõi audit trail và chủ động gửi thông báo vận hành.
+T15R7: Tiền điều kiện | Người dùng đã đăng nhập với vai trò admin hoặc super_admin; organization và các cấu hình hệ thống cơ bản đã tồn tại.
+T15R8: Hậu điều kiện | Thành công: tài khoản người dùng hoặc cấu hình hệ thống được cập nhật đúng, audit log được ghi nhận và notification được phát hành khi cần. / Thất bại: thay đổi bị từ chối do thiếu quyền, cấu hình không hợp lệ hoặc lỗi lưu dữ liệu.
+T15R9: Luồng chính | 1) Admin mở /admin/users để CRUD user accounts, gán role và activate/deactivate tài khoản. 2) Admin mở /admin/settings để cấu hình email provider, SMS provider, POS integration config và thông tin organization. 3) Admin hoặc director truy cập /admin/audit để xem audit_logs theo bộ lọc user/action/entity/date range. 4) Admin tạo notification cho user khác khi cần điều phối công việc hoặc cảnh báo hệ thống. 5) Super_admin có thể xem và thao tác ở phạm vi hệ thống rộng hơn khi cần hỗ trợ vận hành.
+T15R10: Luồng thay thế | A1: Director chỉ có quyền xem audit log theo policy và không được sửa user/settings. A2: Admin có thể khóa mềm tài khoản thay vì xóa cứng để bảo toàn lịch sử dữ liệu. A3: Một số cấu hình nhạy cảm chỉ hiển thị khi người dùng có đúng quyền super_admin.
+T15R11: Luồng ngoại lệ | E1: Gán role không hợp lệ hoặc vượt quyền cho phép thì hệ thống chặn thao tác. E2: API key/email provider/SMS provider sai định dạng thì cấu hình không được lưu. E3: Nếu ghi audit log lỗi, thay đổi chính có thể rollback tùy mức độ quan trọng hoặc ghi cảnh báo quản trị.
+T15R12: Dữ liệu sử dụng | profile_id, full_name, email, role, status, org_id, app_settings, email_provider_config, sms_provider_config, pos_config, audit filter, notification payload.
+T15R13: Màn hình/route liên quan | /admin/users, /admin/settings, /admin/audit, /notifications
+T15R14: Service liên quan | profileService hoặc adminUserService, settingsService, notificationService, auditService, authService
+T15R15: Bảng dữ liệu liên quan | profiles, app_settings, audit_logs, notifications, organizations
+T15R16: Mức hiện thực hóa | Đã triển khai
+--- TABLE 16 ---
+T16R1: Thuộc tính | Nội dung
+T16R2: Mã use case | UC08
+T16R3: Tên | POS Integration Configuration
+T16R4: Tác nhân chính | admin (cấu hình), super_admin
+T16R5: Tác nhân thứ cấp | POS provider API ngoài hệ thống; cơ chế scheduler/polling nội bộ của CRM
+T16R6: Mục tiêu | Khai báo thông số kết nối POS và kiểm tra khả năng đồng bộ giao dịch từ hệ thống bán hàng vào CRM.
+T16R7: Tiền điều kiện | Người dùng đã đăng nhập với vai trò admin hoặc super_admin; POS provider đã cung cấp API endpoint và API key hợp lệ; organization có quyền dùng module cấu hình.
+T16R8: Hậu điều kiện | Thành công: cấu hình POS được lưu vào app_settings, test connection thành công và lịch polling sync được kích hoạt. / Thất bại: cấu hình không được kích hoạt, hệ thống hiển thị error message và ghi log để chẩn đoán.
+T16R9: Luồng chính | 1) Người dùng mở /admin/settings và chọn tab POS Integration. 2) Admin nhập POS provider name, API endpoint, API key và sync interval (phút). 3) Hệ thống lưu cấu hình vào app_settings table. 4) Người dùng bấm Test connection để gọi thử endpoint POS. 5) Nếu thành công, hệ thống kích hoạt scheduled sync theo cơ chế polling. 6) Nếu thất bại, hệ thống trả error message và ghi log để kiểm tra.
+T16R10: Luồng thay thế | A1: Admin có thể cập nhật sync_interval mà không cần thay đổi toàn bộ thông tin provider. A2: Super_admin có thể vô hiệu hóa tạm thời tích hợp để bảo trì. A3: Khi chưa có API, admin vẫn có thể chuẩn bị cấu hình import CSV như một phương án dự phòng.
+T16R11: Luồng ngoại lệ | E1: API endpoint không phản hồi hoặc trả mã lỗi thì test connection thất bại. E2: API key sai hoặc hết hạn thì hệ thống từ chối kích hoạt đồng bộ. E3: Scheduler không tạo được job polling thì cấu hình chỉ dừng ở trạng thái saved nhưng chưa active.
+T16R12: Dữ liệu sử dụng | provider_name, api_endpoint, api_key, sync_interval, last_sync_at, last_sync_status, import_mode, org_id, updated_by.
+T16R13: Màn hình/route liên quan | /admin/settings
+T16R14: Service liên quan | settingsService, integrationService/posSyncService, auditService
+T16R15: Bảng dữ liệu liên quan | app_settings, audit_logs, transactions
+T16R16: Mức hiện thực hóa | Cấu hình tích hợp. Ở phiên bản MVP hiện tại, chức năng POS Integration hỗ trợ Polling Sync (CRM chủ động gọi API POS định kỳ theo sync_interval). Luồng Webhook Push (POS gọi ngược về CRM) và Real-time bidirectional sync là roadmap của phiên bản tiếp theo.
+--- TABLE 17 ---
+T17R1: Mã yêu cầu | Use case | Màn hình/route | Service | Bảng dữ liệu | Test case / ghi chú
+T17R2: FR01 | UC00 - Đăng nhập | /login, /dashboard, /admin/users | authService, profileService | profiles | TC-AUTO-01, TC-AUTO-02 - Đã có test tự động
+T17R3: FR02 | UC01 - Quản lý khách hàng | /customers, /customers/:id | customerService | customers | TC-MAN-02 - Nghiệm thu demo
+T17R4: FR03 | UC02 - Giao dịch | /transactions, /customers/:id | transactionService | transactions, customers | TC-MAN-03 - Nghiệm thu demo
+T17R5: FR04 | UC03 - Ticket/Phản hồi | /tickets, /tickets/:id | ticketService, notificationService | support_tickets, ticket_comments, notifications | TC-MAN-04 - Nghiệm thu demo
+T17R6: FR05 | UC04 - Chăm sóc khách hàng | /automation, /customers/:id, /pipeline | taskService, automationService, communicationService | tasks, automation_rules, outbound_messages | TC-MAN-05 - Một phần hiện thực hóa
+T17R7: FR06 | UC05 - Marketing campaign | /campaigns | campaignService, communicationService | campaigns, outbound_messages | TC-MAN-05 - Kiểm tra theo kịch bản demo
+T17R8: FR07 | UC06 - Dashboard/Báo cáo | /dashboard, /reports | dashboardService, reportService, exportService | customers, transactions, campaigns | TC-AUTO-03, TC-AUTO-04, TC-MAN-06
+T17R9: FR08 | UC07 - Quản trị hệ thống | /admin/users, /admin/audit, /admin/settings | profileService, auditService, settingsService | profiles, audit_logs, app_settings | TC-MAN-07 - Nghiệm thu demo
+T17R10: FR09 | Bổ sung pipeline/deal/task | /pipeline | dealService, taskService | deals, tasks | TC-MAN-08 - Nghiệm thu demo
+T17R11: FR10 | UC08 - POS cấu hình tích hợp | /admin/settings | settingsService | app_settings | TC-MAN-09 - Kiểm tra cấu hình, chưa xem là sync realtime end-to-end
+--- TABLE 18 ---
+T18R1: Nhóm chức năng | Mức hiện thực hóa | Diễn giải
+T18R2: Khách hàng, giao dịch, ticket, báo cáo, quản trị | Đã triển khai | Có route, service, dữ liệu và màn hình minh chứng rõ ràng trong project
+T18R3: Pipeline, deal và task follow-up | Đã triển khai | Đã có route /pipeline cùng service và bảng dữ liệu tương ứng
+T18R4: Campaign và automation | Đã triển khai một phần | Có quản lý chiến dịch và quy tắc automation, nhưng một số kịch bản chạy nền dài hạn cần tiếp tục hoàn thiện
+T18R5: POS sync | Mức cấu hình tích hợp | Có trang cấu hình và điểm mở rộng kết nối; chưa đủ bằng chứng để khẳng định đồng bộ thời gian thực hoàn chỉnh
+T18R6: CI/CD hoàn chỉnh | Chưa triển khai | Repo chưa có workflow GitHub Actions riêng
+T18R7: Payment gateway | Chưa triển khai | Chỉ nên trình bày ở mục hướng phát triển nếu có nhu cầu mở rộng
+--- TABLE 19 ---
+T19R1: ID | Thuộc tính | Tiêu chí đo lường | Phương pháp kiểm tra
+T19R2: NFR01 | Performance | Response time ≤ 2s cho 95% API calls trong điều kiện ≤ 50 concurrent users | Chrome DevTools Network tab, đo thời gian response thực tế
+T19R3: NFR02 | Availability | Uptime ≥ 99% trong môi trường Supabase Free Tier (phạm vi demo) | Kiểm tra manual trong 48h trước demo
+T19R4: NFR03 | Security - Auth | JWT access token expiry = 1 giờ, refresh token = 7 ngày. Mọi API call phải đính kèm Bearer token | Kiểm tra network request header trong Chrome DevTools
+T19R5: NFR04 | Security - Authorization | RLS (Row Level Security) áp dụng cho tất cả bảng: organizations, profiles, customers, transactions, support_tickets, campaigns, notifications, audit_logs | Test cross-account access: user A không đọc được data của org khác
+T19R6: NFR05 | Security - Data | Mật khẩu không lưu trực tiếp (Supabase Auth xử lý bcrypt). Dữ liệu nhạy cảm không expose qua client-side log | Code review + không thấy password trong localStorage/console
+T19R7: NFR06 | Usability | Giao diện responsive: hiển thị đúng trên viewport 1280px (desktop) và 768px (tablet). Thời gian học dùng ≤ 60 phút cho từng vai trò | Kiểm tra thực tế trên Chrome với Device Toolbar
+T19R8: NFR07 | Maintainability | Codebase có TypeScript strict mode. Mỗi service module độc lập. Không có circular dependency | npm run build không có TypeScript error
+T19R9: NFR08 | Scalability | Kiến trúc multi-tenant (org_id trên mọi bảng) cho phép onboard doanh nghiệp mới mà không thay đổi schema | Architecture review
+T19R10: NFR09 | Portability | Frontend build thành static files, deploy được lên Vercel/Netlify/any CDN. Backend trên Supabase cloud | npm run build thành công, serve static files
+T19R11: NFR10 | Audit & Traceability | Mọi thao tác CREATE/UPDATE/DELETE trên customers, transactions, tickets được ghi vào audit_logs với user_id, timestamp, old_data, new_data | Kiểm tra audit_logs table sau thao tác
+--- TABLE 20 ---
+T20R1: Mã Use case | UC07 | UC07 | UC07 | Tên Use case | Thêm người dùng
+T20R2: Tác nhân chính | Admin | Admin | Admin | Admin | Admin
+T20R3: Mô tả | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó. | Admin thực hiện thêm tài khoản mới vào hệ thống, kiểm tra tính hợp lệ của dữ liệu và phân quyền vai trò cho người dùng đó.
+T20R4: Sự kiện kích hoạt | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng". | Admin chọn chức năng "Quản trị và phân quyền" và nhấn nút "Thêm người dùng".
+T20R5: Tiền điều kiện | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống | Admin đã đăng nhập thành công vào hệ thống
+T20R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+T20R7: Luồng sự kiện chính (Thành công) |  | 1 | Admin | Chọn chức năng "Quản trị và phân quyền". | 
+T20R8: Luồng sự kiện chính (Thành công) |  | 2 | Admin | Chọn "Thêm người dùng". | 
+T20R9: Luồng sự kiện chính (Thành công) |  | 3 | Admin | Nhập thông tin người dùng mới gồm: Tên đăng nhập, mật khẩu, vai trò và thông tin liên hệ. | 
+T20R10: Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu nhập vào. | 
+T20R11: Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Kiểm tra trùng lặp tên đăng nhập trong Cơ sở dữ liệu (CSDL). | 
+T20R12: Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Khởi tạo tài khoản và lưu thông tin vào CSDL. | 
+T20R13: Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Gán vai trò (mặc định hoặc theo lựa chọn) cho người dùng mới. | 
+T20R14: Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Hiển thị thông báo "Thêm người dùng thành công". | 
+T20R15:  |  | 9 | Admin | Xem danh sách người dùng đã cập nhật và kết thúc. | 
+T20R16: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+T20R17: Luồng sự kiện thay thế |  | 4a | Hệ thống | Nếu dữ liệu không hợp lệ: Hiển thị thông báo lỗi chi tiết và yêu cầu Admin chỉnh sửa lại thông tin. | 
+T20R18: Luồng sự kiện thay thế |  | 5a | Hệ thống | Nếu tên đăng nhập đã tồn tại: Hiển thị thông báo "Người dùng đã tồn tại" và yêu cầu nhập lại tên khác. | 
+T20R19: Hậu điều kiện | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng. | Tài khoản mới được khởi tạo thành công trong hệ thống với vai trò tương ứng và xuất hiện trong danh sách quản lý người dùng.
+--- TABLE 21 ---
+T21R1: Mã Use case | UC00 | UC00 | UC00 | Tên Use case | Đăng nhập
+T21R2: Tác nhân chính | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống | Người dùng hệ thống
+T21R3: Mô tả | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn. | Người dùng thực hiện đăng nhập vào hệ thống để truy cập các chức năng theo quyền hạn.
+T21R4: Sự kiện kích hoạt | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập. | Người dùng mở hệ thống và chọn đăng nhập.
+T21R5: Tiền điều kiện | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống. | Tài khoản người dùng đã tồn tại trên hệ thống.
+T21R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+T21R7: Luồng sự kiện chính (Thành công) |  | 1 | Người dùng hệ thống | Vào ứng dụng. | 
+T21R8: Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị giao diện đăng nhập. | 
+T21R9: Luồng sự kiện chính (Thành công) |  | 3 | Người dùng hệ thống | Nhập user, password. | 
+T21R10: Luồng sự kiện chính (Thành công) |  | 4 | Người dùng hệ thống | Nhấn nút đăng nhập | 
+T21R11: Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Kiểm tra thông tin user, password. | 
+T21R12: Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Xác định thông tin hợp lệ | 
+T21R13: Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Xác định vai trò của người dùng | 
+T21R14: Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Hệ thống hiển thị giao diện theo quyền: - Nếu là Giám đốc: Hiển thị quyền quản trị tối cao (bao gồm quản lý Admin). - Nếu là Admin: Hiển thị quyền phân quyền cho các bộ phận Marketing, Kinh doanh, CSKH. - Nếu là Nhân viên: Hiển thị giao diện nghiệp vụ riêng biệt | 
+T21R15:  |  | 9 | Hệ thống | Kết thúc phiên đăng nhập thành công | 
+T21R16: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+T21R17: Luồng sự kiện thay thế |  | 5a | Hệ thống | Thông báo lỗi nếu thông tin không hợp lệ. | 
+T21R18: Luồng sự kiện thay thế |  | 5b | Người dùng hệ thống | Thông báo lỗi và yêu cầu bổ sung/chỉnh sửa. | 
+T21R19: Hậu điều kiện | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định. | Người dùng vào đúng phân hệ chức năng. Các hành động trái thẩm quyền sẽ bị hệ thống chặn dựa trên vai trò đã xác định.
+--- TABLE 22 ---
+T22R1: Mã Use case | UC01 | UC01 | UC01 | Tên Use case | Quản lý khách hàng
+T22R2: Tác nhân chính | Nhân viên Sales | Nhân viên Sales | Nhân viên Sales | Nhân viên Sales | Nhân viên Sales
+T22R3: Mô tả | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống. | Nhân viên thực hiện các thao tác Thêm, Sửa, Xóa thông tin khách hàng trong hệ thống.
+T22R4: Sự kiện kích hoạt | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu. | Nhân viên chọn chức năng "Quản lý khách hàng" trên thanh menu.
+T22R5: Tiền điều kiện | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh. | Nhân viên đã đăng nhập thành công vào hệ thống với vai trò Kinh doanh.
+T22R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+T22R7: Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên Sales | Chọn chức năng "Quản lý khách hàng". | 
+T22R8: Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Lấy danh sách khách hàng từ CSDL và hiển thị giao diện quản lý. | 
+T22R9: Luồng sự kiện chính (Thành công) |  | 3 | Nhân viên Sales | Lựa chọn một trong các thao tác nghiệp vụ (Thêm / Sửa / Xóa). | 
+T22R10: Luồng sự kiện chính (Thành công) |  | 4 | Nhân viên Sales | Thực hiện chi tiết thao tác (nhập thông tin mới, cập nhật hoặc xác nhận xóa) | 
+T22R11: Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Cập nhật dữ liệu vào CSDL khách hàng. | 
+T22R12: Luồng sự kiện chính (Thành công) |  | 6 | Hệ thống | Kiểm tra và cập nhật trạng thái mới của dữ liệu. | 
+T22R13: Luồng sự kiện chính (Thành công) |  | 7 | Hệ thống | Hiển thị lại danh sách khách hàng đã cập nhật. | 
+T22R14: Luồng sự kiện chính (Thành công) |  | 8 | Nhân viên Sales | Xem thông tin khách hàng sau khi thay đổi | 
+T22R15: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+T22R16: Luồng sự kiện thay thế |  | 3a | Nhân viên Sales | Nếu chọn thêm : 3a.1 Chọn “Thêm khách hàng” 3a.2 Nhập thông tin khách hàng mới | 
+T22R17: Luồng sự kiện thay thế |  | 3b | Nhân viên Sales | Nếu chọn sửa : 3b.1 Chọn “Sửa thông tin khách hàng” 3b.2 Cập nhật các thông tin cần thay đổi | 
+T22R18: Luồng sự kiện thay thế |  | 3c | Nhân viên Sales | Nếu chọn xóa : 3c.1 Chọn : “Xóa khách hàng” 3c.2 Xác nhận xóa tại thông báo của hệ thống | 
+T22R19: Hậu điều kiện | Thông tin khách hàng được cập nhật và bổ sung chính xác trong CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng | Thông tin khách hàng được cập nhật và bổ sung chính xác trong CSDL và danh sách mới nhất được hiển thị trên giao diện người dùng
+--- TABLE 23 ---
+T23R1: Mã Use case | UC03 | UC03 | UC03 | Tên Use case | Quản lý phản hồi/khiếu nại | Quản lý phản hồi/khiếu nại
+T23R2: Tác nhân chính | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH | Nhân viên CSKH
+T23R3: Mô tả | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng. | Nhân viên CSKH tiếp nhận, phân loại và cập nhật trạng thái xử lý các khiếu nại hoặc phản hồi từ khách hàng.
+T23R4: Sự kiện kích hoạt | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang phản hồi/khiếu nại" trên giao diện hệ thống.
+T23R5: Tiền điều kiện | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH. | Nhân viên đã đăng nhập thành công với quyền CSKH.
+T23R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | Hành động | 
+T23R7: Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên CSKH | Chọn trang "Phản hồi/khiếu nại". | Chọn trang "Phản hồi/khiếu nại". | 
+T23R8: Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị danh sách tổng hợp các phản hồi/khiếu nại hiện có. | Hiển thị danh sách tổng hợp các phản hồi/khiếu nại hiện có. | 
+T23R9: Luồng sự kiện chính (Thành công) |  | 3 | Nhân viên CSKH | Chọn một mục cụ thể cần xử lý từ danh sách. | Chọn một mục cụ thể cần xử lý từ danh sách. | 
+T23R10: Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Hiển thị chi tiết lịch sử tương tác cũ liên quan đến mục đã chọn. | Hiển thị chi tiết lịch sử tương tác cũ liên quan đến mục đã chọn. | 
+T23R11: Luồng sự kiện chính (Thành công) |  | 5 | Nhân viên CSKH | Phân loại khiếu nại và nhập nội dung hướng xử lý. | Phân loại khiếu nại và nhập nội dung hướng xử lý. | 
+T23R12: Luồng sự kiện chính (Thành công) |  | 6 | Nhân viên CSKH | Xử lý và cập nhật trạng thái (Đang xử lý/ xong/) | Xử lý và cập nhật trạng thái (Đang xử lý/ xong/) | 
+T23R13: Luồng sự kiện chính (Thành công) |  | 7 | Nhân viên CSKH | Nhấn nút “Lưu xử lý” | Nhấn nút “Lưu xử lý” | 
+T23R14: Luồng sự kiện chính (Thành công) |  | 8 | Hệ thống | Cập nhật trạng thái mới vào Cơ sở dữ liệu (CSDL). | Cập nhật trạng thái mới vào Cơ sở dữ liệu (CSDL). | 
+T23R15:  |  | 9 | Hệ thống | Lưu lại các thay đổi vào lịch sử hệ thống. | Lưu lại các thay đổi vào lịch sử hệ thống. | 
+T23R16:  |  | 10 | Hệ thống | Xác nhận đã hoàn tất xử lý và tiến hành đóng khiếu nại/phản hồi | Xác nhận đã hoàn tất xử lý và tiến hành đóng khiếu nại/phản hồi | 
+T23R17:  |  | 11 | Hệ thống | Thông báo kết quả ghi nhận thành công cho nhân viên. | Thông báo kết quả ghi nhận thành công cho nhân viên. | 
+T23R18:  |  | 12 | Nhân viên CSKH | Xem kết quả hệ thống thông báo | Xem kết quả hệ thống thông báo | 
+T23R19: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | Hành động | 
+T23R20: Luồng sự kiện thay thế |  | 6a | Nhân viên CSKH | Nếu chưa hoàn tất xử lý phản hồi/ khiếu nại cho khách hàng : Chọn trạng thái “Chưa xong” | Nếu chưa hoàn tất xử lý phản hồi/ khiếu nại cho khách hàng : Chọn trạng thái “Chưa xong” | 
+T23R21: Luồng sự kiện thay thế |  | 10a | Nhân viên CSKH | Duy trì trạng thái "Đang xử lý" và gửi thông báo/chuyển tiếp đến bộ phận cao hơn | Duy trì trạng thái "Đang xử lý" và gửi thông báo/chuyển tiếp đến bộ phận cao hơn | 
+T23R22: Hậu điều kiện | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi | Lưu xử lý phản hồi/khiếu nại của khách hàng và cập nhật đồng bộ trong CSDL, lịch sử tương tác được lưu trữ đầy đủ để theo dõi
+T23R23:  |  |  |  |  |  | 
+--- TABLE 24 ---
+T24R1: Mã Use case | UC05 | UC05 | UC05 | Tên Use case | Thiết lập chiến dịch Marketing
+T24R2: Tác nhân chính | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing | Nhân viên Marketing
+T24R3: Mô tả | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn. | Nhân viên thiết lập các thông số cho chiến dịch quảng bá, gửi thử nghiệm và kích hoạt gửi thông báo tới khách hàng qua các kênh đã chọn.
+T24R4: Sự kiện kích hoạt | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống. | Nhân viên chọn chức năng "Trang Marketing" trên giao diện hệ thống.
+T24R5: Tiền điều kiện | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM | Nhân viên đã đăng nhập thành công với quyền Marketing; có dữ liệu khách hàng trong CRM
+T24R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | 
+T24R7: Luồng sự kiện chính (Thành công) |  | 1 | Nhân viên Marketing | Chọn trang "Marketing". | 
+T24R8: Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Lấy dữ liệu khách hàng từ cơ sở dữ liệu. | 
+T24R9: Luồng sự kiện chính (Thành công) |  | 3 | Hệ thống | Hiển thị giao diện tạo chiến dịch. | 
+T24R10: Luồng sự kiện chính (Thành công) |  | 4 | Nhân viên Marketing | Chọn nhóm khách hàng mục tiêu cho chiến dịch. | 
+T24R11: Luồng sự kiện chính (Thành công) |  | 5 | Nhân viên Marketing | Thiết lập nội dung chiến dịch (thông điệp, hình ảnh...). | 
+T24R12: Luồng sự kiện chính (Thành công) |  | 6 | Nhân viên Marketing | Chọn kênh gửi (Email/SMS) và đặt lịch gửi. | 
+T24R13: Luồng sự kiện chính (Thành công) |  | 7 | Nhân Viên Marketing | Kiểm tra lại nội dung chiến dịch. | 
+T24R14: Luồng sự kiện chính (Thành công) |  | 8 | Nhân viên Marketing | Nhấn nút "Lưu chiến dịch". | 
+T24R15:  |  | 9 | Hệ thống | Lưu cấu hình chiến dịch vào Cơ sở dữ liệu (CSDL). | 
+T24R16:  |  | 10 | Hệ thống | Thực hiện gửi thông báo qua kênh đã chọn (Email/SMS). | 
+T24R17:  |  | 11 | Nhân viên Marketing | Theo dõi hiệu quả chiến dịch trên giao diện và kết thúc. | 
+T24R18: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | 
+T24R19: Luồng sự kiện thay thế |  | 6a | Nhân viên Marketing | Chọn tùy chọn "Gửi thử" trước khi lưu chính thức. | 
+T24R20: Luồng sự kiện thay thế |  | 6b | Hệ thống | Gửi mẫu tin nhắn chiến dịch thử nghiệm tới địa chỉ/số điện thoại chỉ định. | 
+T24R21: Luồng sự kiện thay thế |  | 6c | Nhân viên Marketing | Kiểm tra nội dung thực tế nhận được | 
+T24R22: Hậu điều kiện | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê. | Chiến dịch được lưu thành công vào hệ thống, thông báo được gửi tới khách hàng và nhân viên có thể bắt đầu theo dõi số liệu thống kê.
+--- TABLE 25 ---
+T25R1: Mã Use case | UC06 | UC06 | UC06 | Tên Use case | Xem báo cáo doanh số | Xem báo cáo doanh số
+T25R2: Tác nhân chính | Giám đốc | Giám đốc | Giám đốc | Giám đốc | Giám đốc | Giám đốc
+T25R3: Mô tả | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh. | Giám đốc thực hiện truy xuất và xem các báo cáo thống kê về doanh thu theo các tiêu chí lựa chọn để đánh giá hiệu quả kinh doanh.
+T25R4: Sự kiện kích hoạt | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành. | Giám đốc chọn chức năng "Xem báo cáo doanh số" từ menu điều hành.
+T25R5: Tiền điều kiện | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán. | Giám đốc đã đăng nhập thành công và hệ thống đã có dữ liệu về các giao dịch mua bán.
+T25R6: Luồng sự kiện chính (Thành công) |  | STT | Thực hiện bởi | Hành động | Hành động | 
+T25R7: Luồng sự kiện chính (Thành công) |  | 1 | Giám đốc | Chọn chức năng "Xem báo cáo doanh số". | Chọn chức năng "Xem báo cáo doanh số". | 
+T25R8: Luồng sự kiện chính (Thành công) |  | 2 | Hệ thống | Hiển thị giao diện bộ lọc báo cáo. | Hiển thị giao diện bộ lọc báo cáo. | 
+T25R9: Luồng sự kiện chính (Thành công) |  | 3 | Giám đốc | Chọn các tiêu chí cần xem: Thời gian, nhóm khách hàng, hoặc sản phẩm. | Chọn các tiêu chí cần xem: Thời gian, nhóm khách hàng, hoặc sản phẩm. | 
+T25R10: Luồng sự kiện chính (Thành công) |  | 4 | Hệ thống | Truy xuất dữ liệu giao dịch từ cơ sở dữ liệu (CSDL). | Truy xuất dữ liệu giao dịch từ cơ sở dữ liệu (CSDL). | 
+T25R11: Luồng sự kiện chính (Thành công) |  | 5 | Hệ thống | Tổng hợp, phân tích dữ liệu và hiển thị báo cáo dưới dạng biểu đồ & bảng. | Tổng hợp, phân tích dữ liệu và hiển thị báo cáo dưới dạng biểu đồ & bảng. | 
+T25R12: Luồng sự kiện chính (Thành công) |  | 6 | Giám đốc | Xem và đánh giá các thông số trên báo cáo. | Xem và đánh giá các thông số trên báo cáo. | 
+T25R13: Luồng sự kiện thay thế |  | STT | Thực hiện bởi | Hành động | Hành động | 
+T25R14: Luồng sự kiện thay thế |  | 4a | Hệ thống | Trường hợp không có dữ liệu: 4a.1. Hệ thống xác định không có bản ghi nào khớp với tiêu chí lọc. 4a.2. Hệ thống hiển thị thông báo "Không có dữ liệu". 4a.3. Hệ thống điều hướng quay lại bước 3 để Giám đốc chọn lại tiêu chí | Trường hợp không có dữ liệu: 4a.1. Hệ thống xác định không có bản ghi nào khớp với tiêu chí lọc. 4a.2. Hệ thống hiển thị thông báo "Không có dữ liệu". 4a.3. Hệ thống điều hướng quay lại bước 3 để Giám đốc chọn lại tiêu chí | 
+T25R15: Luồng sự kiện thay thế |  | 6a | Giám đốc | 6a.1. Giám đốc chọn tùy chọn "Xuất báo cáo" (PDF/Excel). 6a.2. Hệ thống thực hiện khởi tạo và tải tệp về máy. 6a.3. Hệ thống dẫn về điểm kết thúc sau khi tải xong. | 6a.1. Giám đốc chọn tùy chọn "Xuất báo cáo" (PDF/Excel). 6a.2. Hệ thống thực hiện khởi tạo và tải tệp về máy. 6a.3. Hệ thống dẫn về điểm kết thúc sau khi tải xong. | 
+T25R16: Hậu điều kiện | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ. | Giám đốc nắm bắt được dữ liệu doanh số theo yêu cầu; tệp báo cáo được xuất thành công nếu có yêu cầu lưu trữ.
+--- TABLE 26 ---
+T26R1: Mã Use case | UC08 | Tên Use case | Đồng bộ dữ liệu từ POS
+T26R2: Tác nhân chính | Hệ thống POS / Admin |  | 
+T26R3: Mô tả | Hệ thống CRM thực hiện tiếp nhận và đồng bộ dữ liệu giao dịch từ hệ thống bán hàng (POS) nhằm đảm bảo dữ liệu khách hàng luôn nhất quán và chính xác. |  | 
+T26R4: Sự kiện kích hoạt | Phát sinh giao dịch mới tại hệ thống POS hoặc hệ thống POS gửi dữ liệu theo định kỳ. |  | 
+T26R5: Tiền điều kiện | 1. Hệ thống CRM và POS đã được thiết lập kết nối API thành công. 2. Các quy tắc định danh khách hàng (Customer Mapping) đã được cấu hình. |  | 
+T26R6: Luồng sự kiện chính (Thành công) | STT | Thực hiện bởi | Hành động
+T26R7:  | 1 | Hệ thống POS | Gửi dữ liệu giao dịch (mã hóa đơn, khách hàng, sản phẩm, giá trị) sang CRM.
+T26R8:  | 2 | Hệ thống CRM | Tiếp nhận luồng dữ liệu giao dịch từ POS.
+T26R9:  | 3 | Hệ thống CRM | Kiểm tra tính hợp lệ và cấu trúc của dữ liệu giao dịch nhận được.
+T26R10:  | 4 | Hệ thống CRM | Thực hiện lưu trữ thông tin giao dịch vào Cơ sở dữ liệu (CSDL) của CRM.
+T26R11:  | 5 | Hệ thống CRM | Tự động cập nhật lịch sử mua hàng và phân loại khách hàng tương ứng (nếu cần).
+T26R12:  | 6 | Hệ thống CRM | Xác nhận đồng bộ hoàn tất và gửi phản hồi thành công về POS.
+T26R13: Luồng sự kiện thay thế | STT | Thực hiện bởi | Hành động
+T26R14:  | 3a | Hệ thống CRM | Trường hợp dữ liệu không hợp lệ: Hệ thống thực hiện ghi log lỗi chi tiết để phục vụ công tác kiểm tra kỹ thuật.
+T26R15:  | 3b | Hệ thống CRM | Gửi thông báo lỗi về hệ thống POS hoặc Admin để yêu cầu kiểm tra lại kết nối/dữ liệu.
+T26R16: Hậu điều kiện | Dữ liệu giao dịch được cập nhật đồng bộ vào hồ sơ khách hàng trong CRM. Lịch sử mua hàng phản ánh chính xác trạng thái thực tế tại điểm bán. |  | 
+--- TABLE 27 ---
+T27R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T27R2: id | UUID | PK, DEFAULT gen_random_uuid() | Định danh tổ chức
+T27R3: name | TEXT | NOT NULL | Tên doanh nghiệp
+T27R4: slug | TEXT | UNIQUE, NOT NULL | Định danh URL-friendly
+T27R5: plan | TEXT | CHECK IN ('free','pro','enterprise') | Gói dịch vụ
+T27R6: settings | JSONB | DEFAULT '{}' | Cấu hình tùy chỉnh
+T27R7: created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời điểm tạo
+--- TABLE 28 ---
+T28R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T28R2: id | UUID | PK, FK → auth.users(id) CASCADE | Định danh người dùng
+T28R3: org_id | UUID | FK → organizations(id) | Thuộc tổ chức nào
+T28R4: full_name | TEXT | NOT NULL | Họ tên
+T28R5: role | TEXT | CHECK IN ('super_admin','admin','director','sales','cskh','marketing') | Vai trò phân quyền
+T28R6: is_active | BOOLEAN | DEFAULT TRUE | Trạng thái tài khoản
+T28R7: last_login_at | TIMESTAMPTZ |  | Lần đăng nhập cuối
+--- TABLE 29 ---
+T29R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T29R2: id | UUID | PK, DEFAULT gen_random_uuid() | Định danh khách hàng
+T29R3: org_id | UUID | NOT NULL, FK → organizations(id) | Multi-tenant key
+T29R4: customer_code | TEXT | UNIQUE | Mã KH tự động (KH-2024-0001)
+T29R5: full_name | TEXT | NOT NULL | Họ tên
+T29R6: phone | TEXT |  | Số điện thoại
+T29R7: email | TEXT |  | Email
+T29R8: customer_type | TEXT | CHECK IN ('new','potential','loyal','vip','inactive') | Phân loại
+T29R9: source | TEXT | CHECK IN ('direct','marketing','referral','pos','online','other') | Nguồn
+T29R10: assigned_to | UUID | FK → profiles(id) | Nhân viên phụ trách
+T29R11: total_spent | DECIMAL(15,2) | DEFAULT 0 | Tổng chi tiêu (auto cập nhật qua trigger)
+T29R12: total_orders | INT | DEFAULT 0 | Số đơn hàng (auto cập nhật qua trigger)
+T29R13: deleted_at | TIMESTAMPTZ |  | Soft delete timestamp
+--- TABLE 30 ---
+T30R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T30R2: id | UUID | PK | 
+T30R3: org_id | UUID | NOT NULL, FK → organizations(id) | Multi-tenant
+T30R4: customer_id | UUID | NOT NULL, FK → customers(id) | 
+T30R5: invoice_code | TEXT |  | Mã hóa đơn từ POS
+T30R6: items | JSONB | DEFAULT '[]' | Chi tiết sản phẩm [{name,qty,price,total}]
+T30R7: total_amount | DECIMAL(15,2) | NOT NULL | Tổng tiền
+T30R8: payment_method | TEXT | CHECK IN ('cash','card','transfer','qr','other') | 
+T30R9: payment_status | TEXT | CHECK IN ('pending','paid','partial','refunded','cancelled') | 
+T30R10: status | TEXT | CHECK IN ('pending','processing','completed','cancelled','refunded') | 
+T30R11: source | TEXT | CHECK IN ('manual','pos_sync','api') | Nguồn nhập liệu
+--- TABLE 31 ---
+T31R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T31R2: id | UUID | PK | 
+T31R3: org_id | UUID | NOT NULL, FK → organizations(id) | 
+T31R4: ticket_code | TEXT | UNIQUE | Mã TK-YYYY-NNNN
+T31R5: customer_id | UUID | NOT NULL, FK → customers(id) | 
+T31R6: title | TEXT | NOT NULL | 
+T31R7: category | TEXT | CHECK IN ('complaint','feedback','inquiry','return','other') | 
+T31R8: priority | TEXT | CHECK IN ('low','medium','high','urgent'), DEFAULT 'medium' | 
+T31R9: assigned_to | UUID | FK → profiles(id) | 
+T31R10: status | TEXT | CHECK IN ('open','in_progress','pending','resolved','closed') | 
+T31R11: satisfaction_score | INT | CHECK (satisfaction_score BETWEEN 1 AND 5) | CSAT score
+T31R12: resolved_at | TIMESTAMPTZ |  | 
+--- TABLE 32 ---
+T32R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T32R2: id | UUID | PK | 
+T32R3: org_id | UUID | NOT NULL, FK → organizations(id) | 
+T32R4: name | TEXT | NOT NULL | 
+T32R5: channel | TEXT | NOT NULL, CHECK IN ('email','sms','both') | 
+T32R6: target_segment | JSONB | DEFAULT '{}' | Điều kiện lọc khách hàng
+T32R7: status | TEXT | CHECK IN ('draft','scheduled','sending','sent','cancelled') | 
+T32R8: sent_count/opened_count/failed_count | INT | DEFAULT 0 | Metrics
+--- TABLE 33 ---
+T33R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T33R2: id | UUID | PK | 
+T33R3: org_id | UUID | NOT NULL, FK → organizations(id) | 
+T33R4: trigger_type | TEXT | CHECK IN ('birthday','inactive_days','after_purchase','new_customer') | 
+T33R5: trigger_config | JSONB |  | Ví dụ: {"days": 30} cho inactive
+T33R6: action_type | TEXT | CHECK IN ('send_email','send_sms') | 
+T33R7: is_active | BOOLEAN | DEFAULT TRUE | 
+--- TABLE 34 ---
+T34R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T34R2: id | UUID | PK | 
+T34R3: org_id | UUID | NOT NULL, FK → organizations(id) | 
+T34R4: customer_id | UUID | FK → customers(id) | 
+T34R5: title | TEXT | NOT NULL | Tên cơ hội
+T34R6: stage | TEXT | CHECK IN ('lead','qualified','proposal','negotiation','won','lost') | 
+T34R7: value | DECIMAL(15,2) |  | Giá trị ước tính
+T34R8: probability | INT | CHECK (probability BETWEEN 0 AND 100) | Xác suất thành công (%)
+T34R9: assigned_to | UUID | FK → profiles(id) | 
+T34R10: expected_close_date | DATE |  | 
+--- TABLE 35 ---
+T35R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T35R2: id | UUID | PK | 
+T35R3: org_id | UUID | NOT NULL, FK → organizations(id) | 
+T35R4: deal_id | UUID | FK → deals(id) | Gắn với cơ hội bán hàng
+T35R5: customer_id | UUID | FK → customers(id) | Hoặc gắn trực tiếp với KH
+T35R6: title | TEXT | NOT NULL | 
+T35R7: task_type | TEXT | CHECK IN ('call','email','meeting','follow_up','demo','other') | 
+T35R8: due_date | TIMESTAMPTZ |  | Hạn hoàn thành
+T35R9: status | TEXT | CHECK IN ('pending','in_progress','done','cancelled') | 
+T35R10: assigned_to | UUID | FK → profiles(id) | 
+--- TABLE 36 ---
+T36R1: Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả
+T36R2: id | UUID | PK | 
+T36R3: org_id | UUID | FK → organizations(id) | 
+T36R4: user_id | UUID | FK → profiles(id) | 
+T36R5: action | TEXT | NOT NULL | Ví dụ: 'CREATE_CUSTOMER', 'UPDATE_TICKET'
+T36R6: entity_type | TEXT | NOT NULL | Ví dụ: 'customers', 'support_tickets'
+T36R7: entity_id | UUID |  | 
+T36R8: old_data | JSONB |  | Snapshot trước khi thay đổi
+T36R9: new_data | JSONB |  | Snapshot sau khi thay đổi
+--- TABLE 37 ---
+T37R1: Từ | Quan hệ | Đến | Ghi chú
+T37R2: organizations | 1 — N | profiles | Một org có nhiều user
+T37R3: organizations | 1 — N | customers | Multi-tenant isolation
+T37R4: customers | 1 — N | transactions | Lịch sử mua hàng
+T37R5: customers | 1 — N | support_tickets | Lịch sử khiếu nại
+T37R6: customers | M — N | tags | Qua bảng customer_tags
+T37R7: customers | 1 — N | deals | Pipeline bán hàng
+T37R8: deals | 1 — N | tasks | Follow-up tasks
+T37R9: campaigns | 1 — N | campaign_recipients | Qua customers
+T37R10: profiles | 1 — N | customers (assigned_to) | Phụ trách KH
+T37R11: support_tickets | 1 — N | ticket_comments | Lịch sử xử lý
+--- TABLE 38 ---
+T38R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T38R2: id | private | UUID | Định danh khách hàng
+T38R3: orgId | private | UUID | Tenant key
+T38R4: customerCode | private | string | Mã khách hàng tự sinh
+T38R5: fullName | private | string | Họ tên
+T38R6: phone | private | string? | Số điện thoại
+T38R7: email | private | string? | Email
+T38R8: customerType | private | 'new'|'potential'|'loyal'|'vip'|'inactive' | Phân loại
+T38R9: source | private | string? | Nguồn khách hàng
+T38R10: assignedTo | private | UUID? | Nhân viên phụ trách
+T38R11: totalSpent | private | number | Tổng chi tiêu
+T38R12: totalOrders | private | number | Tổng số giao dịch
+T38R13: lastOrderAt | private | Date? | Lần mua gần nhất
+T38R14: deletedAt | private | Date? | Soft delete timestamp
+T38R15: createdAt | private | Date | Thời điểm tạo
+T38R16: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T38R17: getList(params: CustomerListParams) | public | Promise<Customer[]> | Lấy danh sách khách hàng có filter/search
+T38R18: getById(id: UUID) | public | Promise<Customer> | Lấy chi tiết khách hàng
+T38R19: create(data: Partial<Customer>) | public | Promise<Customer> | Tạo khách hàng mới
+T38R20: update(id: UUID, data: Partial<Customer>) | public | Promise<Customer> | Cập nhật hồ sơ khách hàng
+T38R21: softDelete(id: UUID) | public | Promise<void> | Xóa mềm khách hàng
+T38R22: exportCSV(orgId: UUID) | public | Promise<Blob> | Xuất dữ liệu CSV
+--- TABLE 39 ---
+T39R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T39R2: id | private | UUID | Định danh giao dịch
+T39R3: orgId | private | UUID | Tenant key
+T39R4: customerId | private | UUID | Khóa ngoại tới Customer
+T39R5: invoiceCode | private | string? | Mã hóa đơn/POS
+T39R6: items | private | TransactionItem[] | Danh sách sản phẩm
+T39R7: totalAmount | private | number | Tổng giá trị giao dịch
+T39R8: paymentMethod | private | PaymentMethod | Phương thức thanh toán
+T39R9: paymentStatus | private | PaymentStatus | Trạng thái thanh toán
+T39R10: status | private | TransactionStatus | Trạng thái xử lý
+T39R11: source | private | DataSource | Nguồn dữ liệu
+T39R12: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T39R13: create(data: Partial<Transaction>) | public | Promise<Transaction> | Tạo giao dịch mới
+T39R14: getByCustomer(customerId: UUID) | public | Promise<Transaction[]> | Lấy lịch sử giao dịch của khách hàng
+T39R15: updateStatus(id: UUID, status: TransactionStatus) | public | Promise<Transaction> | Cập nhật trạng thái giao dịch
+--- TABLE 40 ---
+T40R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T40R2: id | private | UUID | Định danh ticket
+T40R3: orgId | private | UUID | Tenant key
+T40R4: ticketCode | private | string | Mã ticket tự sinh
+T40R5: customerId | private | UUID | Khóa ngoại tới Customer
+T40R6: title | private | string | Tiêu đề ticket
+T40R7: category | private | TicketCategory | Loại phản hồi
+T40R8: priority | private | TicketPriority | Mức ưu tiên
+T40R9: assignedTo | private | UUID? | Nhân viên CSKH phụ trách
+T40R10: status | private | TicketStatus | Trạng thái xử lý
+T40R11: satisfactionScore | private | number? | Điểm hài lòng
+T40R12: resolvedAt | private | Date? | Thời điểm xử lý xong
+T40R13: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T40R14: getList(params: TicketListParams) | public | Promise<SupportTicket[]> | Lấy danh sách ticket
+T40R15: getById(id: UUID) | public | Promise<SupportTicket> | Lấy chi tiết ticket
+T40R16: create(data: Partial<SupportTicket>) | public | Promise<SupportTicket> | Tạo ticket mới
+T40R17: update(id: UUID, data: Partial<SupportTicket>) | public | Promise<SupportTicket> | Cập nhật nội dung ticket
+T40R18: updateStatus(id: UUID, status: TicketStatus) | public | Promise<SupportTicket> | Chuyển trạng thái xử lý
+T40R19: addComment(ticketId: UUID, content: string, isInternal: boolean) | public | Promise<void> | Thêm trao đổi nội bộ/công khai
+--- TABLE 41 ---
+T41R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T41R2: id | private | UUID | Định danh chiến dịch
+T41R3: orgId | private | UUID | Tenant key
+T41R4: name | private | string | Tên chiến dịch
+T41R5: channel | private | 'email'|'sms'|'both' | Kênh gửi
+T41R6: targetSegment | private | Record<string, unknown> | Điều kiện lọc
+T41R7: status | private | CampaignStatus | Trạng thái chiến dịch
+T41R8: sentCount | private | number | Số bản tin gửi thành công
+T41R9: openedCount | private | number | Số lượt mở
+T41R10: failedCount | private | number | Số bản tin lỗi
+T41R11: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T41R12: getList(params: CampaignListParams) | public | Promise<Campaign[]> | Lấy danh sách chiến dịch
+T41R13: create(data: Partial<Campaign>) | public | Promise<Campaign> | Tạo chiến dịch mới
+T41R14: update(id: UUID, data: Partial<Campaign>) | public | Promise<Campaign> | Cập nhật chiến dịch
+T41R15: schedule(id: UUID, scheduledAt: Date) | public | Promise<Campaign> | Lên lịch gửi
+T41R16: dispatch(id: UUID) | public | Promise<void> | Gọi Edge Function để phát chiến dịch
+--- TABLE 42 ---
+T42R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T42R2: id | private | UUID | Định danh rule
+T42R3: orgId | private | UUID | Tenant key
+T42R4: triggerType | private | AutomationTriggerType | Loại trigger
+T42R5: triggerConfig | private | Record<string, unknown> | Cấu hình trigger
+T42R6: actionType | private | 'send_email'|'send_sms' | Hành động thực thi
+T42R7: isActive | private | boolean | Bật/tắt quy tắc
+T42R8: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T42R9: getAll() | public | Promise<AutomationRule[]> | Lấy toàn bộ rules
+T42R10: create(data: Partial<AutomationRule>) | public | Promise<AutomationRule> | Tạo rule mới
+T42R11: update(id: UUID, data: Partial<AutomationRule>) | public | Promise<AutomationRule> | Cập nhật rule
+T42R12: toggleActive(id: UUID, isActive: boolean) | public | Promise<AutomationRule> | Bật/tắt rule
+T42R13: runNow(id: UUID) | public | Promise<void> | Chạy thử rule
+--- TABLE 43 ---
+T43R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T43R2: id | private | UUID | Định danh cơ hội
+T43R3: orgId | private | UUID | Tenant key
+T43R4: customerId | private | UUID | Khóa ngoại tới Customer
+T43R5: title | private | string | Tên cơ hội
+T43R6: stage | private | DealStage | Giai đoạn pipeline
+T43R7: value | private | number? | Giá trị ước tính
+T43R8: probability | private | number | Xác suất thành công
+T43R9: assignedTo | private | UUID? | Nhân viên phụ trách
+T43R10: expectedCloseDate | private | Date? | Ngày dự kiến chốt
+T43R11: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T43R12: getList(params: DealListParams) | public | Promise<Deal[]> | Lấy danh sách cơ hội
+T43R13: getById(id: UUID) | public | Promise<Deal> | Lấy chi tiết cơ hội
+T43R14: create(data: Partial<Deal>) | public | Promise<Deal> | Tạo cơ hội mới
+T43R15: update(id: UUID, data: Partial<Deal>) | public | Promise<Deal> | Cập nhật cơ hội
+T43R16: updateStage(id: UUID, stage: DealStage) | public | Promise<Deal> | Di chuyển giữa các stage
+T43R17: delete(id: UUID) | public | Promise<void> | Xóa cơ hội
+--- TABLE 44 ---
+T44R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T44R2: id | private | UUID | Định danh task
+T44R3: orgId | private | UUID | Tenant key
+T44R4: dealId | private | UUID? | Liên kết tới Deal
+T44R5: customerId | private | UUID? | Liên kết trực tiếp tới Customer
+T44R6: title | private | string | Tiêu đề nhiệm vụ
+T44R7: taskType | private | TaskType | Loại follow-up
+T44R8: dueDate | private | Date? | Hạn hoàn thành
+T44R9: status | private | TaskStatus | Trạng thái task
+T44R10: assignedTo | private | UUID? | Người phụ trách
+T44R11: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T44R12: getList(params: TaskListParams) | public | Promise<Task[]> | Lấy danh sách task
+T44R13: create(data: Partial<Task>) | public | Promise<Task> | Tạo task mới
+T44R14: update(id: UUID, data: Partial<Task>) | public | Promise<Task> | Cập nhật task
+T44R15: complete(id: UUID) | public | Promise<Task> | Đánh dấu hoàn thành
+T44R16: delete(id: UUID) | public | Promise<void> | Xóa task
+--- TABLE 45 ---
+T45R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T45R2: id | private | UUID | Định danh log
+T45R3: orgId | private | UUID | Tenant key
+T45R4: userId | private | UUID? | Người thực hiện hành động
+T45R5: action | private | string | Loại thao tác
+T45R6: entityType | private | string | Loại thực thể bị tác động
+T45R7: entityId | private | UUID? | Định danh thực thể
+T45R8: oldData | private | Record<string, unknown>? | Ảnh chụp trước thay đổi
+T45R9: newData | private | Record<string, unknown>? | Ảnh chụp sau thay đổi
+T45R10: createdAt | private | Date | Thời điểm ghi log
+T45R11: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T45R12: getList(filters: AuditFilters) | public | Promise<AuditLog[]> | Lấy danh sách audit log
+T45R13: getByEntity(entityType: string, entityId: UUID) | public | Promise<AuditLog[]> | Truy vết theo thực thể
+T45R14: record(entry: Partial<AuditLog>) | public | Promise<void> | Ghi log thao tác hệ thống
+--- TABLE 46 ---
+T46R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T46R2: id | private | UUID | Định danh người dùng
+T46R3: orgId | private | UUID | Tenant key
+T46R4: fullName | private | string | Họ tên
+T46R5: role | private | UserRole | Vai trò RBAC
+T46R6: isActive | private | boolean | Trạng thái tài khoản
+T46R7: lastLoginAt | private | Date? | Đăng nhập gần nhất
+T46R8: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T46R9: getCurrent() | public | Promise<Profile> | Lấy profile hiện tại
+T46R10: getDirectory() | public | Promise<Profile[]> | Lấy danh sách user trong org
+T46R11: updateRole(id: UUID, role: UserRole) | public | Promise<Profile> | Cập nhật quyền người dùng
+T46R12: setActiveStatus(id: UUID, isActive: boolean) | public | Promise<Profile> | Kích hoạt/vô hiệu hóa tài khoản
+--- TABLE 47 ---
+T47R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T47R2: maKhachHang | - | int | Mã số định danh khách hàng
+T47R3: hoTen | - | String | Họ và tên khách hàng
+T47R4: soDienThoai | - | String | Số điện thoại liên lạc
+T47R5: email | - | String | Địa chỉ thư điện tử
+T47R6: diaChi | - | String | Địa chỉ thường trú
+T47R7: loaiKhachHang | - | String | Phân loại (Cá nhân/Doanh nghiệp)
+T47R8: trangThai | - | String | Trạng thái hoạt động
+T47R9: ngayTao | - | DateTime | Ngày đăng ký hệ thống
+--- TABLE 48 ---
+T48R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T48R2: themKhachHang() | + | boolean | Thêm mới khách hàng vào hệ thống
+T48R3: suaThongTin() | + | boolean | Cập nhật thông tin khách hàng
+T48R4: xoaKhachHang() | + | boolean | Xóa khách hàng khỏi hệ thống
+T48R5: timKiem() | + | List | Tìm kiếm khách hàng theo tiêu chí
+--- TABLE 49 ---
+T49R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T49R2: maNguoiDung | - | int | Mã định danh người dùng
+T49R3: tenDangNhap | - | String | Tên tài khoản đăng nhập
+T49R4: matKhauHash | - | String | Mật khẩu (đã mã hóa)
+T49R5: hoTen | - | String | Họ tên người sử dụng
+T49R6: vaiTro | - | String | Quyền hạn trong hệ thống
+T49R7: trangThai | - | boolean | Trạng thái tài khoản
+--- TABLE 50 ---
+T50R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T50R2: dangNhap() | + | boolean | Xác thực và đăng nhập vào hệ thống
+T50R3: dangXuat() | + | void | Thoát khỏi hệ thống hiện tại
+T50R4: doiMatKhau() | + | boolean | Thay đổi mật khẩu người dùng
+--- TABLE 51 ---
+T51R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T51R2: maVaiTro | - | int | Mã định danh vai trò
+T51R3: tenVaiTro | - | String | Tên vai trò (Admin, Staff,...)
+T51R4: moTa | - | String | Mô tả quyền hạn vai trò
+--- TABLE 52 ---
+T52R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T52R2: maDonHang | - | int | Mã số đơn hàng
+T52R3: maKhachHang | - | int | Mã khách hàng sở hữu đơn hàng
+T52R4: ngayDat | - | DateTime | Thời gian đặt hàng
+T52R5: tongTien | - | decimal | Tổng giá trị đơn hàng
+T52R6: trangThai | - | String | Trạng thái đơn hàng
+--- TABLE 53 ---
+T53R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T53R2: taoDonHang() | + | boolean | Khởi tạo đơn hàng mới
+T53R3: huyDonHang() | + | boolean | Hủy bỏ đơn hàng hiện tại
+T53R4: tinhTongTien() | + | decimal | Tính toán giá trị đơn hàng
+--- TABLE 54 ---
+T54R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T54R2: maChiTiet | - | int | Mã chi tiết dòng hàng
+T54R3: maDonHang | - | int | Mã đơn hàng liên kết
+T54R4: tenSanPham | - | String | Tên sản phẩm/dịch vụ
+T54R5: soLuong | - | int | Số lượng mua
+T54R6: gia | - | decimal | Đơn giá sản phẩm
+--- TABLE 55 ---
+T55R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T55R2: thanhTien() | + | decimal | Tính thành tiền (Số lượng * Giá)
+--- TABLE 56 ---
+T56R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T56R2: maPhieu | - | int | Mã số phiếu hỗ trợ
+T56R3: maKhachHang | - | int | Mã khách hàng gửi yêu cầu
+T56R4: maNguoiDung | - | int | Mã nhân viên phụ trách xử lý
+T56R5: noiDung | - | String | Nội dung yêu cầu hỗ trợ
+T56R6: mucDoUuTien | - | String | Mức độ khẩn cấp
+T56R7: trangThai | - | String | Trạng thái xử lý phiếu
+T56R8: ngayTao | - | DateTime | Ngày tiếp nhận phiếu
+T56R9: ngayXuLy | - | DateTime | Ngày cập nhật xử lý gần nhất
+--- TABLE 57 ---
+T57R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T57R2: tiepNhanPhieu() | + | void | Xác nhận tiếp nhận phiếu
+T57R3: xuLyPhieu() | + | void | Ghi chú quá trình xử lý yêu cầu
+T57R4: hoanTatPhieu() | + | void | Đóng phiếu hỗ trợ
+--- TABLE 58 ---
+T58R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T58R2: maTuongTac | - | int | Mã ghi nhận tương tác
+T58R3: maKhachHang | - | int | Mã khách hàng tương tác
+T58R4: maNguoiDung | - | int | Mã nhân viên thực hiện
+T58R5: loaiTuongTac | - | String | Loại (Gọi điện, Email, Gặp mặt)
+T58R6: noiDung | - | String | Nội dung chi tiết trao đổi
+T58R7: ngayTao | - | DateTime | Ngày thực hiện tương tác
+--- TABLE 59 ---
+T59R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T59R2: ghiNhanTuongTac() | + | void | Lưu lịch sử tương tác vào hệ thống
+--- TABLE 60 ---
+T60R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T60R2: maChienDich | - | int | Mã chiến dịch Marketing
+T60R3: tenChienDich | - | String | Tên chiến dịch
+T60R4: noiDung | - | String | Nội dung quảng bá
+T60R5: ngayBatDau | - | DateTime | Ngày kích hoạt
+T60R6: ngayKetThuc | - | DateTime | Ngày kết thúc
+T60R7: trangThai | - | String | Trạng thái chiến dịch
+--- TABLE 61 ---
+T61R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T61R2: tinhHieuQua() | + | double | Tính toán tỷ lệ chuyển đổi
+--- TABLE 62 ---
+T62R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T62R2: ma | - | int | Mã bản ghi liên kết
+T62R3: maChienDich | - | int | Mã chiến dịch tham chiếu
+T62R4: maKhachHang | - | int | Mã khách hàng mục tiêu
+T62R5: trangThaiPhanHoi | - | String | Phản hồi của khách
+--- TABLE 63 ---
+T63R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T63R2: maBaoCao | - | int | Mã số bản báo cáo
+T63R3: ngayLap | - | DateTime | Ngày tạo báo cáo
+T63R4: tuNgay | - | DateTime | Ngày bắt đầu lọc
+T63R5: denNgay | - | DateTime | Ngày kết thúc lọc
+T63R6: tongDoanhThu | - | decimal | Tổng doanh thu tính toán
+--- TABLE 64 ---
+T64R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T64R2: xemBaoCao() | + | void | Hiển thị thông tin báo cáo
+T64R3: locTheoTieuChi() | + | void | Áp dụng bộ lọc dữ liệu
+T64R4: xuatBaoCao() | + | File | Xuất dữ liệu ra tệp tin
+--- TABLE 65 ---
+T65R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T65R2: maLog | - | int | Mã định danh dòng nhật ký
+T65R3: maNguoiDung | - | int | Mã nhân viên thực hiện
+T65R4: hanhDong | - | String | Loại thao tác thực hiện
+T65R5: thoiGian | - | DateTime | Thời điểm ghi nhận
+--- TABLE 66 ---
+T66R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T66R2: chiTietHanhDong() | + | String | Truy xuất chi tiết nhật ký
+--- TABLE 67 ---
+T67R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T67R2: maDongBo | - | int | Mã phiên đồng bộ dữ liệu
+T67R3: maDonHang | - | int | Mã đơn hàng đồng bộ
+T67R4: thoiGian | - | DateTime | Thời gian đồng bộ
+T67R5: trangThai | - | String | Kết quả đồng bộ
+--- TABLE 68 ---
+T68R1: Phương thức | Phạm vi | Kiểu trả về | Mô tả
+T68R2: thucHienDongBo() | + | boolean | Quy trình gửi dữ liệu sang POS
+--- TABLE 69 ---
+T69R1: Thuộc tính | Phạm vi | Kiểu dữ liệu | Mô tả
+T69R2: maMau | - | int | Mã số mẫu nội dung
+T69R3: tieuDe | - | String | Tiêu đề mẫu nội dung
+T69R4: noiDung | - | String | Nội dung chứa biến mẫu
+--- TABLE 70 ---
+T70R1: Hạng mục | Nội dung
+T70R2: Placeholder ảnh | [⚠️ SỬA TAY - M01: Chụp màn hình /dashboard sau khi đăng nhập với role director/admin]
+T70R3: Route / phạm vi minh chứng | /dashboard
+T70R4: Yêu cầu tối thiểu | Ưu tiên hiển thị KPI cards, biểu đồ doanh thu tuần/tháng và danh sách Top 10 khách hàng VIP.
+--- TABLE 71 ---
+T71R1: Hạng mục | Nội dung
+T71R2: Placeholder ảnh | [⚠️ SỬA TAY: Chụp màn hình /customers/:id với đầy đủ 6 tab và dữ liệu mẫu của một khách hàng cụ thể]
+T71R3: Route / phạm vi minh chứng | /customers/:id
+T71R4: Yêu cầu tối thiểu | Cần thấy rõ 6 tab: Thông tin cơ bản, Giao dịch, Ticket, Chăm sóc, File đính kèm, Nhật ký thay đổi.
+--- TABLE 72 ---
+T72R1: Hạng mục | Nội dung
+T72R2: Placeholder ảnh | [⚠️ SỬA TAY: Chụp màn hình /transactions với bộ lọc theo khách hàng, ngày và trạng thái thanh toán]
+T72R3: Route / phạm vi minh chứng | /transactions
+T72R4: Yêu cầu tối thiểu | Nên chọn ảnh có bảng dữ liệu, filter bar và liên kết điều hướng sang hồ sơ khách hàng.
+--- TABLE 73 ---
+T73R1: Hạng mục | Nội dung
+T73R2: Placeholder ảnh | [⚠️ SỬA TAY: Chụp màn hình /tickets ở cả Table View và Kanban Board để thể hiện luồng Open → Closed]
+T73R3: Route / phạm vi minh chứng | /tickets
+T73R4: Yêu cầu tối thiểu | Nếu chỉ chọn một ảnh, ưu tiên Kanban Board với các cột Open, In Progress, Pending, Resolved, Closed.
+--- TABLE 74 ---
+T74R1: Hạng mục | Nội dung
+T74R2: Placeholder ảnh | [⚠️ SỬA TAY: Chụp màn hình /campaigns hoặc /automation, ưu tiên thể hiện wizard 4 bước và danh sách trigger rule]
+T74R3: Route / phạm vi minh chứng | /campaigns, /automation
+T74R4: Yêu cầu tối thiểu | Ảnh nên cho thấy phân khúc khách hàng, nội dung chiến dịch và các trigger như sinh nhật hoặc khách không mua 30 ngày.
+--- TABLE 75 ---
+T75R1: Loại bảo trì | Nội dung áp dụng cho hệ thống CRM | Thời điểm/Chu kỳ | Đầu ra mong muốn
+T75R2: Corrective | Sửa lỗi giao diện, query dữ liệu, báo cáo hoặc phân quyền | Khi phát hiện lỗi qua vận hành/demo | Phiên bản sửa lỗi ổn định
+T75R3: Adaptive | Điều chỉnh cấu hình môi trường, cập nhật thư viện, hạ tầng Supabase | Khi môi trường thay đổi | Hệ thống chạy tương thích
+T75R4: Perfective | Tối ưu UX, cải thiện tốc độ truy vấn, bổ sung bộ lọc báo cáo | Sau mỗi vòng góp ý | Hệ thống dễ dùng, hiệu quả
+T75R5: Preventive | Rà soát backup, kiểm tra bảo mật RLS, làm sạch mã nguồn | Định kỳ hàng tháng | Giảm thiểu nguy cơ lỗi nghiêm trọng
+--- TABLE 76 ---
+T76R1: Mã TC | Phạm vi | Minh chứng | Kết quả mong đợi | Kết quả thực tế | Trạng thái
+T76R2: TC-AUTO-01 | Xác thực dữ liệu đăng nhập | tests/authValidation.test.ts | Ràng buộc dữ liệu đăng nhập hoạt động đúng | Pass | Đạt
+T76R3: TC-AUTO-02 | Luồng quên/đặt lại mật khẩu | tests/authPasswordResetFlow.test.ts | Luồng reset password hợp lệ | Pass | Đạt
+T76R4: TC-AUTO-03 | Xuất dữ liệu báo cáo | tests/exportService.test.ts | Xuất file đúng cấu trúc | Pass | Đạt
+T76R5: TC-AUTO-04 | Tổng hợp báo cáo | tests/reportService.test.ts | Dữ liệu báo cáo trả về đúng logic | Pass | Đạt
+T76R6: TC-AUTO-05 | Xử lý tác vụ bất đồng bộ | tests/sharedAsyncAction.test.ts | Retry/timeout/error state ổn định | Pass | Đạt
+T76R7: TC-AUTO-06 | Hook mutation giao diện | tests/useAppMutation.test.tsx | UI mutation hoạt động đúng trạng thái | Pass | Đạt
+T76R8: TC-BUILD-01 | Build production | npm run build | Build thành công không lỗi TypeScript/Vite | Pass | Đạt
+--- TABLE 77 ---
+T77R1: Mã TC | Luồng kiểm thử | Kết quả mong đợi | Kết quả thực tế | Ghi chú lỗi (nếu có) | Trạng thái
+T77R2: TC-MAN-01 | Đăng nhập theo vai trò | Tài khoản đúng vai trò vào được màn hình phù hợp | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R3: TC-MAN-02 | CRUD khách hàng | Tạo/sửa/tìm kiếm khách hàng hoạt động ổn định | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R4: TC-MAN-03 | Quản lý giao dịch | Tạo hoặc xem giao dịch gắn với khách hàng và phản ánh lên báo cáo | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R5: TC-MAN-04 | Xử lý ticket/phản hồi | Tạo ticket, cập nhật trạng thái và xem chi tiết phiếu | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R6: TC-MAN-05 | Campaign/automation | Tạo chiến dịch hoặc quy tắc chăm sóc ở mức hệ thống hiện có | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R7: TC-MAN-06 | Dashboard và export report | Dashboard hiển thị KPI, report có thể xuất dữ liệu | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R8: TC-MAN-07 | Admin và audit | Quản lý user, audit log, settings hoạt động đúng | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R9: TC-MAN-08 | Pipeline và task follow-up | Cơ hội bán hàng và nhiệm vụ được cập nhật đúng | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+T77R10: TC-MAN-09 | Cấu hình POS | Settings phản ánh đúng mức cấu hình tích hợp hiện tại | [⚠️ SỬA TAY - M02: Chạy test thực tế và điền kết quả Pass/Fail vào đây] | ___ | Chưa cập nhật
+--- TABLE 78 ---
+T78R1: Loại bảo trì | Nội dung áp dụng cho hệ thống CRM | Thời điểm/chu kỳ | Đầu ra mong muốn
+T78R2: Corrective | Sửa lỗi phát sinh ở giao diện, service, query dữ liệu, báo cáo hoặc phân quyền | Khi phát hiện lỗi qua test/demo/vận hành | Phiên bản sửa lỗi ổn định
+T78R3: Adaptive | Điều chỉnh cấu hình môi trường, provider gửi thông điệp hoặc thay đổi nhỏ từ hạ tầng Supabase/hosting | Khi môi trường hoặc yêu cầu vận hành thay đổi | Hệ thống tiếp tục chạy tương thích
+T78R4: Perfective | Tối ưu UX, cải thiện truy vấn, bổ sung bộ lọc, tăng chất lượng báo cáo và trải nghiệm người dùng | Sau mỗi vòng góp ý hoặc sau demo | Hệ thống dễ dùng và thuyết phục hơn
+T78R5: Preventive | Rà soát backup, kiểm tra build/test định kỳ, cập nhật dependency và làm sạch cảnh báo kỹ thuật | Theo tuần hoặc trước khi phát hành bản mới | Giảm nguy cơ phát sinh lỗi nghiêm trọng
+--- TABLE 79 ---
+T79R1: Vai trò | Nội dung đào tạo | Hình thức | Thời lượng | Kết quả mong đợi
+T79R2: Nhân viên Sales | Quản lý khách hàng, giao dịch, pipeline, task follow-up | Hướng dẫn trực tiếp + tài liệu thao tác | 45-60 phút | Biết cập nhật dữ liệu bán hàng và theo dõi cơ hội
+T79R3: Nhân viên CSKH | Ticket, lịch sử chăm sóc, cập nhật trạng thái xử lý, follow-up | Thực hành trên dữ liệu mẫu | 45 phút | Biết tiếp nhận và xử lý phản hồi khách hàng
+T79R4: Nhân viên Marketing | Tạo campaign, phân nhóm khách hàng, theo dõi trạng thái chiến dịch, automation ở mức hiện có | Demo theo kịch bản | 45 phút | Biết cấu hình chiến dịch và đọc kết quả cơ bản
+T79R5: Giám đốc | Đọc dashboard, report, KPI và theo dõi tiến độ xử lý | Demo nhanh theo vai trò quản lý | 30 phút | Biết sử dụng báo cáo để ra quyết định
+T79R6: Admin | Quản lý người dùng, settings, audit log, cấu hình hệ thống | Hướng dẫn trực tiếp | 60 phút | Biết quản trị tài khoản và theo dõi nhật ký hệ thống

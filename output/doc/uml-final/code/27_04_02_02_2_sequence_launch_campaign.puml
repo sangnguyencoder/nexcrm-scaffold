@@ -1,0 +1,54 @@
+@startuml
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.2] Sequence - Marketing tạo và gửi chiến dịch
+    actor Marketing
+    participant Browser
+    participant "CampaignWizard" as UI
+    participant "campaignService" as CampaignService
+    participant "dispatch-communication" as EdgeFn
+    participant "Email/SMS Provider" as Provider
+    database "Supabase DB" as DB
+
+    Marketing -> Browser : Thiết lập chiến dịch
+    Browser -> UI : Bước 1..4 của wizard
+    UI -> CampaignService : create(campaign draft)
+    CampaignService -> DB : INSERT campaigns + recipients
+    DB --> CampaignService : campaign saved
+    alt Gửi ngay
+      UI -> CampaignService : dispatch(campaignId)
+      CampaignService -> EdgeFn : invoke send campaign
+      EdgeFn -> Provider : gửi Email/SMS
+      Provider --> EdgeFn : success/failure
+      EdgeFn -> DB : UPDATE sent_count/opened_count/failed_count
+    else Lên lịch
+      UI -> CampaignService : schedule(campaignId, scheduledAt)
+      CampaignService -> DB : UPDATE status=scheduled
+    end
+    UI --> Browser : Hiển thị trạng thái chiến dịch
+    @enduml

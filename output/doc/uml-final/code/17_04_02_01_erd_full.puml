@@ -1,0 +1,259 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.1] ERD đầy đủ hệ thống CRM SaaS
+    hide circle
+    left to right direction
+
+    entity "organizations" as organizations {
+      *id : UUID
+      --
+      name : TEXT
+      slug : TEXT
+      plan : TEXT
+      settings : JSONB
+      created_at : TIMESTAMPTZ
+    }
+
+    entity "profiles" as profiles {
+      *id : UUID
+      --
+      org_id : UUID
+      full_name : TEXT
+      role : TEXT
+      is_active : BOOLEAN
+      last_login_at : TIMESTAMPTZ
+    }
+
+    entity "customers" as customers {
+      *id : UUID
+      --
+      org_id : UUID
+      customer_code : TEXT
+      full_name : TEXT
+      phone : TEXT
+      email : TEXT
+      customer_type : TEXT
+      source : TEXT
+      assigned_to : UUID
+      total_spent : DECIMAL
+      total_orders : INT
+      last_order_at : TIMESTAMPTZ
+      deleted_at : TIMESTAMPTZ
+    }
+
+    entity "transactions" as transactions {
+      *id : UUID
+      --
+      org_id : UUID
+      customer_id : UUID
+      invoice_code : TEXT
+      items : JSONB
+      total_amount : DECIMAL
+      payment_method : TEXT
+      payment_status : TEXT
+      status : TEXT
+      source : TEXT
+    }
+
+    entity "support_tickets" as support_tickets {
+      *id : UUID
+      --
+      org_id : UUID
+      ticket_code : TEXT
+      customer_id : UUID
+      title : TEXT
+      category : TEXT
+      priority : TEXT
+      assigned_to : UUID
+      status : TEXT
+      satisfaction_score : INT
+      resolved_at : TIMESTAMPTZ
+    }
+
+    entity "ticket_comments" as ticket_comments {
+      *id : UUID
+      --
+      ticket_id : UUID
+      author_id : UUID
+      is_internal : BOOLEAN
+      content : TEXT
+      created_at : TIMESTAMPTZ
+    }
+
+    entity "tags" as tags {
+      *id : UUID
+      --
+      org_id : UUID
+      name : TEXT
+      color : TEXT
+    }
+
+    entity "customer_tags" as customer_tags {
+      *customer_id : UUID
+      *tag_id : UUID
+    }
+
+    entity "customer_notes" as customer_notes {
+      *id : UUID
+      --
+      customer_id : UUID
+      author_id : UUID
+      note_type : TEXT
+      content : TEXT
+    }
+
+    entity "campaigns" as campaigns {
+      *id : UUID
+      --
+      org_id : UUID
+      name : TEXT
+      channel : TEXT
+      target_segment : JSONB
+      status : TEXT
+      sent_count : INT
+      opened_count : INT
+      failed_count : INT
+    }
+
+    entity "campaign_recipients" as campaign_recipients {
+      *id : UUID
+      --
+      campaign_id : UUID
+      customer_id : UUID
+      delivery_status : TEXT
+      opened_at : TIMESTAMPTZ
+    }
+
+    entity "automation_rules" as automation_rules {
+      *id : UUID
+      --
+      org_id : UUID
+      trigger_type : TEXT
+      trigger_config : JSONB
+      action_type : TEXT
+      is_active : BOOLEAN
+    }
+
+    entity "deals" as deals {
+      *id : UUID
+      --
+      org_id : UUID
+      customer_id : UUID
+      title : TEXT
+      stage : TEXT
+      value : DECIMAL
+      probability : INT
+      assigned_to : UUID
+      expected_close_date : DATE
+    }
+
+    entity "tasks" as tasks {
+      *id : UUID
+      --
+      org_id : UUID
+      deal_id : UUID
+      customer_id : UUID
+      title : TEXT
+      task_type : TEXT
+      due_date : TIMESTAMPTZ
+      status : TEXT
+      assigned_to : UUID
+    }
+
+    entity "notifications" as notifications {
+      *id : UUID
+      --
+      org_id : UUID
+      user_id : UUID
+      type : TEXT
+      payload : JSONB
+      is_read : BOOLEAN
+    }
+
+    entity "audit_logs" as audit_logs {
+      *id : UUID
+      --
+      org_id : UUID
+      user_id : UUID
+      action : TEXT
+      entity_type : TEXT
+      entity_id : UUID
+      old_data : JSONB
+      new_data : JSONB
+      created_at : TIMESTAMPTZ
+    }
+
+    entity "file_attachments" as file_attachments {
+      *id : UUID
+      --
+      org_id : UUID
+      entity_type : TEXT
+      entity_id : UUID
+      storage_path : TEXT
+    }
+
+    entity "app_settings" as app_settings {
+      *id : UUID
+      --
+      org_id : UUID
+      setting_key : TEXT
+      setting_value : JSONB
+    }
+
+    organizations ||--o{ profiles
+    organizations ||--o{ customers
+    organizations ||--o{ transactions
+    organizations ||--o{ support_tickets
+    organizations ||--o{ campaigns
+    organizations ||--o{ automation_rules
+    organizations ||--o{ deals
+    organizations ||--o{ tasks
+    organizations ||--o{ notifications
+    organizations ||--o{ audit_logs
+    organizations ||--o{ app_settings
+
+    profiles ||--o{ customers : assigned_to
+    profiles ||--o{ support_tickets : assigned_to
+    profiles ||--o{ deals : assigned_to
+    profiles ||--o{ tasks : assigned_to
+    profiles ||--o{ notifications
+    profiles ||--o{ audit_logs
+
+    customers ||--o{ transactions
+    customers ||--o{ support_tickets
+    customers ||--o{ customer_notes
+    customers ||--o{ deals
+    customers ||--o{ tasks
+    customers ||--o{ customer_tags
+    tags ||--o{ customer_tags
+    support_tickets ||--o{ ticket_comments
+    campaigns ||--o{ campaign_recipients
+    customers ||--o{ campaign_recipients
+    @enduml

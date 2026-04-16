@@ -1,20 +1,15 @@
 import { supabase } from "@/lib/supabase";
+import { customerService as dataLayerCustomerService } from "@/services/data-layer";
 import type { Customer, CustomerNote } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 
-import {
-  type CustomerFilters,
-  type CustomerRow,
-  type ServiceRequestOptions,
-  createAuditLog,
-  ensureSupabaseConfigured,
-  getAppErrorMessage,
-  getCurrentProfileId,
-  runBestEffort,
-  toCustomer,
-  toCustomerNote,
-  withAbortSignal,
-  withLatency,
-} from "@/services/shared";
+import type { CustomerFilters, ServiceRequestOptions } from "@/services/shared";
+
+type DataLayerResult<T> = {
+  data: T | null;
+  error: { message?: string } | null;
+  page?: { nextCursor: string | null; hasMore: boolean };
+};
 
 export type CustomerCreateInput = {
   full_name: string;
@@ -31,429 +26,316 @@ export type CustomerCreateInput = {
 
 export type CustomerUpdateInput = Partial<CustomerCreateInput>;
 
-function buildSearchQuery(search: string) {
-  const keyword = search.replaceAll("%", "").trim();
-  return `full_name.ilike.%${keyword}%,phone.ilike.%${keyword}%,email.ilike.%${keyword}%`;
+function unwrap<T>(result: DataLayerResult<T>, fallbackMessage: string): T {
+  if (result.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  if (result.data == null) {
+    throw new Error(fallbackMessage);
+  }
+  return result.data;
 }
 
-async function fetchCustomerRow(id: string, options: ServiceRequestOptions = {}) {
-  const { data, error } = await withAbortSignal(
-    supabase
-      .from("customers")
-      .select("*")
-      .eq("id", id),
-    options.signal,
-  ).single();
+function normalizeCustomerError(error: unknown, fallbackMessage: string) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : fallbackMessage;
+  const normalized = message.toLowerCase();
 
-  if (error) {
-    throw error;
+  if (
+    normalized.includes("row-level security") ||
+    normalized.includes("violates row-level security policy")
+  ) {
+    return new Error(
+      "Bạn không có quyền xóa mềm khách hàng. Chỉ Sales/Director/Admin/Super Admin được phép thực hiện.",
+    );
   }
 
-  return data;
+  return new Error(message || fallbackMessage);
 }
 
-async function ensureUniqueCustomerContact({
-  id,
-  phone,
-  email,
-  signal,
-}: {
-  id?: string;
-  phone?: string;
-  email?: string;
-  signal?: AbortSignal;
-}) {
-  const normalizedPhone = phone?.trim();
-  const normalizedEmail = email?.trim();
+function requireOrgContext() {
+  const state = useAuthStore.getState();
+  const orgId = state.orgId;
+  const userId = state.profile?.id ?? state.user?.id ?? null;
+  if (!orgId) {
+    throw new Error("Thiếu ngữ cảnh tổ chức. Vui lòng đăng nhập lại.");
+  }
+  return { orgId, userId };
+}
 
-  if (normalizedPhone) {
-    let phoneQuery = withAbortSignal(
-      supabase
-        .from("customers")
-        .select("id")
-        .eq("phone", normalizedPhone)
-        .limit(1),
-      signal,
-    );
+function mapCustomer(row: Record<string, unknown>): Customer {
+  const customerType =
+    row.customer_type === "new" ||
+    row.customer_type === "potential" ||
+    row.customer_type === "loyal" ||
+    row.customer_type === "vip" ||
+    row.customer_type === "inactive"
+      ? row.customer_type
+      : "new";
 
-    if (id) {
-      phoneQuery = phoneQuery.neq("id", id);
+  const source =
+    row.source === "direct" ||
+    row.source === "marketing" ||
+    row.source === "referral" ||
+    row.source === "pos" ||
+    row.source === "online" ||
+    row.source === "other"
+      ? row.source
+      : "direct";
+
+  const deletedAt = typeof row.deleted_at === "string" ? row.deleted_at : null;
+
+  return {
+    id: String(row.id ?? ""),
+    customer_code: String(row.customer_code ?? ""),
+    full_name: String(row.full_name ?? ""),
+    phone: row.phone ? String(row.phone) : "",
+    email: row.email ? String(row.email) : "",
+    address: row.address ? String(row.address) : "",
+    province: row.province ? String(row.province) : "",
+    customer_type: customerType,
+    assigned_to: row.assigned_to ? String(row.assigned_to) : "",
+    total_spent: Number(row.total_spent ?? 0),
+    total_orders: Number(row.total_orders ?? 0),
+    last_order_at: row.last_order_at ? String(row.last_order_at) : "",
+    is_active: !deletedAt && customerType !== "inactive",
+    created_at: String(row.created_at ?? ""),
+    updated_at: row.updated_at ? String(row.updated_at) : undefined,
+    source,
+    tags: [],
+    notes: "",
+  };
+}
+
+function mapCustomerNote(row: Record<string, unknown>): CustomerNote {
+  const noteType = String(row.note_type ?? "general");
+  const normalizedType: CustomerNote["note_type"] =
+    noteType === "call" || noteType === "meeting" || noteType === "internal"
+      ? noteType
+      : "general";
+
+  return {
+    id: String(row.id ?? ""),
+    customer_id: String(row.customer_id ?? ""),
+    author_id: String(row.author_id ?? ""),
+    note_type: normalizedType,
+    content: String(row.content ?? ""),
+    created_at: String(row.created_at ?? ""),
+  };
+}
+
+async function collectCustomers(filters: CustomerFilters = {}) {
+  const rows: Customer[] = [];
+  let cursor: string | null = null;
+  const maxIterations = 8;
+  const pageLimit = 100;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const result = await dataLayerCustomerService.getList({
+      search: filters.search,
+      customerType:
+        filters.customerType && filters.customerType !== "all" ? filters.customerType : undefined,
+      includeInactive: filters.includeInactive ?? false,
+      limit: pageLimit,
+      cursor,
+    });
+    const pageRows = unwrap(result as DataLayerResult<Array<Record<string, unknown>>>, "Không thể tải danh sách khách hàng.");
+    rows.push(...pageRows.map(mapCustomer));
+    if (!result.page?.hasMore || !result.page.nextCursor) {
+      break;
     }
-
-    const { data: phoneDuplicate, error: phoneError } = await phoneQuery.maybeSingle();
-
-    if (phoneError) {
-      throw phoneError;
-    }
-
-    if (phoneDuplicate) {
-      throw new Error("Số điện thoại đã tồn tại trong hệ thống.");
-    }
+    cursor = result.page.nextCursor;
   }
 
-  if (normalizedEmail) {
-    let emailQuery = withAbortSignal(
-      supabase
-        .from("customers")
-        .select("id")
-        .ilike("email", normalizedEmail)
-        .limit(1),
-      signal,
-    );
-
-    if (id) {
-      emailQuery = emailQuery.neq("id", id);
-    }
-
-    const { data: emailDuplicate, error: emailError } = await emailQuery.maybeSingle();
-
-    if (emailError) {
-      throw emailError;
-    }
-
-    if (emailDuplicate) {
-      throw new Error("Email đã tồn tại trong hệ thống.");
-    }
+  if (filters.sortBy) {
+    const direction = filters.sortDirection === "asc" ? 1 : -1;
+    rows.sort((left, right) => {
+      if (filters.sortBy === "full_name") {
+        return left.full_name.localeCompare(right.full_name) * direction;
+      }
+      if (filters.sortBy === "total_spent") {
+        return (left.total_spent - right.total_spent) * direction;
+      }
+      return (
+        (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()) * direction
+      );
+    });
   }
+
+  return rows;
+}
+
+async function loadCustomer(id: string) {
+  const result = await dataLayerCustomerService.getById(id);
+  const row = unwrap(result as DataLayerResult<Record<string, unknown>>, "Không tìm thấy khách hàng.");
+  return mapCustomer(row);
 }
 
 export const customerService = {
-  getList(filters: CustomerFilters = {}, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
+  async getList(filters: CustomerFilters = {}, options: ServiceRequestOptions = {}) {
+    void options;
+    return collectCustomers(filters);
+  },
 
-        let query = withAbortSignal(supabase.from("customers").select("*"), options.signal);
+  async getById(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    return loadCustomer(id);
+  },
 
-        if (filters.search) {
-          query = query.or(buildSearchQuery(filters.search));
-        }
+  async create(payload: CustomerCreateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerCustomerService.create({
+      full_name: payload.full_name,
+      phone: payload.phone || undefined,
+      email: payload.email || undefined,
+      address: payload.address || undefined,
+      province: payload.province || undefined,
+      customer_type: payload.customer_type,
+      source: payload.source || undefined,
+      assigned_to: payload.assigned_to || undefined,
+    });
+    const created = mapCustomer(
+      unwrap(
+        result as DataLayerResult<Record<string, unknown>>,
+        "Không thể tạo khách hàng.",
+      ),
+    );
 
-        if (filters.customerType && filters.customerType !== "all") {
-          query = query.eq("customer_type", filters.customerType);
-        }
+    if (payload.notes?.trim()) {
+      await customerService.addNote(created.id, payload.notes.trim(), "general");
+    }
 
-        if (filters.includeInactive === false) {
-          query = query.eq("is_active", true);
-        }
+    if (payload.tags?.length) {
+      const tagResult = await dataLayerCustomerService.bulkAddTag({
+        customerIds: [created.id],
+        tagNames: payload.tags,
+      });
+      if (tagResult.error) {
+        throw new Error(tagResult.error.message || "Không thể gán tag cho khách hàng.");
+      }
+    }
 
-        const sortBy = filters.sortBy ?? "created_at";
-        const ascending = (filters.sortDirection ?? "desc") === "asc";
-        const { data, error } = await query.order(sortBy, { ascending });
+    return created;
+  },
 
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as CustomerRow[]).map(toCustomer);
-      })(),
+  async update(id: string, payload: CustomerUpdateInput, options: ServiceRequestOptions = {}) {
+    void options;
+    const result = await dataLayerCustomerService.update(id, {
+      full_name: payload.full_name,
+      phone: payload.phone || undefined,
+      email: payload.email || undefined,
+      address: payload.address || undefined,
+      province: payload.province || undefined,
+      customer_type: payload.customer_type,
+      source: payload.source || undefined,
+      assigned_to: payload.assigned_to || undefined,
+    });
+    return mapCustomer(
+      unwrap(
+        result as DataLayerResult<Record<string, unknown>>,
+        "Không thể cập nhật khách hàng.",
+      ),
     );
   },
 
-  getById(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const row = await fetchCustomerRow(id, options);
-        return toCustomer(row);
-      })(),
-    );
+  async softDelete(id: string, options: ServiceRequestOptions = {}) {
+    void options;
+    try {
+      const current = await loadCustomer(id);
+      const result = await dataLayerCustomerService.softDelete(id);
+      unwrap(result as DataLayerResult<{ id: string; deleted_at: string }>, "Không thể xóa mềm khách hàng.");
+      return {
+        ...current,
+        customer_type: "inactive" as const,
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw normalizeCustomerError(error, "Không thể xóa mềm khách hàng.");
+    }
   },
 
-  create(payload: CustomerCreateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        await ensureUniqueCustomerContact({
-          phone: payload.phone,
-          email: payload.email,
-          signal: options.signal,
-        });
-
-        const { data, error } = await withAbortSignal(
-          supabase.from("customers").insert({
-            full_name: payload.full_name,
-            phone: payload.phone || null,
-            email: payload.email || null,
-            address: payload.address || null,
-            province: payload.province || null,
-            customer_type: payload.customer_type,
-            source: payload.source ?? "direct",
-            assigned_to: payload.assigned_to || currentUserId,
-            created_by: currentUserId,
-          }),
-          options.signal,
-        )
-          .select("*")
-          .single();
-
-        if (error) {
-          throw new Error(getAppErrorMessage(error, "Không thể tạo khách hàng."));
-        }
-
-        void runBestEffort("customer.create.audit", () =>
-          createAuditLog({
-            action: "create",
-            entityType: "customer",
-            entityId: data.id,
-            newData: {
-              message: `Tạo khách hàng ${payload.full_name}`,
-              customer_code: data.customer_code,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        const noteContent = payload.notes?.trim();
-        if (noteContent) {
-          void runBestEffort("customer.create.note", () =>
-            customerService.addNote(data.id, noteContent, "general"),
-          );
-        }
-
-        return toCustomer(data);
-      })(),
-    );
+  async softDeleteMany(ids: string[], options: ServiceRequestOptions = {}) {
+    void options;
+    try {
+      const updated: Customer[] = [];
+      for (const id of ids) {
+        updated.push(await customerService.softDelete(id));
+      }
+      return updated;
+    } catch (error) {
+      throw normalizeCustomerError(error, "Không thể cập nhật danh sách khách hàng.");
+    }
   },
 
-  update(id: string, payload: CustomerUpdateInput, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchCustomerRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        await ensureUniqueCustomerContact({
-          id,
-          phone: payload.phone ?? previous.phone ?? undefined,
-          email: payload.email ?? previous.email ?? undefined,
-          signal: options.signal,
-        });
-
-        const { data, error } = await withAbortSignal(
-          supabase.from("customers").update({
-            full_name: payload.full_name ?? previous.full_name,
-            phone: payload.phone ?? previous.phone,
-            email: payload.email ?? previous.email,
-            address: payload.address ?? previous.address,
-            province: payload.province ?? previous.province,
-            customer_type: payload.customer_type ?? previous.customer_type,
-            source: payload.source ?? previous.source,
-            assigned_to: payload.assigned_to ?? previous.assigned_to,
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .eq("id", id)
-          .select("*")
-          .single();
-
-        if (error) {
-          throw new Error(getAppErrorMessage(error, "Không thể cập nhật khách hàng."));
-        }
-
-        void runBestEffort("customer.update.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "customer",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: {
-              message: `Cập nhật khách hàng ${data.full_name}`,
-              customer_type: data.customer_type,
-              assigned_to: data.assigned_to,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return toCustomer(data);
-      })(),
-    );
+  async bulkChangeType(ids: string[], customerType: Customer["customer_type"], options: ServiceRequestOptions = {}) {
+    void options;
+    const updated: Customer[] = [];
+    for (const id of ids) {
+      const customer = await customerService.update(id, { customer_type: customerType });
+      updated.push({
+        ...customer,
+        is_active: customerType !== "inactive",
+      });
+    }
+    return updated;
   },
 
-  softDelete(id: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const previous = await fetchCustomerRow(id, options);
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("customers").update({
-            is_active: false,
-            customer_type: "inactive",
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .eq("id", id)
-          .select("*")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("customer.softDelete.audit", () =>
-          createAuditLog({
-            action: "delete",
-            entityType: "customer",
-            entityId: id,
-            oldData: previous as unknown as Record<string, unknown>,
-            newData: { message: `Chuyển khách hàng ${previous.full_name} sang inactive` },
-            userId: currentUserId,
-          }),
-        );
-
-        return toCustomer(data);
-      })(),
-    );
-  },
-
-  softDeleteMany(ids: string[], options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        if (!ids.length) {
-          return [];
-        }
-
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("customers").update({
-            is_active: false,
-            customer_type: "inactive",
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .in("id", ids)
-          .select("*");
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("customer.softDeleteMany.audit", () =>
-          createAuditLog({
-            action: "delete",
-            entityType: "customer",
-            entityId: ids[0] ?? null,
-            newData: {
-              message: `Chuyển ${ids.length} khách hàng sang inactive`,
-              ids,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return ((data ?? []) as CustomerRow[]).map(toCustomer);
-      })(),
-    );
-  },
-
-  bulkChangeType(
-    ids: string[],
-    customerType: Customer["customer_type"],
-    options: ServiceRequestOptions = {},
-  ) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        if (!ids.length) {
-          return [];
-        }
-
-        const currentUserId = await getCurrentProfileId();
-        const { data, error } = await withAbortSignal(
-          supabase.from("customers").update({
-            customer_type: customerType,
-            is_active: customerType === "inactive" ? false : true,
-            updated_at: new Date().toISOString(),
-          }),
-          options.signal,
-        )
-          .in("id", ids)
-          .select("*");
-
-        if (error) {
-          throw error;
-        }
-
-        void runBestEffort("customer.bulkChangeType.audit", () =>
-          createAuditLog({
-            action: "update",
-            entityType: "customer",
-            entityId: ids[0] ?? null,
-            newData: {
-              message: `Cập nhật phân loại cho ${ids.length} khách hàng`,
-              customer_type: customerType,
-              ids,
-            },
-            userId: currentUserId,
-          }),
-        );
-
-        return ((data ?? []) as CustomerRow[]).map(toCustomer);
-      })(),
-    );
-  },
-
-  addNote(
+  async addNote(
     customerId: string,
     content: string,
     noteType: CustomerNote["note_type"],
     options: ServiceRequestOptions = {},
   ) {
     void options;
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        const currentUserId = await getCurrentProfileId();
-        await createAuditLog({
-          action: "create",
-          entityType: "customer_note",
-          entityId: customerId,
-          newData: {
-            customer_id: customerId,
-            author_id: currentUserId,
-            note_type: noteType,
-            content,
-            created_at: new Date().toISOString(),
-            message: "Thêm ghi chú khách hàng",
-          },
-          userId: currentUserId,
-        });
-      })(),
-    );
+    const { orgId, userId } = requireOrgContext();
+    if (!userId) {
+      throw new Error("Không xác định được người dùng hiện tại để tạo ghi chú.");
+    }
+
+    const mappedType =
+      noteType === "call" || noteType === "meeting"
+        ? noteType
+        : noteType === "internal"
+          ? "system"
+          : "general";
+
+    const { error } = await supabase.from("customer_notes").insert({
+      org_id: orgId,
+      customer_id: customerId,
+      author_id: userId,
+      note_type: mappedType,
+      content,
+    });
+
+    if (error) {
+      throw error;
+    }
   },
 
-  getNotes(customerId?: string, options: ServiceRequestOptions = {}) {
-    return withLatency(
-      (async () => {
-        ensureSupabaseConfigured();
-        let query = withAbortSignal(
-          supabase
-            .from("audit_logs")
-            .select("*")
-            .eq("entity_type", "customer_note"),
-          options.signal,
-        ).order("created_at", { ascending: false });
+  async getNotes(customerId?: string, options: ServiceRequestOptions = {}) {
+    void options;
+    const { orgId } = requireOrgContext();
+    let query = supabase
+      .from("customer_notes")
+      .select("id, customer_id, author_id, note_type, content, created_at")
+      .eq("org_id", orgId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
-        if (customerId) {
-          query = query.eq("entity_id", customerId);
-        }
+    if (customerId) {
+      query = query.eq("customer_id", customerId);
+    }
 
-        const { data, error } = await query;
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
 
-        if (error) {
-          throw error;
-        }
-
-        return ((data ?? []) as Parameters<typeof toCustomerNote>[0][])
-          .map(toCustomerNote)
-          .filter((note): note is CustomerNote => Boolean(note));
-      })(),
-    );
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapCustomerNote);
   },
 };

@@ -1,0 +1,168 @@
+@startuml
+    !pragma layout smetana
+
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #334155
+skinparam PackageBorderColor #0f172a
+skinparam PackageBackgroundColor #f8fafc
+skinparam ComponentBorderColor #1d4ed8
+skinparam ComponentBackgroundColor #eff6ff
+skinparam DatabaseBorderColor #0f766e
+skinparam DatabaseBackgroundColor #ecfeff
+skinparam ActorBorderColor #0f172a
+skinparam ActorBackgroundColor #f8fafc
+skinparam UsecaseBorderColor #0369a1
+skinparam UsecaseBackgroundColor #f0f9ff
+skinparam NoteBackgroundColor #fff7ed
+skinparam NoteBorderColor #ea580c
+skinparam SequenceLifeLineBorderColor #94a3b8
+skinparam SequenceParticipantBorderColor #1e293b
+skinparam SequenceParticipantBackgroundColor #f8fafc
+skinparam SequenceBoxBorderColor #93c5fd
+skinparam SequenceBoxBackgroundColor #eff6ff
+skinparam ActivityBorderColor #1e40af
+skinparam ActivityBackgroundColor #eff6ff
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+    title [4.2.2.1] Class Diagram - Domain Model
+    hide circle
+    left to right direction
+
+    class Organization {
+      +id: UUID
+      +name: string
+      +slug: string
+      +plan: 'free'|'pro'|'enterprise'
+      +settings: Json
+    }
+
+    class Profile {
+      +id: UUID
+      +orgId: UUID
+      +fullName: string
+      +role: UserRole
+      +isActive: boolean
+      +lastLoginAt: Date?
+    }
+
+    class Customer {
+      +id: UUID
+      +orgId: UUID
+      +customerCode: string
+      +fullName: string
+      +phone: string?
+      +email: string?
+      +customerType: CustomerType
+      +source: CustomerSource
+      +assignedTo: UUID?
+      +totalSpent: number
+      +totalOrders: number
+      +lastOrderAt: Date?
+    }
+
+    class Transaction {
+      +id: UUID
+      +orgId: UUID
+      +customerId: UUID
+      +invoiceCode: string?
+      +items: TransactionItem[]
+      +totalAmount: number
+      +paymentMethod: PaymentMethod
+      +paymentStatus: PaymentStatus
+      +status: TransactionStatus
+      +source: DataSource
+    }
+
+    class SupportTicket {
+      +id: UUID
+      +orgId: UUID
+      +ticketCode: string
+      +customerId: UUID
+      +title: string
+      +category: TicketCategory
+      +priority: TicketPriority
+      +assignedTo: UUID?
+      +status: TicketStatus
+      +satisfactionScore: number?
+    }
+
+    class Campaign {
+      +id: UUID
+      +orgId: UUID
+      +name: string
+      +channel: CampaignChannel
+      +targetSegment: Json
+      +status: CampaignStatus
+      +sentCount: number
+      +openedCount: number
+      +failedCount: number
+    }
+
+    class AutomationRule {
+      +id: UUID
+      +orgId: UUID
+      +triggerType: AutomationTriggerType
+      +triggerConfig: Json
+      +actionType: AutomationActionType
+      +isActive: boolean
+    }
+
+    class Deal {
+      +id: UUID
+      +orgId: UUID
+      +customerId: UUID
+      +title: string
+      +stage: DealStage
+      +value: number
+      +probability: number
+      +assignedTo: UUID?
+    }
+
+    class Task {
+      +id: UUID
+      +orgId: UUID
+      +dealId: UUID?
+      +customerId: UUID?
+      +title: string
+      +taskType: TaskType
+      +dueDate: Date?
+      +status: TaskStatus
+      +assignedTo: UUID?
+    }
+
+    class AuditLog {
+      +id: UUID
+      +orgId: UUID
+      +userId: UUID?
+      +action: string
+      +entityType: string
+      +entityId: UUID?
+      +oldData: Json?
+      +newData: Json?
+      +createdAt: Date
+    }
+
+    class Tag {
+      +id: UUID
+      +orgId: UUID
+      +name: string
+      +color: string
+    }
+
+    Organization "1" o-- "many" Profile
+    Organization "1" o-- "many" Customer
+    Customer "1" --> "many" Transaction
+    Customer "1" --> "many" SupportTicket
+    Customer "1" --> "many" Deal
+    Deal "1" --> "many" Task
+    Customer "many" -- "many" Tag
+    Campaign "1" --> "many" Customer : campaign_recipients
+    Profile "1" --> "many" Customer : assigned_to
+    Profile "1" --> "many" SupportTicket : assigned_to
+    Profile "1" --> "many" Deal : assigned_to
+    Profile "1" --> "many" Task : assigned_to
+    Profile "1" --> "many" AuditLog
+    @enduml

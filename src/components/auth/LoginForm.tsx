@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 import { InputField } from "@/components/auth/InputField";
 import { SocialLogin } from "@/components/auth/SocialLogin";
@@ -35,6 +34,7 @@ export function LoginForm({
 }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [resetFeedback, setResetFeedback] = useState<string | null>(null);
   const [isResetPending, setIsResetPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
   const resetRequestLockedRef = useRef(false);
@@ -66,7 +66,10 @@ export function LoginForm({
     if (submitError && (dirtyFields.identifier || dirtyFields.password)) {
       setSubmitError(null);
     }
-  }, [dirtyFields.identifier, dirtyFields.password, submitError]);
+    if (resetFeedback && (dirtyFields.identifier || dirtyFields.password)) {
+      setResetFeedback(null);
+    }
+  }, [dirtyFields.identifier, dirtyFields.password, resetFeedback, submitError]);
 
   const isBusy = isSubmitting || isResetPending || isGooglePending;
 
@@ -106,6 +109,7 @@ export function LoginForm({
           className="space-y-5"
           onSubmit={handleSubmit(async (values) => {
             setSubmitError(null);
+            setResetFeedback(null);
             clearErrors();
 
             try {
@@ -173,6 +177,14 @@ export function LoginForm({
               <span>{submitError}</span>
             </div>
           ) : null}
+          {!submitError && resetFeedback ? (
+            <div
+              role="status"
+              className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground"
+            >
+              {resetFeedback}
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-between gap-4">
             <label className="inline-flex items-center gap-3 text-sm text-muted-foreground">
@@ -198,10 +210,11 @@ export function LoginForm({
                   }
 
                   setSubmitError(null);
+                  setResetFeedback(null);
                   clearErrors("identifier");
 
                   const email = await onForgotPassword(getValues("identifier"));
-                  toast.success(`Đã gửi liên kết đặt lại mật khẩu đến ${email}.`);
+                  setResetFeedback(`Đã gửi liên kết đặt lại mật khẩu đến ${email}.`);
                 } catch (error) {
                   const authError = getAuthErrorState(error, "password_reset");
 
