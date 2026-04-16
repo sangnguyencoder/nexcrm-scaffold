@@ -1,6 +1,16 @@
+import {
+  ensureOrgAccess,
+  errorResponse,
+  handleOptions,
+  isUuid,
+  resolveCaller,
+  toNullableTrimmedString,
+} from "../_shared/common.ts";
+import { toHtmlBody } from "../_shared/providers.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-user-authorization, x-client-info, apikey, content-type",
 };
 
 type Channel = "email" | "sms";
@@ -31,6 +41,8 @@ type RequestBody = {
   channel: Channel;
   settings: EmailSettings | SmsSettings;
   messages: DispatchMessage[];
+  org_id?: string;
+  orgId?: string;
 };
 
 type DispatchResult = {
@@ -95,7 +107,7 @@ async function sendEmail(
             from: `${fromName} <${fromEmail}>`,
             to: [message.recipient],
             subject: message.subject,
-            html: `<div style="font-family:Inter,Arial,sans-serif;line-height:1.6">${message.content.replaceAll("\n", "<br />")}</div>`,
+            html: toHtmlBody(message.content),
             reply_to: settings.reply_to?.trim() || undefined,
           }),
         });
@@ -209,13 +221,51 @@ async function sendSms(
 }
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  const preflight = handleOptions(request);
+  if (preflight) {
+    return preflight;
+  }
+
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method không hợp lệ. Chỉ hỗ trợ POST.");
+  }
+
+  const legacyEnabled =
+    (Deno.env.get("ENABLE_LEGACY_DISPATCH_COMMUNICATION") ?? "").trim().toLowerCase() ===
+    "true";
+  if (!legacyEnabled) {
+    return errorResponse(
+      410,
+      "dispatch-communication đã bị khóa ở production. Dùng send-campaign hoặc run-automation thay thế.",
+    );
   }
 
   try {
+    const resolved = await resolveCaller(request, {
+      allowServiceRole: true,
+      requiredRoles: ["super_admin", "admin", "marketing", "cskh"],
+    });
+    if (!resolved.ok) {
+      return resolved.response;
+    }
+
+    const { context } = resolved;
     const body = (await request.json()) as RequestBody;
     const messages = Array.isArray(body.messages) ? body.messages : [];
+    const requestedOrgId = toNullableTrimmedString(body.org_id ?? body.orgId);
+    if (requestedOrgId && !isUuid(requestedOrgId)) {
+      return errorResponse(400, "org_id phải là UUID hợp lệ.");
+    }
+
+    const orgId = requestedOrgId ?? context.orgId;
+    if (!orgId) {
+      return errorResponse(400, "org_id là bắt buộc cho request service role.");
+    }
+
+    const orgAccessError = ensureOrgAccess(context, orgId);
+    if (orgAccessError) {
+      return orgAccessError;
+    }
 
     if (!body.channel || !["email", "sms"].includes(body.channel) || !messages.length) {
       return Response.json(
@@ -231,11 +281,9 @@ Deno.serve(async (request) => {
 
     return Response.json({ results }, { headers: corsHeaders });
   } catch (error) {
-    return Response.json(
-      {
-        error: error instanceof Error ? error.message : "Lỗi không xác định khi gửi outbound.",
-      },
-      { status: 500, headers: corsHeaders },
+    return errorResponse(
+      500,
+      error instanceof Error ? error.message : "Lỗi không xác định khi gửi outbound.",
     );
   }
 });
