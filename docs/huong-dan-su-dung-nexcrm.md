@@ -111,7 +111,7 @@ order by proname;
 
 ```bash
 supabase login
-supabase link --project-ref <dev-project-ref>
+supabase link --project-ref cmcgpiqfyysirwpwpoiy
 supabase functions deploy send-campaign
 supabase functions deploy run-automation
 supabase functions deploy pos-sync
@@ -149,7 +149,7 @@ Flow chuẩn:
 with target_user as (
   select id, email
   from auth.users
-  where lower(email) = lower('sangnguyencoder@gmai.com')
+  where lower(email) = lower('sangnguyencoder@gmail.com')
   limit 1
 ),
 promote as (
