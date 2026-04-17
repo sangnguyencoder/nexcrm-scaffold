@@ -20,20 +20,24 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between",
+        "flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between",
         className,
       )}
     >
-      <div className="flex flex-col gap-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
           {eyebrow}
         </div>
-        <h1 className="font-display text-[28px] font-semibold tracking-[-0.035em] text-foreground">
+        <h1 className="text-balance font-display text-[clamp(1.6rem,2.6vw,2rem)] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground">
           {title}
         </h1>
-        {subtitle ? <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{subtitle}</p> : null}
+        {subtitle ? (
+          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{subtitle}</p>
+        ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2 lg:justify-end">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2 md:justify-start lg:justify-end">{actions}</div>
+      ) : null}
     </div>
   );
 }

@@ -121,7 +121,7 @@ export function AuditLogPage() {
         />
       </StickyFilterBar>
 
-      <DataTableShell>
+      <DataTableShell stickyHeader>
         {filteredLogs.length ? (
           <Table>
             <TableHeader>

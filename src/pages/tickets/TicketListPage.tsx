@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  GripVertical,
   LayoutGrid,
   MessageSquare,
   Plus,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
+import { CompactPagination } from "@/components/shared/compact-pagination";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -46,6 +48,7 @@ import {
 } from "@/hooks/useNexcrmQueries";
 import {
   formatTicketStatus,
+  getStatusBadgeColor,
   getPriorityColor,
   timeAgo,
 } from "@/lib/utils";
@@ -74,6 +77,13 @@ const columns: Array<{ label: string; value: TicketStatus; borderClass: string }
   { label: "ĐÃ GIẢI QUYẾT", value: "resolved", borderClass: "border-emerald-500" },
   { label: "ĐÓNG", value: "closed", borderClass: "border-slate-500" },
 ];
+
+function getPriorityBorderClass(priority: string) {
+  if (priority === "urgent") return "border-l-destructive";
+  if (priority === "high") return "border-l-warning";
+  if (priority === "medium") return "border-l-info";
+  return "border-l-[rgb(var(--border-medium-rgb)/1)]";
+}
 
 function TicketFormModal({
   open,
@@ -160,10 +170,9 @@ function TicketFormModal({
         ) : null}
         <div className="space-y-2">
           <div className="text-sm font-medium">Tìm khách hàng</div>
-          <input
+          <Input
             value={customerSearch}
             onChange={(event) => setCustomerSearch(event.target.value)}
-            className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
             placeholder="Tìm theo tên khách hàng"
           />
           <Select {...form.register("customer_id")}>
@@ -181,9 +190,8 @@ function TicketFormModal({
           ) : null}
         </div>
         <Field label="Tiêu đề" error={form.formState.errors.title?.message}>
-          <input
+          <Input
             {...form.register("title")}
-            className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
             placeholder="Nhập tiêu đề ticket"
           />
         </Field>
@@ -248,7 +256,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-2 text-sm">
-      <span className="font-medium">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-rose-500">{error}</span> : null}
     </label>
@@ -277,6 +285,7 @@ export function TicketListPage() {
   const [highlightedTicketId, setHighlightedTicketId] = useState<string | null>(null);
   const [createOpenLocal, setCreateOpenLocal] = useState(false);
   const [currentTimestamp] = useState(() => Date.now());
+  const [page, setPage] = useState(1);
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
   const createOpen = requestedCreate || createOpenLocal;
@@ -318,6 +327,17 @@ export function TicketListPage() {
         return haystack.includes(deferredSearch.toLowerCase());
       }),
     [customerMap, deferredSearch, tickets],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [assignedFilter, categoryFilter, deferredSearch, priorityFilter, viewMode]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / 12));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTickets = useMemo(
+    () => filteredTickets.slice((currentPage - 1) * 12, currentPage * 12),
+    [currentPage, filteredTickets],
   );
 
   const ticketsByStatus = useMemo(
@@ -490,11 +510,20 @@ export function TicketListPage() {
                   }}
                 >
                   <CardContent className="space-y-3 p-3.5">
-                    <div className="flex items-center justify-between">
-                      <div className="font-display text-sm font-semibold">{column.label}</div>
-                      <div className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                        {columnTickets.length}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="font-display text-sm font-semibold">{column.label}</div>
+                        <div className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                          {columnTickets.length}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setCreateOpenLocal(true)}
+                        className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      >
+                        Thêm
+                      </button>
                     </div>
                     <div className="space-y-3">
                       {columnTickets.map((ticket) => (
@@ -506,10 +535,11 @@ export function TicketListPage() {
                           onMouseEnter={() => preloadRoutePath(`/tickets/${ticket.id}`)}
                           onFocus={() => preloadRoutePath(`/tickets/${ticket.id}`)}
                           onClick={() => navigate(`/tickets/${ticket.id}`)}
-                          className={`w-full rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5 ${
+                          className={`group relative w-full rounded-lg border border-border border-l-4 bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5 ${
                             highlightedTicketId === ticket.id ? "ring-2 ring-primary/40" : ""
-                          }`}
+                          } ${getPriorityBorderClass(ticket.priority)}`}
                         >
+                          <GripVertical className="absolute right-2 top-2 size-4 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span className="font-mono">{ticket.ticket_code}</span>
                             <span>{timeAgo(ticket.created_at)}</span>
@@ -539,6 +569,11 @@ export function TicketListPage() {
                           </div>
                         </button>
                       ))}
+                      {!columnTickets.length ? (
+                        <div className="rounded-lg border border-dashed border-border/70 bg-background/75 px-3 py-4 text-center text-xs text-muted-foreground">
+                          Không có ticket
+                        </div>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>
@@ -547,7 +582,7 @@ export function TicketListPage() {
           </div>
         </div>
       ) : filteredTickets.length ? (
-        <DataTableShell>
+        <DataTableShell stickyHeader>
           <Table>
             <TableHeader>
               <TableRow>
@@ -563,7 +598,7 @@ export function TicketListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTickets.map((ticket) => {
+              {pagedTickets.map((ticket) => {
                 const isOverdue =
                   new Date(ticket.due_at).getTime() < currentTimestamp &&
                   ticket.status !== "resolved" &&
@@ -591,7 +626,13 @@ export function TicketListPage() {
                     </TableCell>
                     <TableCell>{ticket.category}</TableCell>
                     <TableCell>{userMap[ticket.assigned_to] ?? "--"}</TableCell>
-                    <TableCell>{formatTicketStatus(ticket.status)}</TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        label={formatTicketStatus(ticket.status)}
+                        className={getStatusBadgeColor(ticket.status)}
+                        dotClassName="bg-current"
+                      />
+                    </TableCell>
                     <TableCell>{timeAgo(ticket.created_at)}</TableCell>
                     <TableCell className={isOverdue ? "text-rose-500" : ""}>
                       {isOverdue ? "Quá hạn" : "On time"}
@@ -609,6 +650,18 @@ export function TicketListPage() {
           description="Thử thay đổi bộ lọc hoặc tạo ticket mới."
         />
       )}
+
+      {filteredTickets.length ? (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <CompactPagination
+            page={currentPage}
+            totalPages={totalPages}
+            label={`${filteredTickets.length} ticket`}
+            onPrevious={() => setPage(Math.max(1, currentPage - 1))}
+            onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
+          />
+        </div>
+      ) : null}
 
       <TicketFormModal
         open={createOpen}

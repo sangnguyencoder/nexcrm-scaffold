@@ -43,6 +43,7 @@ import {
   formatTicketStatus,
   getDealStageColor,
   getPriorityColor,
+  getStatusBadgeColor,
   timeAgo,
 } from "@/lib/utils";
 import { customerService } from "@/services/customerService";
@@ -738,7 +739,13 @@ export function CustomerDetailPage() {
                         </TableCell>
                         <TableCell className="font-semibold">{formatCurrency(transaction.total_amount)}</TableCell>
                         <TableCell>{formatPaymentMethod(transaction.payment_method)}</TableCell>
-                        <TableCell>{formatTicketStatus(transaction.payment_status)}</TableCell>
+                        <TableCell>
+                          <StatusBadge
+                            label={formatTicketStatus(transaction.payment_status)}
+                            className={getStatusBadgeColor(transaction.payment_status)}
+                            dotClassName="bg-current"
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

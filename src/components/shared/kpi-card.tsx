@@ -1,7 +1,6 @@
-import type { LucideIcon } from "lucide-react";
+import { TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
 import { memo } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -22,26 +21,34 @@ export const KpiCard = memo(function KpiCard({
   icon: Icon,
   accentClassName,
 }: KpiCardProps) {
+  const isDownTrend = /-|↓/.test(trend);
+  const TrendIcon = isDownTrend ? TrendingDown : TrendingUp;
+
   return (
-    <Card className="metric-card border-border/70 bg-card/90">
-      <CardContent className="flex min-h-[148px] flex-col justify-between gap-4 p-4 lg:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="metric-label">{title}</div>
-            <div className="metric-value">{value}</div>
-          </div>
+    <Card className="metric-card rounded-lg border border-border bg-card shadow-xs transition-all duration-200 hover:border-[rgb(var(--border-medium-rgb))] hover:shadow-sm">
+      <CardContent className="flex min-h-[148px] flex-col justify-between gap-4 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>
           <div
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-lg border border-current/15",
+              "flex size-9 shrink-0 items-center justify-center rounded-md",
               accentClassName,
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-5" />
           </div>
         </div>
-        <div className="flex items-end justify-between gap-4 border-t border-border/65 pt-3.5">
-          <div className="text-sm leading-6 text-muted-foreground">{description}</div>
-          <Badge className="shrink-0 bg-muted text-muted-foreground ring-border">{trend}</Badge>
+        <div className="font-mono text-3xl font-semibold text-foreground">{value}</div>
+        <div
+          className={cn(
+            "inline-flex items-center gap-1 text-[11px] font-medium",
+            isDownTrend ? "text-destructive" : "text-success",
+          )}
+        >
+          <TrendIcon className="size-3" />
+          <span>
+            {trend} {description}
+          </span>
         </div>
       </CardContent>
     </Card>

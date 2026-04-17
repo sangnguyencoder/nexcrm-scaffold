@@ -58,17 +58,17 @@ function RangeSwitcher({
   onChange: (range: DashboardRange) => void;
 }) {
   return (
-    <div className="toolbar-shell p-1">
+    <div className="flex items-center gap-2">
       {RANGE_OPTIONS.map((item) => (
         <button
           key={item.key}
           type="button"
           onClick={() => onChange(item.key)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition",
+            "rounded-sm border px-2.5 py-1 text-xs transition-colors",
             range === item.key
-              ? "bg-foreground text-background shadow-xs"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
           )}
           aria-pressed={range === item.key}
         >
@@ -84,6 +84,13 @@ function RangeSwitcher({
 
 function formatDistributionLabel(type: string) {
   return CUSTOMER_TYPE_LABELS[type as CustomerType] ?? type;
+}
+
+function getPriorityBorderClass(priority: TicketPriority) {
+  if (priority === "urgent") return "border-l-destructive";
+  if (priority === "high") return "border-l-warning";
+  if (priority === "medium") return "border-l-info";
+  return "border-l-[rgb(var(--border-medium-rgb)/1)]";
 }
 
 function CustomerMixRow({
@@ -172,29 +179,37 @@ export function DashboardPage() {
       />
 
       <MetricStrip>
-        <MetricStripItem
-          label="Tổng khách hàng"
-          value={formatNumberCompact(stats.total_customers)}
-          helper={`${stats.new_customers_month} khách mới từ đầu tháng`}
-        />
-        <MetricStripItem
-          label="Doanh thu tháng"
-          value={formatCurrencyCompact(stats.total_revenue_month)}
-          helper={`${stats.total_orders_month} đơn đã hoàn tất`}
-        />
-        <MetricStripItem
-          label="Đơn trung bình"
-          value={formatCurrencyCompact(derived.averageOrderValue)}
-          helper={`Theo khung ${rangeLabel.toLowerCase()}`}
-        />
-        <MetricStripItem
-          label="Tỷ lệ xử lý ticket"
-          value={formatPercent(derived.resolutionRate)}
-          helper={`${stats.open_tickets} ticket đang mở`}
-        />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <MetricStripItem
+            label="Tổng khách hàng"
+            value={formatNumberCompact(stats.total_customers)}
+            helper={`${stats.new_customers_month} khách mới từ đầu tháng`}
+          />
+        </div>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:70ms]">
+          <MetricStripItem
+            label="Doanh thu tháng"
+            value={formatCurrencyCompact(stats.total_revenue_month)}
+            helper={`${stats.total_orders_month} đơn đã hoàn tất`}
+          />
+        </div>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:120ms]">
+          <MetricStripItem
+            label="Đơn trung bình"
+            value={formatCurrencyCompact(derived.averageOrderValue)}
+            helper={`Theo khung ${rangeLabel.toLowerCase()}`}
+          />
+        </div>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:180ms]">
+          <MetricStripItem
+            label="Tỷ lệ xử lý ticket"
+            value={formatPercent(derived.resolutionRate)}
+            helper={`${stats.open_tickets} ticket đang mở`}
+          />
+        </div>
       </MetricStrip>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,0.95fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Suspense fallback={<PageLoader panels={1} />}>
           <DashboardChartsPanel stats={stats} rangeLabel={rangeLabel} />
         </Suspense>
@@ -212,7 +227,10 @@ export function DashboardPage() {
                   key={ticket.id}
                   type="button"
                   onClick={() => navigate(`/tickets/${ticket.id}`)}
-                  className="w-full rounded-lg border border-border/70 px-3 py-2.5 text-left transition hover:bg-muted/35"
+                  className={cn(
+                    "w-full rounded-lg border border-border border-l-2 px-3 py-2.5 text-left transition hover:bg-muted/35",
+                    getPriorityBorderClass(ticket.priority as TicketPriority),
+                  )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">

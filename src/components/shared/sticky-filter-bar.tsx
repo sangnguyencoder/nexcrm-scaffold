@@ -10,7 +10,7 @@ export function StickyFilterBar({
   className?: string;
 }) {
   return (
-    <div className={cn("sticky-toolbar-shell", className)}>
+    <div className={cn("sticky-toolbar-shell top-[70px] lg:top-[76px]", className)}>
       <div className="toolbar-shell rounded-xl border-0 bg-transparent px-3 py-2 shadow-none lg:px-4">
         {children}
       </div>

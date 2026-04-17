@@ -1,4 +1,5 @@
 import * as React from "react";
+import { AlertCircle } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -34,8 +35,8 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
     return (
-      <label htmlFor={fieldId} className={cn("flex flex-col gap-2", className)}>
-        <span className="text-sm font-medium text-foreground">{label}</span>
+      <label htmlFor={fieldId} className={cn("flex flex-col", className)}>
+        <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
 
         <div className="relative">
           {startAdornment ? (
@@ -50,11 +51,11 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy}
             className={cn(
-              "h-11 rounded-lg border-border bg-background/95 text-[15px] shadow-none placeholder:text-muted-foreground/75",
+              "h-9 rounded-md border-[rgb(var(--border-medium-rgb))] bg-card text-sm shadow-none placeholder:text-muted-foreground",
               startAdornment && "pl-10",
               endAdornment && "pr-11",
               error &&
-                "border-destructive/60 bg-destructive/5 focus-visible:ring-destructive",
+                "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/10",
               inputClassName,
             )}
             {...props}
@@ -66,11 +67,12 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
         </div>
 
         {error ? (
-          <span id={errorId} className="text-sm text-destructive">
+          <span id={errorId} className="mt-1 inline-flex items-center gap-1 text-xs text-destructive">
+            <AlertCircle className="size-3" />
             {error}
           </span>
         ) : hint ? (
-          <span id={hintId} className="text-sm text-muted-foreground">
+          <span id={hintId} className="mt-1 text-xs text-muted-foreground">
             {hint}
           </span>
         ) : null}

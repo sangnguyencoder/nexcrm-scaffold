@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   BriefcaseBusiness,
   CalendarDays,
   CheckCircle2,
@@ -111,10 +112,15 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-2 text-sm">
-      <span className="font-medium">{label}</span>
+    <label className="flex flex-col text-sm">
+      <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       {children}
-      {error ? <span className="text-xs text-rose-500">{error}</span> : null}
+      {error ? (
+        <span className="mt-1 inline-flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="size-3" />
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -755,15 +761,15 @@ export function DealPipelinePage() {
       </StickyFilterBar>
 
       {filteredDeals.length ? (
-        <div className="overflow-x-auto">
-          <div className="grid min-w-[1440px] grid-cols-6 gap-4">
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-4 px-1">
             {stageColumns.map((column) => {
               const columnDeals = filteredDeals.filter((deal) => deal.stage === column.value);
               const columnValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
               return (
                 <Card
                   key={column.value}
-                  className={`border-t-4 ${column.borderClass}`}
+                  className={`w-[280px] min-w-[280px] rounded-lg border border-border bg-muted/50 shadow-none`}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
                     if (!canUpdateDeal || !draggedDealId || updateStage.isPending) return;
@@ -771,16 +777,18 @@ export function DealPipelinePage() {
                     setDraggedDealId(null);
                   }}
                 >
-                  <CardContent className="space-y-3 p-3.5">
-                    <div className="flex items-center justify-between">
+                  <CardContent className="space-y-3 p-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-display text-sm font-semibold">{column.label}</div>
-                        <div className="text-xs text-muted-foreground">{formatCurrencyCompact(columnValue)}</div>
+                        <div className="text-sm font-semibold text-foreground">{column.label}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{formatCurrencyCompact(columnValue)}</div>
                       </div>
-                      <div className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">{formatNumberCompact(columnDeals.length)}</div>
+                      <div className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                        {formatNumberCompact(columnDeals.length)}
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {columnDeals.map((deal) => {
                         const customer = customerMap[deal.customer_id];
                         const owner = userMap[deal.owner_id];
@@ -796,20 +804,34 @@ export function DealPipelinePage() {
                               setDraggedDealId(deal.id);
                             }}
                             onClick={() => setSelectedDealId(deal.id)}
-                            className="w-full rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary hover:bg-primary/5"
+                            className={cn(
+                              "w-full rounded-lg border border-border bg-card p-3.5 text-left shadow-xs transition-all duration-150 hover:-translate-y-px hover:border-[rgb(var(--border-medium-rgb))] hover:shadow-md",
+                              draggedDealId === deal.id && "rotate-1 opacity-90 shadow-xl",
+                            )}
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-2">
-                                <div className="line-clamp-2 text-sm font-medium">{deal.title}</div>
-                                <div className="truncate text-xs text-muted-foreground">{customer?.full_name ?? "Khách hàng không xác định"}</div>
-                              </div>
-                              <StatusBadge label={`${deal.probability}%`} className={getDealStageColor(deal.stage)} dotClassName="bg-current" />
+                            <div className="line-clamp-2 text-sm font-medium text-foreground">{deal.title}</div>
+                            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                                {(customer?.full_name ?? "?").slice(0, 1).toUpperCase()}
+                              </span>
+                              <span className="truncate">{customer?.full_name ?? "Khách hàng không xác định"}</span>
                             </div>
 
                             <div className="mt-3 flex items-center justify-between text-sm">
-                                <div className="font-semibold">{formatCurrencyCompact(deal.value)}</div>
-                                <div className="truncate pl-3 text-xs text-muted-foreground">{owner?.full_name ?? "--"}</div>
+                              <div className="font-mono text-sm font-semibold text-foreground">
+                                {formatCurrencyCompact(deal.value)}
                               </div>
+                              <div className="truncate pl-3 text-xs text-muted-foreground">{owner?.full_name ?? "--"}</div>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              <StatusBadge
+                                label={formatDealStage(deal.stage)}
+                                className={getDealStageColor(deal.stage)}
+                                dotClassName="bg-current"
+                              />
+                              <span className="font-mono text-xs text-muted-foreground">{deal.probability}%</span>
+                            </div>
 
                             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                               <span>{deal.expected_close_at ? formatDate(deal.expected_close_at) : "Chưa có ngày chốt"}</span>
@@ -818,6 +840,11 @@ export function DealPipelinePage() {
                           </button>
                         );
                       })}
+                      {!columnDeals.length ? (
+                        <div className="rounded-lg border border-dashed border-border bg-card px-3 py-4 text-center text-xs text-muted-foreground">
+                          Không có cơ hội
+                        </div>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

@@ -44,8 +44,10 @@ import {
   formatCurrency,
   formatDate,
   formatNumberCompact,
+  formatPercentValue,
   formatPaymentMethod,
   formatTicketStatus,
+  getStatusBadgeColor,
 } from "@/lib/utils";
 import { transactionService } from "@/services/transactionService";
 import type { Transaction } from "@/types";
@@ -451,14 +453,13 @@ export function TransactionListPage() {
   const selectedTransaction = filteredTransactions.find((item) => item.id === selectedTransactionId);
 
   const summary = useMemo(() => {
-    const revenue = filteredTransactions.reduce((sum, item) => sum + item.total_amount, 0);
+    const completedTransactions = filteredTransactions.filter((item) => item.status === "completed");
+    const revenue = completedTransactions.reduce((sum, item) => sum + item.total_amount, 0);
     const orders = filteredTransactions.length;
-    const average = orders ? revenue / orders : 0;
+    const completedOrders = completedTransactions.length;
+    const average = completedOrders ? revenue / completedOrders : 0;
     const completionRate = orders
-      ? Math.round(
-          (filteredTransactions.filter((item) => item.status === "completed").length / orders) *
-            100,
-        )
+      ? (completedOrders / orders) * 100
       : 0;
     return { revenue, orders, average, completionRate };
   }, [filteredTransactions]);
@@ -496,7 +497,7 @@ export function TransactionListPage() {
         <MetricStripItem label="Tổng doanh thu" value={formatCurrencyCompact(summary.revenue)} helper="Theo bộ lọc hiện tại." />
         <MetricStripItem label="Số đơn" value={formatNumberCompact(summary.orders)} helper="Số giao dịch đang hiển thị." />
         <MetricStripItem label="Giá trị trung bình" value={formatCurrencyCompact(summary.average)} helper="Mỗi đơn hoàn tất trung bình." />
-        <MetricStripItem label="Tỷ lệ hoàn thành" value={`${summary.completionRate}%`} helper="Tính trên trạng thái giao dịch." />
+        <MetricStripItem label="Tỷ lệ hoàn thành" value={formatPercentValue(summary.completionRate, { alreadyPercent: true })} helper="Tính trên trạng thái giao dịch." />
       </MetricStrip>
 
       <StickyFilterBar>
@@ -556,6 +557,7 @@ export function TransactionListPage() {
       </StickyFilterBar>
 
       <DataTableShell
+        stickyHeader
         footer={
           filteredTransactions.length ? (
             <CompactPagination
@@ -590,7 +592,9 @@ export function TransactionListPage() {
               return (
                 <TableRow key={transaction.id} className="cursor-pointer" onClick={() => setSelectedTransactionId(transaction.id)}>
                   <TableCell>
-                    <div className="font-mono text-xs font-semibold">{transaction.invoice_code}</div>
+                    <span className="font-mono text-xs font-semibold text-primary">
+                      {transaction.invoice_code}
+                    </span>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(transaction.created_at)}
                     </div>
@@ -612,8 +616,8 @@ export function TransactionListPage() {
                     <div className="max-w-[220px] truncate">{transaction.items[0]?.name}</div>
                     {transaction.items.length > 1 ? ` +${transaction.items.length - 1} sản phẩm khác` : ""}
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-semibold">{formatCurrencyCompact(transaction.total_amount)}</div>
+                  <TableCell className="text-right">
+                    <div className="font-mono text-sm font-semibold">{formatCurrencyCompact(transaction.total_amount)}</div>
                     <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                       <Icon className="size-3.5" />
                       {formatPaymentMethod(transaction.payment_method)}
@@ -745,7 +749,11 @@ export function TransactionListPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Trạng thái</span>
-                <span>{formatTicketStatus(selectedTransaction.payment_status)}</span>
+                <StatusBadge
+                  label={formatTicketStatus(selectedTransaction.payment_status)}
+                  className={getStatusBadgeColor(selectedTransaction.payment_status)}
+                  dotClassName="bg-current"
+                />
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ngày tạo</span>

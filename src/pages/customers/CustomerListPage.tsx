@@ -17,7 +17,6 @@ import { z } from "zod";
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormField } from "@/components/shared/form-field";
@@ -127,6 +126,20 @@ function mapImportedSource(value: string): Customer["source"] {
   if (["pos"].includes(normalized)) return "pos";
   if (["online"].includes(normalized)) return "online";
   return "direct";
+}
+
+const avatarToneClasses = [
+  "bg-blue-50 text-blue-600",
+  "bg-emerald-50 text-emerald-600",
+  "bg-amber-50 text-amber-600",
+  "bg-rose-50 text-rose-600",
+  "bg-cyan-50 text-cyan-600",
+  "bg-indigo-50 text-indigo-600",
+];
+
+function getNameAvatarTone(name: string) {
+  const hash = Array.from(name).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return avatarToneClasses[hash % avatarToneClasses.length];
 }
 
 async function loadSpreadsheetModule() {
@@ -644,7 +657,29 @@ export function CustomerListPage() {
       <PageHeader
         title="Khách Hàng"
         // subtitle="Tìm kiếm, phân loại và thao tác nhanh trên cùng một màn hình."
-        actions={<Badge className="bg-primary/10 text-primary ring-primary/20">{customers.length} khách hàng</Badge>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge className="border border-border bg-muted text-muted-foreground">{customers.length} khách hàng</Badge>
+            <Button variant="secondary" size="sm" onClick={() => importInputRef.current?.click()}>
+              Import
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+              Export
+            </Button>
+            <Can roles={["sales", "admin", "super_admin"]}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingCustomer(null);
+                  setFormOpenLocal(true);
+                }}
+              >
+                <UserPlus className="size-4" />
+                Thêm Khách Hàng
+              </Button>
+            </Can>
+          </div>
+        }
       />
 
       <input
@@ -678,40 +713,23 @@ export function CustomerListPage() {
             Hiện inactive
           </label>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => importInputRef.current?.click()}>
-            Nhập Excel
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
-            Xuất Excel
-          </Button>
-          <Can roles={["sales", "admin", "super_admin"]}>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingCustomer(null);
-                setFormOpenLocal(true);
-              }}
-            >
-              <UserPlus className="size-4" />
-              Thêm Khách Hàng
-            </Button>
-          </Can>
-        </div>
-        <div className="flex basis-full flex-wrap gap-1">
+        <div className="flex basis-full flex-wrap items-center gap-1 border-b border-border pt-1">
           {chipConfig.map((chip) => (
             <button
               key={chip.value}
               type="button"
               onClick={() => setSelectedType(chip.value)}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition",
+                "inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
                 selectedType === chip.value
-                  ? "bg-foreground text-background shadow-xs"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
-              {chip.label} ({chipCounts[chip.value]})
+              <span>{chip.label}</span>
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                {chipCounts[chip.value]}
+              </span>
             </button>
           ))}
         </div>
@@ -754,6 +772,7 @@ export function CustomerListPage() {
       ) : null}
 
       <DataTableShell
+        stickyHeader
         footer={
           <CompactPagination
             page={currentPage}
@@ -801,7 +820,7 @@ export function CustomerListPage() {
               {pagedCustomers.map((customer) => (
                 <TableRow
                   key={customer.id}
-                  className="cursor-pointer"
+                  className="group cursor-pointer"
                   onMouseEnter={() => preloadRoutePath(`/customers/${customer.id}`)}
                   onFocus={() => preloadRoutePath(`/customers/${customer.id}`)}
                   onClick={() => navigate(`/customers/${customer.id}`)}
@@ -820,7 +839,19 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <CustomerAvatar name={customer.full_name} type={customer.customer_type} className="size-10 text-sm" />
+                      <div
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                          getNameAvatarTone(customer.full_name),
+                        )}
+                      >
+                        {customer.full_name
+                          .split(" ")
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((segment) => segment[0]?.toUpperCase() ?? "")
+                          .join("")}
+                      </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{customer.full_name}</div>
                         <div className="font-mono text-xs text-muted-foreground">
@@ -830,9 +861,9 @@ export function CustomerListPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-0.5 text-sm">
-                      <div>{customer.phone || "--"}</div>
-                      <div className="truncate text-muted-foreground">{customer.email || "--"}</div>
+                    <div className="space-y-0.5">
+                      <div className="text-sm text-foreground">{customer.phone || "--"}</div>
+                      <div className="truncate text-xs text-muted-foreground">{customer.email || "--"}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -843,7 +874,7 @@ export function CustomerListPage() {
                     />
                   </TableCell>
                   <TableCell>{customerMap[customer.assigned_to] ?? "--"}</TableCell>
-                  <TableCell className={customer.total_spent > 10_000_000 ? "font-semibold" : ""}>
+                  <TableCell className={cn("font-mono", customer.total_spent > 10_000_000 ? "font-semibold" : "")}>
                     {formatCurrencyCompact(customer.total_spent)}
                   </TableCell>
                   <TableCell>{customer.total_orders}</TableCell>
@@ -857,7 +888,7 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div
-                      className="flex justify-end gap-1.5"
+                      className="flex justify-end gap-1.5 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Button size="icon" variant="ghost" aria-label={`Xem hồ sơ ${customer.full_name}`} onClick={() => navigate(`/customers/${customer.id}`)}>

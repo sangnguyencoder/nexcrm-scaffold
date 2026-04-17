@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap");
+@import "./styles/design-system.css";
 
 @tailwind base;
 @tailwind components;
@@ -6,79 +6,83 @@
 
 @layer base {
   :root {
-    --background: 220 24% 97%;
-    --foreground: 225 23% 12%;
+    --background: 221 57% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 225 23% 12%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 225 23% 12%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 74% 48%;
     --primary-foreground: 210 40% 98%;
-    --muted: 220 20% 95%;
-    --muted-foreground: 222 12% 40%;
-    --accent: 218 73% 52%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 72% 52%;
+    --muted: 220 48% 95%;
+    --muted-foreground: 215 21% 43%;
+    --accent: 213 94% 68%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 75% 56%;
     --destructive-foreground: 210 40% 98%;
-    --border: 220 17% 86%;
-    --ring: 221 83% 53%;
-    --sidebar: 220 23% 96%;
-    --sidebar-foreground: 225 22% 14%;
-    --sidebar-border: 220 16% 84%;
-    --panel-subtle: 220 24% 93%;
+    --border: 220 34% 87%;
+    --ring: 221 74% 48%;
+    --sidebar: 220 58% 97%;
+    --sidebar-foreground: 223 47% 13%;
+    --sidebar-border: 218 33% 84%;
+    --panel-subtle: 218 51% 95%;
     --panel-strong: 0 0% 100%;
-    --success: 154 67% 37%;
-    --success-soft: 154 46% 90%;
-    --warning: 35 89% 49%;
-    --warning-soft: 37 82% 89%;
-    --info: 226 72% 59%;
-    --info-soft: 226 66% 91%;
-    --radius-sm: 0.4rem;
-    --radius-md: 0.55rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 0.95rem;
+    --success: 160 84% 32%;
+    --success-soft: 151 76% 93%;
+    --warning: 35 92% 47%;
+    --warning-soft: 47 100% 92%;
+    --info: 193 86% 36%;
+    --info-soft: 197 90% 93%;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
   }
 
   .dark {
-    --background: 224 20% 8%;
-    --foreground: 210 33% 96%;
-    --card: 224 20% 11%;
-    --card-foreground: 210 33% 96%;
-    --popover: 224 20% 11%;
-    --popover-foreground: 210 33% 96%;
-    --primary: 221 86% 64%;
-    --primary-foreground: 210 40% 98%;
-    --muted: 223 16% 16%;
-    --muted-foreground: 217 14% 68%;
-    --accent: 221 76% 59%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 78% 62%;
+    --background: 220 50% 10%;
+    --foreground: 210 38% 94%;
+    --card: 220 45% 14%;
+    --card-foreground: 210 38% 94%;
+    --popover: 220 45% 14%;
+    --popover-foreground: 210 38% 94%;
+    --primary: 213 93% 69%;
+    --primary-foreground: 222 47% 11%;
+    --muted: 220 31% 21%;
+    --muted-foreground: 215 20% 71%;
+    --accent: 212 93% 75%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 83% 68%;
     --destructive-foreground: 210 40% 98%;
-    --border: 220 14% 23%;
-    --ring: 221 86% 64%;
-    --sidebar: 224 20% 9%;
-    --sidebar-foreground: 210 33% 96%;
-    --sidebar-border: 220 14% 20%;
-    --panel-subtle: 223 16% 15%;
-    --panel-strong: 224 20% 11%;
-    --success: 154 62% 50%;
-    --success-soft: 154 45% 15%;
-    --warning: 35 86% 57%;
-    --warning-soft: 35 56% 16%;
-    --info: 226 77% 67%;
-    --info-soft: 226 46% 17%;
+    --border: 218 33% 27%;
+    --ring: 213 93% 69%;
+    --sidebar: 220 45% 11%;
+    --sidebar-foreground: 210 38% 94%;
+    --sidebar-border: 218 33% 25%;
+    --panel-subtle: 220 33% 18%;
+    --panel-strong: 220 45% 14%;
+    --success: 155 67% 57%;
+    --success-soft: 156 46% 20%;
+    --warning: 39 93% 60%;
+    --warning-soft: 35 53% 20%;
+    --info: 191 89% 63%;
+    --info-soft: 191 45% 21%;
   }
 
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-background font-sans text-foreground antialiased;
-  }
-
+  html,
+  body,
   #root {
     @apply min-h-screen;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
   }
 
   ::selection {
@@ -86,14 +90,14 @@
   }
 
   :where(button, input, textarea, select, a):focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-background;
   }
 }
 
 @layer components {
   .panel {
     @apply rounded-xl border bg-card text-card-foreground shadow-xs;
-    border-color: hsl(var(--border) / 0.72);
+    border-color: hsl(var(--border) / 0.76);
   }
 
   .panel-subtle {
@@ -102,7 +106,7 @@
 
   .panel-elevated {
     @apply rounded-xl border bg-card text-card-foreground shadow-soft;
-    border-color: hsl(var(--border) / 0.7);
+    border-color: hsl(var(--border) / 0.74);
   }
 
   .enterprise-grid {
@@ -111,14 +115,15 @@
 
   .toolbar-shell {
     @apply flex min-h-11 flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5 shadow-xs;
-    border-color: hsl(var(--border) / 0.76);
-    background-color: hsl(var(--card) / 0.88);
+    border-color: hsl(var(--border) / 0.82);
+    background-color: hsl(var(--card) / 0.92);
   }
 
   .sticky-toolbar-shell {
-    @apply sticky top-[76px] z-10 rounded-xl border backdrop-blur;
-    border-color: hsl(var(--border) / 0.76);
-    background-color: hsl(var(--background) / 0.86);
+    @apply sticky z-10 rounded-xl border backdrop-blur;
+    top: 4.65rem;
+    border-color: hsl(var(--border) / 0.78);
+    background-color: hsl(var(--background) / 0.9);
   }
 
   .metric-strip {
@@ -126,7 +131,7 @@
   }
 
   .metric-card {
-    @apply min-h-[124px] overflow-hidden;
+    @apply min-h-[128px] overflow-hidden;
   }
 
   .metric-label {
@@ -134,7 +139,7 @@
   }
 
   .metric-value {
-    @apply font-display text-[clamp(1.45rem,2.2vw,2.15rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-foreground break-words;
+    @apply font-display text-[clamp(1.45rem,2.2vw,2.2rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-foreground break-words;
   }
 
   .metric-helper {
@@ -142,26 +147,26 @@
   }
 
   .compact-panel-header {
-    @apply flex items-start justify-between gap-3 border-b px-4 py-3 lg:px-5;
-    border-color: hsl(var(--border) / 0.65);
+    @apply flex items-start justify-between gap-3 border-b px-4 py-3.5 lg:px-5;
+    border-color: hsl(var(--border) / 0.7);
   }
 
   .form-section-shell {
     @apply rounded-xl border p-4 lg:p-5;
-    border-color: hsl(var(--border) / 0.72);
-    background-color: hsl(var(--card) / 0.74);
+    border-color: hsl(var(--border) / 0.74);
+    background-color: hsl(var(--card) / 0.82);
   }
 
   .detail-card {
     @apply rounded-xl border bg-card p-4 shadow-xs;
-    border-color: hsl(var(--border) / 0.72);
-    background-color: hsl(var(--card) / 0.86);
+    border-color: hsl(var(--border) / 0.76);
+    background-color: hsl(var(--card) / 0.92);
   }
 
   .settings-row {
     @apply flex items-start justify-between gap-4 rounded-xl border px-4 py-3.5;
-    border-color: hsl(var(--border) / 0.72);
-    background-color: hsl(var(--card) / 0.8);
+    border-color: hsl(var(--border) / 0.74);
+    background-color: hsl(var(--card) / 0.86);
   }
 
   .settings-row-content {
@@ -178,7 +183,7 @@
 
   .command-shell {
     @apply overflow-hidden rounded-xl border bg-card shadow-panel;
-    border-color: hsl(var(--border) / 0.72);
+    border-color: hsl(var(--border) / 0.74);
   }
 
   .command-row {
@@ -186,8 +191,8 @@
   }
 
   .command-row-active {
-    border-color: hsl(var(--primary) / 0.25);
-    background-color: hsl(var(--primary) / 0.05);
+    border-color: hsl(var(--primary) / 0.24);
+    background-color: hsl(var(--primary) / 0.08);
   }
 
   .command-row-idle {
@@ -197,14 +202,14 @@
 
   .surface-subtle {
     @apply rounded-xl border;
-    border-color: hsl(var(--border) / 0.68);
-    background-color: hsl(var(--muted) / 0.38);
+    border-color: hsl(var(--border) / 0.72);
+    background-color: hsl(var(--muted) / 0.42);
   }
 
   .inspector-list {
     @apply divide-y divide-border/70 rounded-xl border bg-card;
-    border-color: hsl(var(--border) / 0.72);
-    background-color: hsl(var(--card) / 0.86);
+    border-color: hsl(var(--border) / 0.75);
+    background-color: hsl(var(--card) / 0.92);
   }
 
   .inspector-list-row {

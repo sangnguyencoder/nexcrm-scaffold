@@ -188,9 +188,12 @@ function UserModal({
           />
         ) : null}
         <FormSection title="Thông tin truy cập" /* description="Giữ biểu mẫu ngắn, rõ, và đủ cho tác vụ quản trị hằng ngày." */>
-          <FormField label="Email" error={form.formState.errors.email?.message}>
-            <Input {...form.register("email")} autoComplete="email" />
-          </FormField>
+          {isEdit ? <input type="hidden" {...form.register("email")} /> : null}
+          {!isEdit ? (
+            <FormField label="Email" error={form.formState.errors.email?.message}>
+              <Input {...form.register("email")} autoComplete="email" />
+            </FormField>
+          ) : null}
           <FormField label="Họ và tên" error={form.formState.errors.full_name?.message}>
             <Input {...form.register("full_name")} />
           </FormField>
@@ -209,12 +212,14 @@ function UserModal({
               <Input {...form.register("department")} />
             </FormField>
           </div>
-          <FormField
-            label={isEdit ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu"}
-            error={form.formState.errors.password?.message}
-          >
-            <Input type="password" autoComplete="new-password" {...form.register("password")} />
-          </FormField>
+          {!isEdit ? (
+            <FormField
+              label="Mật khẩu"
+              error={form.formState.errors.password?.message}
+            >
+              <Input type="password" autoComplete="new-password" {...form.register("password")} />
+            </FormField>
+          ) : null}
         </FormSection>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
@@ -425,7 +430,7 @@ export function UserManagePage() {
         <Badge className="bg-muted text-muted-foreground ring-border">{filteredUsers.length} hiển thị</Badge>
       </StickyFilterBar>
 
-      <DataTableShell>
+      <DataTableShell stickyHeader>
         {filteredUsers.length ? (
           <Table>
             <TableHeader>

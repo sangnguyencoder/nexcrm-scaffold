@@ -87,9 +87,22 @@ export function getAuthErrorState(
   }
 
   if (
+    raw.includes('column "role" of relation "profiles" does not exist') ||
+    raw.includes("42703") ||
+    (raw.includes("profiles") && raw.includes("column"))
+  ) {
+    return {
+      message:
+        "Cấu trúc bảng profiles chưa đồng bộ (thiếu cột role). Vui lòng chạy SQL migration quyền truy cập.",
+      field: "identifier",
+    };
+  }
+
+  if (
     raw.includes("chưa có hồ sơ") ||
-    raw.includes("chưa được cấp quyền") ||
-    raw.includes("profile")
+    raw.includes("profile not found") ||
+    raw.includes("no profile") ||
+    raw.includes("chưa được cấp quyền")
   ) {
     return {
       message: "Tài khoản chưa được cấp quyền truy cập CRM. Vui lòng liên hệ quản trị viên.",

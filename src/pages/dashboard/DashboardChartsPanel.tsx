@@ -31,8 +31,8 @@ function RevenueTooltip({
   }
 
   return (
-    <div className="rounded-lg border border-border/80 bg-card px-3 py-3 shadow-panel">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="rounded-lg border border-[rgb(var(--border-medium-rgb))] bg-popover px-3 py-3 text-xs shadow-md">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {point.period}
       </div>
       <div className="mt-2 space-y-1.5 text-sm">
@@ -71,29 +71,33 @@ export function DashboardChartsPanel({
     >
         {stats.revenue_chart.length ? (
           <>
-            <div className="h-[248px] min-w-0">
+            <div className="h-[252px] min-w-0 rounded-lg border border-border bg-card p-5 shadow-xs">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <AreaChart data={stats.revenue_chart} margin={{ top: 10, right: 8, bottom: 0, left: -12 }}>
                   <defs>
                     <linearGradient id="dashboardRevenueFillCompact" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={PRIMARY_STROKE} stopOpacity={0.24} />
+                      <stop offset="5%" stopColor={PRIMARY_STROKE} stopOpacity={0.26} />
                       <stop offset="95%" stopColor={PRIMARY_STROKE} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.14)" />
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="4 4"
+                    stroke="rgb(var(--border-soft-rgb) / 1)"
+                  />
                   <XAxis
                     dataKey="period"
                     axisLine={false}
                     tickLine={false}
                     tickMargin={12}
-                    tick={{ fontSize: 12, fill: "currentColor" }}
+                    tick={{ fontSize: 11, fill: "rgb(var(--text-muted-rgb) / 1)" }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
                     tickMargin={12}
                     width={54}
-                    tick={{ fontSize: 12, fill: "currentColor" }}
+                    tick={{ fontSize: 11, fill: "rgb(var(--text-muted-rgb) / 1)" }}
                     tickFormatter={(value) => formatNumberCompact(Number(value))}
                   />
                   <Tooltip

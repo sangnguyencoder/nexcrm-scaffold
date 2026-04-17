@@ -15,6 +15,7 @@ const {
   SettingsPage,
   UserManagePage,
   AutomationPage,
+  LandingPage,
   LoginPage,
   CampaignListPage,
   CustomerDetailPage,
@@ -41,6 +42,8 @@ function App() {
     <AppErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          <Route index element={<LandingPage />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="/403" element={<ForbiddenPage />} />

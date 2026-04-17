@@ -1,5 +1,6 @@
-import { Copy, PlugZap, RefreshCcw } from "lucide-react";
+import { AlertTriangle, Copy, PlugZap, RefreshCcw } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DataTableShell } from "@/components/shared/data-table-shell";
@@ -79,6 +80,7 @@ function toLastSyncLabel(value: string | undefined) {
 }
 
 export function PosSyncPage() {
+  const navigate = useNavigate();
   const { data: logs = [], isFetching: isFetchingLogs, refetch: refetchLogs } = usePosSyncLogsQuery(150);
   const { data: settings, isFetching: isFetchingSettings, refetch: refetchSettings } = useSettingsQuery();
   const [statusFilter, setStatusFilter] = useState("all");
@@ -116,6 +118,28 @@ export function PosSyncPage() {
           </Badge>
         }
       />
+
+      {settings?.integrations.pos_status === "failed" ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div className="flex-1 space-y-2">
+              <div className="font-semibold text-destructive">Lỗi cần kiểm tra</div>
+              <div className="text-sm text-muted-foreground">
+                Vui lòng kiểm tra log thất bại gần nhất và xác nhận webhook payload từ hệ thống POS.
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={() => navigate("/admin/settings")}
+              >
+                Kiểm tra cấu hình
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="rounded-xl border border-border bg-card p-4">
@@ -185,7 +209,7 @@ export function PosSyncPage() {
         </Select>
       </StickyFilterBar>
 
-      <DataTableShell>
+      <DataTableShell stickyHeader>
         {filteredLogs.length ? (
           <Table>
             <TableHeader>

@@ -1,6 +1,6 @@
 # Kế Hoạch Test Và Kiểm Thử NexCRM (Phiên Bản Hiện Tại)
 
-Cập nhật: 16/04/2026
+Cập nhật: 17/04/2026
 
 ## 1. Mục tiêu
 
@@ -11,7 +11,7 @@ Cập nhật: 16/04/2026
 ## 2. Môi trường kiểm thử
 
 1. Frontend local: `http://localhost:5173`
-2. Backend: Supabase project DEV đã chạy đúng migration track mới nhất
+2. Backend: Supabase project DEV đã chạy đúng canonical track (`20260417090000_canonical_baseline.sql`; optional `20260417090100_ops_scheduler_optional.sql`)
 3. Dữ liệu: seed v2 (`clear_large_demo_seed_v2.sql` -> `large_demo_seed_v2.sql`)
 
 ## 3. Test tự động

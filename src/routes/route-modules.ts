@@ -20,6 +20,7 @@ const posSyncRoute = createLazyRoute(() => import("@/pages/admin/PosSyncPage"), 
 const settingsRoute = createLazyRoute(() => import("@/pages/admin/SettingsPage"), "SettingsPage");
 const userManageRoute = createLazyRoute(() => import("@/pages/admin/UserManagePage"), "UserManagePage");
 const automationRoute = createLazyRoute(() => import("@/pages/automation/AutomationPage"), "AutomationPage");
+const landingRoute = createLazyRoute(() => import("@/pages/landing/LandingPage"), "LandingPage");
 const loginRoute = createLazyRoute(() => import("@/pages/auth/LoginPage"), "LoginPage");
 const campaignRoute = createLazyRoute(() => import("@/pages/campaigns/CampaignListPage"), "CampaignListPage");
 const customerDetailRoute = createLazyRoute(() => import("@/pages/customers/CustomerDetailPage"), "CustomerDetailPage");
@@ -47,6 +48,7 @@ const routePreloaders = [
   { matcher: /^\/admin\/audit/, load: auditLogRoute.load },
   { matcher: /^\/admin\/pos-sync/, load: posSyncRoute.load },
   { matcher: /^\/admin\/settings/, load: settingsRoute.load },
+  { matcher: /^\/landing/, load: landingRoute.load },
   { matcher: /^\/login/, load: loginRoute.load },
   { matcher: /^\/forbidden/, load: forbiddenRoute.load },
 ];
@@ -66,6 +68,7 @@ export const routeComponents = {
   SettingsPage: settingsRoute.component,
   UserManagePage: userManageRoute.component,
   AutomationPage: automationRoute.component,
+  LandingPage: landingRoute.component,
   LoginPage: loginRoute.component,
   CampaignListPage: campaignRoute.component,
   CustomerDetailPage: customerDetailRoute.component,

@@ -8,6 +8,10 @@ const percentFormatter = new Intl.NumberFormat("vi-VN", {
   style: "percent",
   maximumFractionDigits: 0,
 });
+const decimalPercentFormatter = new Intl.NumberFormat("vi-VN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
   month: "2-digit",
@@ -120,6 +124,20 @@ export function formatPercent(value: number): string {
   return percentFormatter.format(value);
 }
 
+export function formatPercentValue(
+  value: number | null | undefined,
+  {
+    alreadyPercent = false,
+  }: {
+    alreadyPercent?: boolean;
+  } = {},
+): string {
+  const numericValue = Number.isFinite(value) ? Number(value) : 0;
+  const normalizedValue = alreadyPercent ? numericValue : numericValue * 100;
+
+  return `${decimalPercentFormatter.format(normalizedValue)}%`;
+}
+
 export function formatDate(date: string): string {
   return dateFormatter.format(new Date(date));
 }
@@ -175,13 +193,11 @@ export function getInitials(name: string): string {
 
 export function getCustomerTypeColor(type: CustomerType): string {
   const map: Record<CustomerType, string> = {
-    vip: "bg-blue-500/15 text-blue-600 ring-blue-500/25 dark:text-blue-300",
-    loyal:
-      "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300",
-    potential:
-      "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
-    new: "bg-slate-500/15 text-slate-600 ring-slate-500/25 dark:text-slate-300",
-    inactive: "bg-rose-500/15 text-rose-600 ring-rose-500/25 dark:text-rose-300",
+    vip: "bg-warning/10 text-warning border-warning/20",
+    loyal: "bg-success/10 text-success border-success/20",
+    potential: "bg-primary/10 text-primary border-primary/20",
+    new: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
+    inactive: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   return map[type];
@@ -189,13 +205,12 @@ export function getCustomerTypeColor(type: CustomerType): string {
 
 export function getRoleBadgeColor(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    super_admin:
-      "bg-violet-600/15 text-violet-700 ring-violet-600/25 dark:text-violet-300",
-    admin: "bg-violet-500/15 text-violet-600 ring-violet-500/25 dark:text-violet-300",
-    director: "bg-blue-500/15 text-blue-600 ring-blue-500/25 dark:text-blue-300",
+    super_admin: "bg-indigo-500/15 text-indigo-700 ring-indigo-500/25 dark:text-indigo-300",
+    admin: "bg-blue-500/15 text-blue-600 ring-blue-500/25 dark:text-blue-300",
+    director: "bg-cyan-500/15 text-cyan-700 ring-cyan-500/25 dark:text-cyan-300",
     sales: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300",
-    cskh: "bg-orange-500/15 text-orange-600 ring-orange-500/25 dark:text-orange-300",
-    marketing: "bg-pink-500/15 text-pink-600 ring-pink-500/25 dark:text-pink-300",
+    cskh: "bg-amber-500/15 text-amber-700 ring-amber-500/25 dark:text-amber-300",
+    marketing: "bg-sky-500/15 text-sky-700 ring-sky-500/25 dark:text-sky-300",
   };
 
   return map[role];
@@ -203,10 +218,10 @@ export function getRoleBadgeColor(role: UserRole): string {
 
 export function getPriorityColor(priority: TicketPriority): string {
   const map: Record<TicketPriority, string> = {
-    urgent: "bg-rose-500/15 text-rose-600 ring-rose-500/25 dark:text-rose-300",
-    high: "bg-orange-500/15 text-orange-600 ring-orange-500/25 dark:text-orange-300",
-    medium: "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
-    low: "bg-slate-500/15 text-slate-600 ring-slate-500/25 dark:text-slate-300",
+    urgent: "bg-destructive/10 text-destructive border-destructive/20",
+    high: "bg-warning/10 text-warning border-warning/20",
+    medium: "bg-primary/10 text-primary border-primary/20",
+    low: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
   };
 
   return map[priority];
@@ -266,6 +281,31 @@ export function formatTicketStatus(status: string): string {
   return map[status] ?? status;
 }
 
+export function getStatusBadgeColor(status: string): string {
+  const map: Record<string, string> = {
+    open: "bg-primary/10 text-primary border-primary/20",
+    in_progress: "bg-primary/10 text-primary border-primary/20",
+    pending: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
+    resolved: "bg-success/10 text-success border-success/20",
+    closed: "bg-success/10 text-success border-success/20",
+    draft: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
+    scheduled: "bg-warning/10 text-warning border-warning/20",
+    sending: "bg-warning/10 text-warning border-warning/20",
+    sent: "bg-success/10 text-success border-success/20",
+    sent_with_errors: "bg-warning/10 text-warning border-warning/20",
+    cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+    processing: "bg-primary/10 text-primary border-primary/20",
+    completed: "bg-success/10 text-success border-success/20",
+    paid: "bg-success/10 text-success border-success/20",
+    partial: "bg-warning/10 text-warning border-warning/20",
+    refunded: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
+    failed: "bg-destructive/10 text-destructive border-destructive/20",
+    duplicate: "bg-primary/10 text-primary border-primary/20",
+  };
+
+  return map[status] ?? "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]";
+}
+
 export function formatPaymentMethod(method: string): string {
   const map: Record<string, string> = {
     cash: "Tiền mặt",
@@ -293,12 +333,12 @@ export function formatDealStage(stage: DealStage): string {
 
 export function getDealStageColor(stage: DealStage): string {
   const map: Record<DealStage, string> = {
-    lead: "bg-slate-500/15 text-slate-600 ring-slate-500/25 dark:text-slate-300",
-    qualified: "bg-blue-500/15 text-blue-600 ring-blue-500/25 dark:text-blue-300",
-    proposal: "bg-amber-500/15 text-amber-600 ring-amber-500/25 dark:text-amber-300",
-    negotiation: "bg-orange-500/15 text-orange-600 ring-orange-500/25 dark:text-orange-300",
-    won: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-300",
-    lost: "bg-rose-500/15 text-rose-600 ring-rose-500/25 dark:text-rose-300",
+    lead: "bg-[rgb(var(--text-muted-rgb)/0.08)] text-muted-foreground border-[rgb(var(--text-muted-rgb)/0.15)]",
+    qualified: "bg-primary/10 text-primary border-primary/20",
+    proposal: "bg-warning/10 text-warning border-warning/20",
+    negotiation: "bg-warning/10 text-warning border-warning/20",
+    won: "bg-success/10 text-success border-success/20",
+    lost: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   return map[stage];

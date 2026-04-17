@@ -9,13 +9,13 @@ export function ThemeToggle() {
 
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
-      className="size-9 rounded-lg bg-card/80"
+      className="size-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Đổi giao diện"
     >
-      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
     </Button>
   );
 }

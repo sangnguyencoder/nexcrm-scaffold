@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useSettingsQuery, queryKeys } from "@/hooks/useNexcrmQueries";
-import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
+import { supabaseUrl } from "@/lib/supabase";
 import {
   copyTextToClipboard,
   formatDateTime,
@@ -497,9 +497,9 @@ export function SettingsPage() {
                       }
                     />
                   </FormField>
-                  <FormField label="VITE_SUPABASE_ANON_KEY">
-                    <Input readOnly value={supabaseAnonKey} />
-                  </FormField>
+                  <div className="text-xs text-muted-foreground">
+                    Cấu hình trong Supabase Edge Functions secrets.
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     Cấu hình secret thực tế trong Supabase Edge Functions: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`.
                   </div>

@@ -83,6 +83,13 @@ function getRuleTone(channel: "email" | "sms") {
     : "from-emerald-500/20 via-primary/10 to-transparent";
 }
 
+function getTriggerBadgeClass(triggerType: AutomationRule["trigger_type"]) {
+  if (triggerType === "inactive_days") return "bg-warning/10 text-warning border-warning/20";
+  if (triggerType === "after_purchase") return "bg-success/10 text-success border-success/20";
+  if (triggerType === "birthday") return "bg-info/10 text-info border-info/20";
+  return "bg-primary/10 text-primary border-primary/20";
+}
+
 function getRuleDraft(rule?: AutomationRule | null): RuleForm {
   return {
     name: rule?.name ?? "",
@@ -420,7 +427,7 @@ export function AutomationPage() {
         </Select>
       </StickyFilterBar>
 
-      <DataTableShell>
+      <DataTableShell stickyHeader>
         {filteredRules.length ? (
           <Table>
             <TableHeader>
@@ -471,7 +478,11 @@ export function AutomationPage() {
                       </button>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm font-medium">{rule.trigger}</div>
+                      <StatusBadge
+                        label={rule.trigger}
+                        className={getTriggerBadgeClass(rule.trigger_type)}
+                        dotClassName="bg-current"
+                      />
                       <div className="text-xs text-muted-foreground">
                         {rule.trigger_days ? `${rule.trigger_days} ngày` : "Kích hoạt tức thời"}
                       </div>

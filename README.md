@@ -51,13 +51,18 @@ npm run build
 
 ## Onboarding admin nhanh (không metadata)
 
-Sau khi chạy đủ migration mới nhất:
+Sau khi chạy đủ migration canonical mới nhất:
 
 1. Tạo user bình thường tại `Supabase > Authentication > Users > Add user`.
 2. Không cần điền `user_metadata`.
 3. Chạy SQL promote role theo hướng dẫn ở Bước 7 trong tài liệu setup để nâng tài khoản lên `admin`.
 
-Lưu ý quan trọng: track migration mới nhất gồm `000_full_schema.sql` + `20260404_login_identifier_rpc.sql` + `20260416_production_hardening.sql` + `20260416_simple_onboarding_default_org.sql`; không dùng `supabase/schema.sql`.
+Lưu ý quan trọng: `supabase/schema.sql` đã deprecated và không còn là nguồn schema hợp lệ.
+Track migration canonical hiện tại chỉ còn:
+1. `supabase/migrations/20260417090000_canonical_baseline.sql` (bắt buộc)
+2. `supabase/migrations/20260417090100_ops_scheduler_optional.sql` (tùy chọn)
+
+Không chạy bất kỳ file SQL nào khác trong `supabase/migrations_archive/*` cho setup mới.
 Lưu ý thêm: không set secret có prefix `SUPABASE_` bằng `supabase secrets set` (reserved names).
 
 ## Seed demo local (v2)

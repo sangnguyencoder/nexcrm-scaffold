@@ -122,7 +122,7 @@ function SummaryTable({
   emptyDescription: string;
 }) {
   return (
-    <DataTableShell>
+      <DataTableShell stickyHeader>
       <div className="border-b border-border/70 px-4 py-3 lg:px-5">
         <SectionHeaderCompact title={title} description={description} />
       </div>

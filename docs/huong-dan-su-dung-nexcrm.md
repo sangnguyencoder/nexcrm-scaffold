@@ -1,6 +1,6 @@
 # Bộ Tài Liệu Setup + Vận Hành NexCRM (Phiên Bản Hiện Tại)
 
-Cập nhật: 16/04/2026  
+Cập nhật: 17/04/2026  
 Phạm vi: setup, sử dụng, vận hành, test và kiểm thử theo codebase hiện tại.
 
 ## 0. Bộ tài liệu đi kèm
@@ -76,32 +76,14 @@ Khuyến nghị: dùng project Supabase mới để tránh xung đột schema le
 
 Chạy lần lượt trong SQL Editor:
 
-1. `supabase/migrations/000_full_schema.sql`
-2. `supabase/migrations/20260404_login_identifier_rpc.sql`
-3. `supabase/migrations/20260416_production_hardening.sql`
-4. `supabase/migrations/20260416_simple_onboarding_default_org.sql`
-5. `supabase/migrations/20260416_hotfix_user_theme_rls_alignment.sql`
-6. `supabase/migrations/20260416_hotfix_customer_soft_delete_rpc.sql`
-7. `supabase/migrations/20260416_hotfix_deal_task_rls_reassert.sql`
-8. `supabase/migrations/20260416_hotfix_sales_pipeline_visibility.sql`
-9. `supabase/migrations/20260416_schedule_run_automation.sql` (tùy chọn nếu bật cron)
-
-Không dùng cho track hiện tại:
-
-1. `supabase/schema.sql`
-2. `supabase/migrations/20260401_sprint1_p0.sql`
-3. `supabase/migrations/20260401_sprint2_pipeline_tasks.sql`
-4. `supabase/migrations/20260402_sprint3_outbound_automation.sql`
-5. `supabase/migrations/20260403_sprint4_performance_and_reporting.sql`
-6. `supabase/migrations/20260404_sql_consistency_refresh.sql`
-7. `supabase/migrations/20260415_auth_member_sync_hardening.sql`
-8. `supabase/migrations/20260415_pos_sync_mvp.sql`
-9. `supabase/migrations/20260415_role_rls_security_baseline.sql`
+1. `supabase/migrations/20260417090000_canonical_baseline.sql` (bắt buộc)
+2. `supabase/migrations/20260417090100_ops_scheduler_optional.sql` (tùy chọn nếu bật cron)
 
 Ghi chú:
 
-1. Các file trên là track legacy/transition theo giai đoạn, có thể gây lệch schema nếu chạy lẫn với track mới.
-2. Chỉ chạy theo đúng danh sách mục 3.3 cho project mới.
+1. Chỉ chạy theo đúng 2 file ở mục 3.3 cho project mới.
+2. Toàn bộ file migration/hotfix cũ đã archive tại `supabase/migrations_archive/20260417_legacy_track/` và chỉ để tham chiếu lịch sử.
+3. Không chạy `supabase/schema.sql` vì file này đã deprecated.
 
 ### 3.4 Verify schema nhanh
 
@@ -167,7 +149,7 @@ Flow chuẩn:
 with target_user as (
   select id, email
   from auth.users
-  where lower(email) = lower('<ADMIN_EMAIL>')
+  where lower(email) = lower('sangnguyencoder@gmai.com')
   limit 1
 ),
 promote as (
@@ -265,7 +247,7 @@ Mặc định: `http://localhost:5173`
 Lưu ý cron:
 
 1. Không hardcode `service_role_key` trong file migration.
-2. Nếu bật schedule `run-automation`, dùng SQL template theo môi trường production thực tế.
+2. Nếu bật schedule `run-automation`, chỉ dùng `20260417090100_ops_scheduler_optional.sql` và thay placeholder theo môi trường thực tế.
 
 ## 8. Test kỹ thuật nhanh
 
@@ -287,40 +269,40 @@ Xem checklist chi tiết tại file kiểm thử:
 
 ## 10. Troubleshooting thường gặp
 
-### 10.1 `column "department" ... schema cache`
+### 10.1 `column "department"` hoặc `column "role"/"is_active"` không tồn tại
 
-Nguyên nhân: DB chưa chạy migration thêm cột mới trong `profiles`.
+Nguyên nhân: DB đang ở schema legacy hoặc chạy sai track migration.
 
 Xử lý:
 
-1. Chạy `20260416_hotfix_user_theme_rls_alignment.sql`
+1. Reset DB về clean state.
+2. Chạy lại đúng `20260417090000_canonical_baseline.sql`.
 
 ### 10.2 `new row violates row-level security policy` khi xóa mềm
 
 Nguyên nhân:
 
-1. DB thiếu policy hotfix
-2. DB thiếu RPC `app_soft_delete_customer`
+1. DB chưa ở canonical baseline nên thiếu policy/RPC chuẩn.
 
 Xử lý:
 
-1. Chạy `20260416_hotfix_customer_soft_delete_rpc.sql`
+1. Chạy lại `20260417090000_canonical_baseline.sql` trên project sạch.
 
 ### 10.3 Sales không thấy số liệu pipeline
 
-Nguyên nhân: policy đọc `deals/tasks` chưa cập nhật.
+Nguyên nhân: DB còn policy legacy.
 
 Xử lý:
 
-1. Chạy `20260416_hotfix_sales_pipeline_visibility.sql`
+1. Chạy lại `20260417090000_canonical_baseline.sql` trên project sạch.
 
 ### 10.4 Lỗi `ON CONFLICT` ở `app_settings`
 
-Nguyên nhân: DB cũ bị lệch unique constraint.
+Nguyên nhân: DB cũ bị lệch unique constraint hoặc còn dữ liệu legacy.
 
 Xử lý:
 
-1. Chạy `20260416_simple_onboarding_default_org.sql` để dedupe + đảm bảo unique theo `org_id`.
+1. Dùng setup mới từ đầu theo mục 3.3 (canonical baseline).
 
 ### 10.5 Không thể lưu API key ở Settings
 
