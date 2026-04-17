@@ -1,5 +1,13 @@
-<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="96" height="96" rx="48" fill="#4C1D95"/>
-  <circle cx="48" cy="48" r="34" fill="#7C3AED"/>
-  <text x="48" y="56" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">SA</text>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="10" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="64" fill="url(#bg)"/>
+  <circle cx="64" cy="48" r="20" fill="#EEF2FF"/>
+  <path d="M28 108C30 86 45 76 64 76C83 76 98 86 100 108H28Z" fill="#EEF2FF"/>
+  <circle cx="97" cy="31" r="14" fill="#F59E0B"/>
+  <path d="M97 24L100 29H106L101 33L103 39L97 35L91 39L93 33L88 29H94L97 24Z" fill="#FFFBEB"/>
 </svg>

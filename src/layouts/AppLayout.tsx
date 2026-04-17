@@ -155,6 +155,7 @@ export function AppLayout() {
   useNotificationRealtime(user?.id);
 
   const unreadCount = notifications.filter((item) => !item.is_read).length;
+  const unreadCountLabel = unreadCount > 99 ? "99+" : String(unreadCount);
   const companyName = settings?.company_name ?? "NexCRM";
   const displayName = profile?.full_name ?? user?.email ?? "NexCRM";
   const displayRole = role ?? "sales";
@@ -210,9 +211,11 @@ export function AppLayout() {
             )}
             aria-label="Đi tới dashboard"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary font-mono text-sm font-bold text-primary-foreground">
-              N
-            </span>
+            <img
+              src="/branding/nexcrm-mark.svg"
+              alt="NexCRM logo"
+              className="size-8 shrink-0 rounded-lg object-cover"
+            />
             {!sidebarCollapsed ? (
               <span className="truncate text-sm font-semibold text-sidebar-foreground">{companyName}</span>
             ) : null}
@@ -367,8 +370,8 @@ export function AppLayout() {
               >
                 <Bell className="size-4" />
                 {unreadCount ? (
-                  <span className="absolute -right-1 -top-1 inline-flex size-[18px] items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {unreadCount}
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-5 text-destructive-foreground">
+                    {unreadCountLabel}
                   </span>
                 ) : null}
               </Button>

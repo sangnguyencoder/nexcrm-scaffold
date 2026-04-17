@@ -191,6 +191,68 @@ export function getInitials(name: string): string {
     .join("");
 }
 
+export type AvatarGender = "male" | "female" | "neutral";
+
+const FEMALE_NAME_HINTS = [
+  "anh",
+  "chi",
+  "trang",
+  "thảo",
+  "thao",
+  "ngọc",
+  "ngoc",
+  "hương",
+  "huong",
+  "phương",
+  "phuong",
+  "linh",
+  "quỳnh",
+  "quynh",
+  "nhung",
+  "hà",
+  "ha",
+  "vy",
+  "oanh",
+  "mai",
+  "lan",
+  "yến",
+  "yen",
+  "diễm",
+  "diem",
+  "my",
+];
+
+export function inferGenderFromName(name?: string | null): AvatarGender {
+  if (!name) {
+    return "neutral";
+  }
+
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  const lastNameToken = parts.at(-1) ?? "";
+
+  if (!lastNameToken) {
+    return "neutral";
+  }
+
+  if (FEMALE_NAME_HINTS.includes(lastNameToken)) {
+    return "female";
+  }
+
+  return "male";
+}
+
+export function normalizeAvatarGender(gender?: string | null, name?: string | null): AvatarGender {
+  const normalized = gender?.trim().toLowerCase();
+  if (normalized === "male" || normalized === "nam") return "male";
+  if (normalized === "female" || normalized === "nu" || normalized === "nữ") return "female";
+  if (normalized === "neutral" || normalized === "other" || normalized === "khac") return "neutral";
+  return inferGenderFromName(name);
+}
+
 export function getCustomerTypeColor(type: CustomerType): string {
   const map: Record<CustomerType, string> = {
     vip: "bg-warning/10 text-warning border-warning/20",
@@ -386,6 +448,16 @@ export function getDefaultAvatarUrl(role?: UserRole | null) {
   };
 
   return role ? map[role] : "/avatars/default-admin.svg";
+}
+
+export function getDefaultPersonAvatarUrl(gender: AvatarGender = "neutral") {
+  const map: Record<AvatarGender, string> = {
+    male: "/avatars/person-male.svg",
+    female: "/avatars/person-female.svg",
+    neutral: "/avatars/person-neutral.svg",
+  };
+
+  return map[gender];
 }
 
 export function getDefaultLogoUrl() {

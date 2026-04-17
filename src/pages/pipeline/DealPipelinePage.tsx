@@ -20,7 +20,9 @@ import { z } from "zod";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
@@ -712,10 +714,34 @@ export function DealPipelinePage() {
       />
 
       <MetricStrip>
-        <MetricStripItem label="Tổng value pipeline" value={formatCurrencyCompact(summary.totalValue)} helper={`${formatNumberCompact(summary.dealsCount)} cơ hội đang theo dõi`} />
-        <MetricStripItem label="Đã chốt" value={formatCurrencyCompact(summary.wonValue)} helper="Giá trị các deal won" />
-        <MetricStripItem label="Số cơ hội" value={formatNumberCompact(summary.dealsCount)} helper="Theo bộ lọc hiện tại" />
-        <MetricStripItem label="Nhiệm vụ mở" value={formatNumberCompact(summary.openTasks)} helper="Follow-up chưa hoàn thành" />
+        <MetricStripItem
+          label="Tổng value pipeline"
+          value={formatCurrencyCompact(summary.totalValue)}
+          helper={`${formatNumberCompact(summary.dealsCount)} cơ hội đang theo dõi`}
+          icon={BriefcaseBusiness}
+          tone="primary"
+        />
+        <MetricStripItem
+          label="Đã chốt"
+          value={formatCurrencyCompact(summary.wonValue)}
+          helper="Giá trị các deal won"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricStripItem
+          label="Số cơ hội"
+          value={formatNumberCompact(summary.dealsCount)}
+          helper="Theo bộ lọc hiện tại"
+          icon={Target}
+          tone="info"
+        />
+        <MetricStripItem
+          label="Nhiệm vụ mở"
+          value={formatNumberCompact(summary.openTasks)}
+          helper="Follow-up chưa hoàn thành"
+          icon={CircleDot}
+          tone="warning"
+        />
       </MetricStrip>
 
       <StickyFilterBar>
@@ -728,26 +754,30 @@ export function DealPipelinePage() {
             placeholder="Tìm theo cơ hội, khách hàng hoặc người phụ trách"
           />
         </div>
-        <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} className="w-[220px]">
-          <option value="all">Tất cả phụ trách</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name}
-            </option>
-          ))}
-        </Select>
-        <Select
+        <FilterSelect
+          value={ownerFilter}
+          onValueChange={setOwnerFilter}
+          options={[
+            { value: "all", label: "Tất cả phụ trách" },
+            ...users.map((user) => ({
+              value: user.id,
+              label: user.full_name,
+            })),
+          ]}
+          className="w-[220px]"
+        />
+        <FilterSelect
           value={stageFilter}
-          onChange={(event) => setStageFilter(parseStageFilter(event.target.value))}
+          onValueChange={(nextValue) => setStageFilter(parseStageFilter(nextValue))}
+          options={[
+            { value: "all", label: "Tất cả giai đoạn" },
+            ...stageColumns.map((stage) => ({
+              value: stage.value,
+              label: stage.label,
+            })),
+          ]}
           className="w-[190px]"
-        >
-          <option value="all">Tất cả giai đoạn</option>
-          {stageColumns.map((stage) => (
-            <option key={stage.value} value={stage.value}>
-              {stage.label}
-            </option>
-          ))}
-        </Select>
+        />
         <Button
           variant="secondary"
           onClick={() => {
@@ -761,15 +791,21 @@ export function DealPipelinePage() {
       </StickyFilterBar>
 
       {filteredDeals.length ? (
-        <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-max gap-4 px-1">
+        <div className="relative">
+          <div className="mb-2 flex items-center justify-end text-xs font-medium text-muted-foreground xl:hidden">
+            Kéo ngang để xem đầy đủ cột pipeline
+          </div>
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 bg-gradient-to-r from-background to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 bg-gradient-to-l from-background to-transparent" />
+          <div className="overflow-x-auto pb-2 scrollbar-thin">
+            <div className="flex min-w-[1720px] gap-4 px-1">
             {stageColumns.map((column) => {
               const columnDeals = filteredDeals.filter((deal) => deal.stage === column.value);
               const columnValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
               return (
                 <Card
                   key={column.value}
-                  className={`w-[280px] min-w-[280px] rounded-lg border border-border bg-muted/50 shadow-none`}
+                  className="w-[280px] min-w-[280px] rounded-xl border border-border/80 bg-muted/50 shadow-none"
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
                     if (!canUpdateDeal || !draggedDealId || updateStage.isPending) return;
@@ -781,7 +817,7 @@ export function DealPipelinePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-sm font-semibold text-foreground">{column.label}</div>
-                        <div className="font-mono text-xs text-muted-foreground">{formatCurrencyCompact(columnValue)}</div>
+                        <div className="text-xs tabular-nums text-muted-foreground">{formatCurrencyCompact(columnValue)}</div>
                       </div>
                       <div className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">
                         {formatNumberCompact(columnDeals.length)}
@@ -811,14 +847,17 @@ export function DealPipelinePage() {
                           >
                             <div className="line-clamp-2 text-sm font-medium text-foreground">{deal.title}</div>
                             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-                                {(customer?.full_name ?? "?").slice(0, 1).toUpperCase()}
-                              </span>
+                              <CustomerAvatar
+                                name={customer?.full_name ?? "Khách hàng"}
+                                type={customer?.customer_type ?? "potential"}
+                                gender={customer?.gender}
+                                className="size-5"
+                              />
                               <span className="truncate">{customer?.full_name ?? "Khách hàng không xác định"}</span>
                             </div>
 
                             <div className="mt-3 flex items-center justify-between text-sm">
-                              <div className="font-mono text-sm font-semibold text-foreground">
+                              <div className="text-sm font-semibold tabular-nums text-foreground">
                                 {formatCurrencyCompact(deal.value)}
                               </div>
                               <div className="truncate pl-3 text-xs text-muted-foreground">{owner?.full_name ?? "--"}</div>
@@ -830,7 +869,7 @@ export function DealPipelinePage() {
                                 className={getDealStageColor(deal.stage)}
                                 dotClassName="bg-current"
                               />
-                              <span className="font-mono text-xs text-muted-foreground">{deal.probability}%</span>
+                              <span className="text-xs tabular-nums text-muted-foreground">{deal.probability}%</span>
                             </div>
 
                             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
@@ -850,6 +889,7 @@ export function DealPipelinePage() {
                 </Card>
               );
             })}
+            </div>
           </div>
         </div>
       ) : (

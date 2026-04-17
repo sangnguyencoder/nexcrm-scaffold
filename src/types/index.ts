@@ -125,6 +125,7 @@ export interface Customer {
   id: string;
   customer_code: string;
   full_name: string;
+  gender?: string | null;
   phone: string;
   email: string;
   address: string;

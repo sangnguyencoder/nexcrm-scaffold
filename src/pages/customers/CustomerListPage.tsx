@@ -17,8 +17,10 @@ import { z } from "zod";
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
 import { Can } from "@/components/shared/Can";
@@ -126,20 +128,6 @@ function mapImportedSource(value: string): Customer["source"] {
   if (["pos"].includes(normalized)) return "pos";
   if (["online"].includes(normalized)) return "online";
   return "direct";
-}
-
-const avatarToneClasses = [
-  "bg-blue-50 text-blue-600",
-  "bg-emerald-50 text-emerald-600",
-  "bg-amber-50 text-amber-600",
-  "bg-rose-50 text-rose-600",
-  "bg-cyan-50 text-cyan-600",
-  "bg-indigo-50 text-indigo-600",
-];
-
-function getNameAvatarTone(name: string) {
-  const hash = Array.from(name).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return avatarToneClasses[hash % avatarToneClasses.length];
 }
 
 async function loadSpreadsheetModule() {
@@ -700,14 +688,18 @@ export function CustomerListPage() {
             placeholder="Tìm theo tên, số điện thoại hoặc email"
             wrapperClassName="min-w-[280px] flex-1"
           />
-          <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)} className="w-[180px]">
-            <option value="all">Tất cả phụ trách</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name}
-              </option>
-            ))}
-          </Select>
+          <FilterSelect
+            value={assignedFilter}
+            onValueChange={setAssignedFilter}
+            options={[
+              { value: "all", label: "Tất cả phụ trách" },
+              ...users.map((user) => ({
+                value: user.id,
+                label: user.full_name,
+              })),
+            ]}
+            className="w-[180px]"
+          />
           <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 px-3 text-sm text-muted-foreground">
             <Checkbox checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
             Hiện inactive
@@ -839,19 +831,12 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                          getNameAvatarTone(customer.full_name),
-                        )}
-                      >
-                        {customer.full_name
-                          .split(" ")
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((segment) => segment[0]?.toUpperCase() ?? "")
-                          .join("")}
-                      </div>
+                      <CustomerAvatar
+                        name={customer.full_name}
+                        type={customer.customer_type}
+                        gender={customer.gender}
+                        className="size-9"
+                      />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{customer.full_name}</div>
                         <div className="font-mono text-xs text-muted-foreground">
@@ -863,7 +848,7 @@ export function CustomerListPage() {
                   <TableCell>
                     <div className="space-y-0.5">
                       <div className="text-sm text-foreground">{customer.phone || "--"}</div>
-                      <div className="truncate text-xs text-muted-foreground">{customer.email || "--"}</div>
+                      <div className="break-all text-xs text-muted-foreground">{customer.email || "--"}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -874,7 +859,7 @@ export function CustomerListPage() {
                     />
                   </TableCell>
                   <TableCell>{customerMap[customer.assigned_to] ?? "--"}</TableCell>
-                  <TableCell className={cn("font-mono", customer.total_spent > 10_000_000 ? "font-semibold" : "")}>
+                  <TableCell className={cn("tabular-nums", customer.total_spent > 10_000_000 ? "font-semibold" : "")}>
                     {formatCurrencyCompact(customer.total_spent)}
                   </TableCell>
                   <TableCell>{customer.total_orders}</TableCell>
@@ -888,7 +873,7 @@ export function CustomerListPage() {
                   </TableCell>
                   <TableCell>
                     <div
-                      className="flex justify-end gap-1.5 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
+                      className="flex justify-end gap-1.5"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Button size="icon" variant="ghost" aria-label={`Xem hồ sơ ${customer.full_name}`} onClick={() => navigate(`/customers/${customer.id}`)}>

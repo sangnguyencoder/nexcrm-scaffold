@@ -1,4 +1,4 @@
-import { BarChart3 } from "lucide-react";
+import { BarChart3, ChartSpline, ReceiptText, TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -62,7 +62,7 @@ export function DashboardChartsPanel({
 
   return (
     <SectionPanel
-      eyebrow="Revenue trend"
+      eyebrow="Nhịp doanh thu"
       title="Doanh thu hoàn tất"
       // description="Chart chính để đọc nhịp doanh thu và tốc độ chốt đơn."
       meta={<Badge className="bg-muted text-muted-foreground ring-border">{rangeLabel}</Badge>}
@@ -122,16 +122,22 @@ export function DashboardChartsPanel({
                 label="Doanh thu trong kỳ"
                 value={formatCurrencyCompact(totalRevenue)}
                 helper="Tổng từ các giao dịch đã hoàn tất."
+                icon={TrendingUp}
+                tone="success"
               />
               <MetricStripItem
                 label="Đơn hoàn tất"
                 value={formatNumberCompact(totalOrders)}
                 helper="Các đơn đang góp vào chart."
+                icon={ReceiptText}
+                tone="info"
               />
               <MetricStripItem
                 label="Bình quân mỗi mốc"
                 value={formatCurrencyCompact(averageRevenue)}
                 helper="Mặt bằng doanh thu theo kỳ."
+                icon={ChartSpline}
+                tone="primary"
               />
             </MetricStrip>
           </>

@@ -1,4 +1,15 @@
-import { AlertCircle, ArrowUpRight, Users, Wallet } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle2,
+  CircleDollarSign,
+  Minus,
+  RefreshCw,
+  TicketCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { Suspense, lazy, startTransition, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,10 +22,11 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { useDashboardStats } from "@/hooks/useNexcrmQueries";
+import { useDashboardStats, useReportSnapshot } from "@/hooks/useNexcrmQueries";
 import {
   cn,
   formatCurrencyCompact,
+  formatDateInputValue,
   formatNumberCompact,
   formatCustomerType,
   formatPercent,
@@ -40,6 +52,12 @@ const RANGE_OPTIONS: Array<{ key: DashboardRange; label: string }> = [
   { key: "30days", label: "30 ngày" },
 ];
 
+const RANGE_DAYS: Record<DashboardRange, number> = {
+  today: 1,
+  "7days": 7,
+  "30days": 30,
+};
+
 const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
   vip: "VIP",
   loyal: "Thân thiết",
@@ -47,6 +65,141 @@ const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
   new: "Mới",
   inactive: "Không hoạt động",
 };
+
+type DeltaInsight = {
+  tone: "up" | "down" | "flat";
+  deltaLabel: string;
+  detail: string;
+};
+
+function buildRangeWindows(range: DashboardRange) {
+  const totalDays = RANGE_DAYS[range];
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+
+  const currentStart = new Date(now);
+  currentStart.setDate(currentStart.getDate() - (totalDays - 1));
+  currentStart.setHours(0, 0, 0, 0);
+
+  const previousEnd = new Date(currentStart);
+  previousEnd.setDate(previousEnd.getDate() - 1);
+  previousEnd.setHours(23, 59, 59, 999);
+
+  const previousStart = new Date(previousEnd);
+  previousStart.setDate(previousStart.getDate() - (totalDays - 1));
+  previousStart.setHours(0, 0, 0, 0);
+
+  return {
+    current: {
+      from: formatDateInputValue(currentStart),
+      to: formatDateInputValue(now),
+    },
+    previous: {
+      from: formatDateInputValue(previousStart),
+      to: formatDateInputValue(previousEnd),
+    },
+    previousLabel:
+      range === "today" ? "hôm qua" : range === "7days" ? "7 ngày trước" : "30 ngày trước",
+  };
+}
+
+function buildDeltaInsight({
+  current,
+  previous,
+  previousLabel,
+  suffix,
+}: {
+  current: number;
+  previous: number;
+  previousLabel: string;
+  suffix: string;
+}): DeltaInsight | null {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return null;
+  }
+
+  if (previous === 0) {
+    if (current === 0) {
+      return {
+        tone: "flat",
+        deltaLabel: "0%",
+        detail: `Không đổi so với ${previousLabel}`,
+      };
+    }
+
+    return {
+      tone: current > 0 ? "up" : "down",
+      deltaLabel: "Mới phát sinh",
+      detail: `${suffix} so với ${previousLabel}`,
+    };
+  }
+
+  const deltaPercent = ((current - previous) / Math.abs(previous)) * 100;
+  const normalized = Math.round(deltaPercent * 10) / 10;
+  const tone: DeltaInsight["tone"] =
+    normalized > 0.2 ? "up" : normalized < -0.2 ? "down" : "flat";
+  const sign = normalized > 0 ? "+" : "";
+
+  return {
+    tone,
+    deltaLabel: `${sign}${normalized}%`,
+    detail: `${suffix} so với ${previousLabel}`,
+  };
+}
+
+function buildRateInsight({
+  current,
+  previous,
+  previousLabel,
+}: {
+  current: number;
+  previous: number;
+  previousLabel: string;
+}): DeltaInsight | null {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return null;
+  }
+
+  const deltaPoint = (current - previous) * 100;
+  const normalized = Math.round(deltaPoint * 10) / 10;
+  const sign = normalized > 0 ? "+" : "";
+
+  return {
+    tone: normalized > 0.2 ? "up" : normalized < -0.2 ? "down" : "flat",
+    deltaLabel: `${sign}${normalized}đ`,
+    detail: `điểm % so với ${previousLabel}`,
+  };
+}
+
+function InsightText({
+  insight,
+  fallback,
+}: {
+  insight: DeltaInsight | null;
+  fallback: string;
+}) {
+  if (!insight) {
+    return <span>{fallback}</span>;
+  }
+
+  const Icon = insight.tone === "up" ? ArrowUpRight : insight.tone === "down" ? ArrowDownRight : Minus;
+  const toneClassName =
+    insight.tone === "up"
+      ? "bg-success/12 text-success"
+      : insight.tone === "down"
+        ? "bg-destructive/12 text-destructive"
+        : "bg-muted text-muted-foreground";
+
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", toneClassName)}>
+        <Icon className="size-3" />
+        {insight.deltaLabel}
+      </span>
+      <span className="text-muted-foreground">{insight.detail}</span>
+    </span>
+  );
+}
 
 function RangeSwitcher({
   range,
@@ -58,16 +211,16 @@ function RangeSwitcher({
   onChange: (range: DashboardRange) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {RANGE_OPTIONS.map((item) => (
         <button
           key={item.key}
           type="button"
           onClick={() => onChange(item.key)}
           className={cn(
-            "rounded-sm border px-2.5 py-1 text-xs transition-colors",
+            "inline-flex h-10 items-center rounded-full border px-4 text-sm font-semibold transition-colors",
             range === item.key
-              ? "border-primary/30 bg-primary/10 text-primary"
+              ? "border-primary/35 bg-primary/12 text-primary shadow-xs"
               : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
           )}
           aria-pressed={range === item.key}
@@ -75,7 +228,15 @@ function RangeSwitcher({
           {item.label}
         </button>
       ))}
-      <Badge className="bg-muted text-muted-foreground ring-border">
+      <Badge
+        className={cn(
+          "inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1",
+          isFetching
+            ? "bg-info/10 text-info ring-info/20 animate-pulse"
+            : "bg-success/10 text-success ring-success/20",
+        )}
+      >
+        {isFetching ? <RefreshCw className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
         {isFetching ? "Đang đồng bộ" : "Đã đồng bộ"}
       </Badge>
     </div>
@@ -106,7 +267,7 @@ function CustomerMixRow({
     <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border border-border/70 bg-muted/35 px-3 py-2.5">
       <div className="flex min-w-0 items-center gap-2">
         <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-      <span className="truncate text-sm font-medium text-foreground">{formatDistributionLabel(item.type)}</span>
+        <span className="truncate text-sm font-medium text-foreground">{formatDistributionLabel(item.type)}</span>
       </div>
       <span className="text-sm font-semibold text-foreground">{formatNumberCompact(item.count)}</span>
       <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{share}%</span>
@@ -118,6 +279,43 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [range, setRange] = useState<DashboardRange>("7days");
   const statsQuery = useDashboardStats(range);
+  const rangeWindows = useMemo(() => buildRangeWindows(range), [range]);
+  const currentRevenueQuery = useReportSnapshot({
+    tab: "revenue",
+    from: rangeWindows.current.from,
+    to: rangeWindows.current.to,
+    groupBy: "day",
+  });
+  const previousRevenueQuery = useReportSnapshot({
+    tab: "revenue",
+    from: rangeWindows.previous.from,
+    to: rangeWindows.previous.to,
+    groupBy: "day",
+  });
+  const currentCustomersQuery = useReportSnapshot({
+    tab: "customers",
+    from: rangeWindows.current.from,
+    to: rangeWindows.current.to,
+    groupBy: "day",
+  });
+  const previousCustomersQuery = useReportSnapshot({
+    tab: "customers",
+    from: rangeWindows.previous.from,
+    to: rangeWindows.previous.to,
+    groupBy: "day",
+  });
+  const currentTicketsQuery = useReportSnapshot({
+    tab: "tickets",
+    from: rangeWindows.current.from,
+    to: rangeWindows.current.to,
+    groupBy: "day",
+  });
+  const previousTicketsQuery = useReportSnapshot({
+    tab: "tickets",
+    from: rangeWindows.previous.from,
+    to: rangeWindows.previous.to,
+    groupBy: "day",
+  });
   const stats = statsQuery.data;
   const rangeLabel = RANGE_OPTIONS.find((item) => item.key === range)?.label ?? "7 ngày";
 
@@ -130,12 +328,10 @@ export function DashboardPage() {
     const resolutionRate = totalTicketFlow > 0 ? stats.resolved_tickets_month / totalTicketFlow : 0;
     const averageOrderValue =
       stats.total_orders_month > 0 ? stats.total_revenue_month / stats.total_orders_month : 0;
-    const dominantSegment = [...stats.customer_type_distribution].sort((left, right) => right.count - left.count)[0];
 
     return {
       resolutionRate,
       averageOrderValue,
-      dominantSegment,
     };
   }, [stats]);
 
@@ -160,6 +356,54 @@ export function DashboardPage() {
     return <PageLoader panels={2} />;
   }
 
+  const currentRevenueSnapshot = currentRevenueQuery.data?.tab === "revenue" ? currentRevenueQuery.data : null;
+  const previousRevenueSnapshot = previousRevenueQuery.data?.tab === "revenue" ? previousRevenueQuery.data : null;
+  const currentCustomersSnapshot = currentCustomersQuery.data?.tab === "customers" ? currentCustomersQuery.data : null;
+  const previousCustomersSnapshot = previousCustomersQuery.data?.tab === "customers" ? previousCustomersQuery.data : null;
+  const currentTicketsSnapshot = currentTicketsQuery.data?.tab === "tickets" ? currentTicketsQuery.data : null;
+  const previousTicketsSnapshot = previousTicketsQuery.data?.tab === "tickets" ? previousTicketsQuery.data : null;
+
+  const currentNewCustomers = currentCustomersSnapshot?.newCustomerSeries.reduce((sum, item) => sum + item.count, 0) ?? 0;
+  const previousNewCustomers = previousCustomersSnapshot?.newCustomerSeries.reduce((sum, item) => sum + item.count, 0) ?? 0;
+
+  const revenueInRange = currentRevenueSnapshot?.revenueTotal ?? stats.total_revenue_month;
+  const previousRevenueInRange = previousRevenueSnapshot?.revenueTotal ?? 0;
+  const averageOrderInRange = currentRevenueSnapshot?.revenueAvg ?? derived.averageOrderValue;
+  const previousAverageOrderInRange = previousRevenueSnapshot?.revenueAvg ?? 0;
+
+  const currentAssignedTickets = currentTicketsSnapshot?.staffPerformance.reduce((sum, row) => sum + row.assigned, 0) ?? 0;
+  const previousAssignedTickets = previousTicketsSnapshot?.staffPerformance.reduce((sum, row) => sum + row.assigned, 0) ?? 0;
+  const currentResolvedTickets = currentTicketsSnapshot?.staffPerformance.reduce((sum, row) => sum + row.resolved, 0) ?? 0;
+  const previousResolvedTickets = previousTicketsSnapshot?.staffPerformance.reduce((sum, row) => sum + row.resolved, 0) ?? 0;
+  const currentResolutionRate =
+    currentAssignedTickets > 0 ? currentResolvedTickets / currentAssignedTickets : derived.resolutionRate;
+  const previousResolutionRate =
+    previousAssignedTickets > 0 ? previousResolvedTickets / previousAssignedTickets : 0;
+
+  const customerInsight = buildDeltaInsight({
+    current: currentNewCustomers,
+    previous: previousNewCustomers,
+    previousLabel: rangeWindows.previousLabel,
+    suffix: "khách mới",
+  });
+  const revenueInsight = buildDeltaInsight({
+    current: revenueInRange,
+    previous: previousRevenueInRange,
+    previousLabel: rangeWindows.previousLabel,
+    suffix: "doanh thu",
+  });
+  const averageOrderInsight = buildDeltaInsight({
+    current: averageOrderInRange,
+    previous: previousAverageOrderInRange,
+    previousLabel: rangeWindows.previousLabel,
+    suffix: "giá trị đơn trung bình",
+  });
+  const ticketInsight = buildRateInsight({
+    current: currentResolutionRate,
+    previous: previousResolutionRate,
+    previousLabel: rangeWindows.previousLabel,
+  });
+
   return (
     <div className="enterprise-grid">
       <PageHeader
@@ -183,28 +427,56 @@ export function DashboardPage() {
           <MetricStripItem
             label="Tổng khách hàng"
             value={formatNumberCompact(stats.total_customers)}
-            helper={`${stats.new_customers_month} khách mới từ đầu tháng`}
+            helper={
+              <InsightText
+                insight={customerInsight}
+                fallback={`${stats.new_customers_month} khách mới từ đầu tháng`}
+              />
+            }
+            icon={Users}
+            tone="info"
           />
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:70ms]">
           <MetricStripItem
-            label="Doanh thu tháng"
-            value={formatCurrencyCompact(stats.total_revenue_month)}
-            helper={`${stats.total_orders_month} đơn đã hoàn tất`}
+            label="Doanh thu hoàn tất"
+            value={formatCurrencyCompact(revenueInRange)}
+            helper={
+              <InsightText
+                insight={revenueInsight}
+                fallback={`${stats.total_orders_month} đơn đã hoàn tất`}
+              />
+            }
+            icon={Wallet}
+            tone="success"
           />
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:120ms]">
           <MetricStripItem
             label="Đơn trung bình"
-            value={formatCurrencyCompact(derived.averageOrderValue)}
-            helper={`Theo khung ${rangeLabel.toLowerCase()}`}
+            value={formatCurrencyCompact(averageOrderInRange)}
+            helper={
+              <InsightText
+                insight={averageOrderInsight}
+                fallback={`Theo khung ${rangeLabel.toLowerCase()}`}
+              />
+            }
+            icon={CircleDollarSign}
+            tone="primary"
           />
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 [animation-delay:180ms]">
           <MetricStripItem
             label="Tỷ lệ xử lý ticket"
-            value={formatPercent(derived.resolutionRate)}
-            helper={`${stats.open_tickets} ticket đang mở`}
+            value={formatPercent(currentResolutionRate)}
+            helper={
+              <InsightText
+                insight={ticketInsight}
+                fallback={`${stats.open_tickets} ticket đang mở`}
+              />
+            }
+            icon={TicketCheck}
+            tone="warning"
           />
         </div>
       </MetricStrip>
@@ -215,7 +487,7 @@ export function DashboardPage() {
         </Suspense>
 
         <SectionPanel
-          eyebrow="Support queue"
+          eyebrow="Vận hành hỗ trợ"
           title="Ticket ưu tiên"
           // description="Các yêu cầu cần đụng vào trước."
           meta={<Badge className="bg-muted text-muted-foreground ring-border">{stats.urgent_tickets.length} ticket</Badge>}
@@ -243,6 +515,7 @@ export function DashboardPage() {
                       label={formatTicketPriority(ticket.priority as TicketPriority)}
                       className={getPriorityColor(ticket.priority as TicketPriority)}
                       dotClassName="bg-current"
+                      icon={AlertCircle}
                     />
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
@@ -264,7 +537,7 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.9fr)]">
         <SectionPanel
-          eyebrow="Customer value"
+          eyebrow="Giá trị khách hàng"
           title="Top khách hàng"
           // description="Những tài khoản nên ưu tiên giữ nhịp."
           meta={<Badge className="bg-muted text-muted-foreground ring-border">Top {stats.top_customers.length}</Badge>}
@@ -278,7 +551,7 @@ export function DashboardPage() {
                   onClick={() => navigate(`/customers/${customer.id}`)}
                   className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-border/70 px-4 py-3 text-left transition hover:bg-muted/35 last:border-b-0 lg:px-5"
                 >
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <span className="tabular-nums text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="flex min-w-0 items-center gap-3">
@@ -316,7 +589,7 @@ export function DashboardPage() {
         </SectionPanel>
 
         <SectionPanel
-          eyebrow="Customer mix"
+          eyebrow="Cơ cấu khách hàng"
           title="Cơ cấu khách hàng"
           // description={
           //   derived.dominantSegment

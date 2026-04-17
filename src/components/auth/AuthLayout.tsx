@@ -17,10 +17,12 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             }}
           />
           <div className="relative z-10 flex w-full items-center px-16">
-            <div className="space-y-7">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-primary font-mono text-xl font-bold text-primary-foreground">
-                N
-              </div>
+              <div className="space-y-7">
+              <img
+                src="/branding/nexcrm-mark.svg"
+                alt="NexCRM logo"
+                className="size-12 rounded-xl object-cover"
+              />
               <div className="space-y-2">
                 <div className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Quản lý khách hàng</div>
                 <div className="text-4xl font-bold leading-tight text-foreground">thông minh hơn</div>

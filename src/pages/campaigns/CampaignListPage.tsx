@@ -510,10 +510,34 @@ export function CampaignListPage() {
       />
 
       <MetricStrip>
-        <MetricStripItem label="Tệp nhận" value={formatNumberCompact(summary.recipientCount)} helper="Tổng người nhận của danh sách hiện tại." />
-        <MetricStripItem label="Đã gửi" value={formatNumberCompact(summary.sent)} helper="Tổng message đã rời hàng đợi." />
-        <MetricStripItem label="Đã mở" value={formatNumberCompact(summary.opened)} helper="Theo dữ liệu outbound hiện có." />
-        <MetricStripItem label="Thất bại" value={formatNumberCompact(summary.failed)} helper="Dùng để ưu tiên kiểm tra provider." />
+        <MetricStripItem
+          label="Tệp nhận"
+          value={formatNumberCompact(summary.recipientCount)}
+          helper="Tổng người nhận của danh sách hiện tại."
+          icon={Megaphone}
+          tone="primary"
+        />
+        <MetricStripItem
+          label="Đã gửi"
+          value={formatNumberCompact(summary.sent)}
+          helper="Tổng message đã rời hàng đợi."
+          icon={Send}
+          tone="success"
+        />
+        <MetricStripItem
+          label="Đã mở"
+          value={formatNumberCompact(summary.opened)}
+          helper="Theo dữ liệu outbound hiện có."
+          icon={Eye}
+          tone="info"
+        />
+        <MetricStripItem
+          label="Thất bại"
+          value={formatNumberCompact(summary.failed)}
+          helper="Dùng để ưu tiên kiểm tra provider."
+          icon={AlertTriangle}
+          tone="danger"
+        />
       </MetricStrip>
 
       <StickyFilterBar>

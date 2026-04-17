@@ -93,6 +93,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     id: String(row.id ?? ""),
     customer_code: String(row.customer_code ?? ""),
     full_name: String(row.full_name ?? ""),
+    gender: row.gender ? String(row.gender) : null,
     phone: row.phone ? String(row.phone) : "",
     email: row.email ? String(row.email) : "",
     address: row.address ? String(row.address) : "",

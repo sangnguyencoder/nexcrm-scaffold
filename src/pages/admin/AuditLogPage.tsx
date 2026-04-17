@@ -2,7 +2,9 @@ import { ScrollText } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTableShell } from "@/components/shared/data-table-shell";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { InspectorList } from "@/components/shared/inspector-list";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -10,7 +12,6 @@ import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Sheet } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuditQuery, useUsersQuery } from "@/hooks/useNexcrmQueries";
@@ -91,34 +92,43 @@ export function AuditLogPage() {
           placeholder="Tìm theo người dùng, thực thể hoặc nội dung"
           className="min-w-[260px] flex-1"
         />
-        <Select value={userFilter} onChange={(event) => setUserFilter(event.target.value)} className="w-[170px]">
-          <option value="all">Tất cả người dùng</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name}
-            </option>
-          ))}
-        </Select>
-        <Select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="w-[150px]">
-          <option value="all">Tất cả hành động</option>
-          <option value="create">Tạo</option>
-          <option value="update">Cập nhật</option>
-          <option value="delete">Xóa</option>
-        </Select>
-        <Select value={entityFilter} onChange={(event) => setEntityFilter(event.target.value)} className="w-[170px]">
-          <option value="all">Tất cả thực thể</option>
-          <option value="customer">Customer</option>
-          <option value="ticket">Ticket</option>
-          <option value="campaign">Campaign</option>
-          <option value="transaction">Transaction</option>
-          <option value="user">User</option>
-        </Select>
-        <Input
-          type="date"
-          value={dateFilter}
-          onChange={(event) => setDateFilter(event.target.value)}
-          className="w-[150px]"
+        <FilterSelect
+          value={userFilter}
+          onValueChange={setUserFilter}
+          options={[
+            { value: "all", label: "Tất cả người dùng" },
+            ...users.map((user) => ({
+              value: user.id,
+              label: user.full_name,
+            })),
+          ]}
+          className="w-[170px]"
         />
+        <FilterSelect
+          value={actionFilter}
+          onValueChange={setActionFilter}
+          options={[
+            { value: "all", label: "Tất cả hành động" },
+            { value: "create", label: "Tạo" },
+            { value: "update", label: "Cập nhật" },
+            { value: "delete", label: "Xóa" },
+          ]}
+          className="w-[160px]"
+        />
+        <FilterSelect
+          value={entityFilter}
+          onValueChange={setEntityFilter}
+          options={[
+            { value: "all", label: "Tất cả thực thể" },
+            { value: "customer", label: "Khách hàng" },
+            { value: "ticket", label: "Ticket" },
+            { value: "campaign", label: "Chiến dịch" },
+            { value: "transaction", label: "Giao dịch" },
+            { value: "user", label: "Người dùng" },
+          ]}
+          className="w-[170px]"
+        />
+        <DatePicker value={dateFilter} onChange={setDateFilter} className="w-[166px]" />
       </StickyFilterBar>
 
       <DataTableShell stickyHeader>

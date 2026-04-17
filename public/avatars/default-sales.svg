@@ -1,5 +1,12 @@
-<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="96" height="96" rx="48" fill="#047857"/>
-  <circle cx="48" cy="48" r="34" fill="#10B981"/>
-  <text x="48" y="56" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">KD</text>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="10" x2="120" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#0369A1"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="64" fill="url(#bg)"/>
+  <circle cx="64" cy="48" r="20" fill="#F0F9FF"/>
+  <path d="M28 108C30 86 45 76 64 76C83 76 98 86 100 108H28Z" fill="#F0F9FF"/>
+  <path d="M43 44C45 31 53 24 64 24C75 24 83 31 85 44" stroke="#DBF4FF" stroke-width="5" stroke-linecap="round"/>
 </svg>

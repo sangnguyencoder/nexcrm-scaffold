@@ -19,8 +19,15 @@ export function InspectorList({
     <div className={cn("inspector-list", className)}>
       {items.map((item) => (
         <div key={item.label} className="inspector-list-row">
-          <span className="max-w-[48%] text-muted-foreground">{item.label}</span>
-          <span className={cn("max-w-[52%] text-right font-medium text-foreground", item.valueClassName)}>{item.value}</span>
+          <span className="block max-w-[46%] shrink-0 text-muted-foreground">{item.label}</span>
+          <span
+            className={cn(
+              "block min-w-0 max-w-[54%] break-words text-right font-medium text-foreground",
+              item.valueClassName,
+            )}
+          >
+            {item.value}
+          </span>
         </div>
       ))}
     </div>

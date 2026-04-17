@@ -900,6 +900,7 @@ export function toCustomer(row: CustomerRow): Customer {
     id: row.id,
     customer_code: row.customer_code ?? `KH-${new Date(row.created_at).getFullYear()}-0000`,
     full_name: row.full_name,
+    gender: row.gender,
     phone: row.phone ?? "",
     email: row.email ?? "",
     address: row.address ?? "",

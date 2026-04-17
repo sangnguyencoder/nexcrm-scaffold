@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { cn, getDefaultLogoUrl, getInitials, isValidAssetUrl, resolveLogoUrl } from "@/lib/utils";
+import { cn, getDefaultLogoUrl, isValidAssetUrl, resolveLogoUrl } from "@/lib/utils";
 
 type BrandLogoProps = {
   src?: string | null;
@@ -20,6 +20,7 @@ export function BrandLogo({
   initialsClassName,
 }: BrandLogoProps) {
   const defaultLogo = getDefaultLogoUrl();
+  const markLogo = "/branding/nexcrm-mark.svg";
   const normalizedSource = resolveLogoUrl(src);
   const [currentSource, setCurrentSource] = useState(normalizedSource);
 
@@ -27,22 +28,19 @@ export function BrandLogo({
     setCurrentSource(normalizedSource);
   }, [normalizedSource]);
 
-  const initials = useMemo(
-    () => getInitials(fallbackLabel || alt || "CRM") || "CRM",
-    [alt, fallbackLabel],
-  );
+  const resolvedAlt = useMemo(() => fallbackLabel || alt || "NexCRM", [alt, fallbackLabel]);
 
   if (!currentSource || !isValidAssetUrl(currentSource)) {
     return (
       <div
         className={cn(
-          "flex items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-xs font-semibold uppercase tracking-[0.18em] text-primary",
+          "flex items-center justify-center overflow-hidden rounded-xl bg-primary/10",
           className,
           initialsClassName,
         )}
-        aria-label={alt}
+        aria-label={resolvedAlt}
       >
-        {initials}
+        <img src={markLogo} alt={resolvedAlt} className="h-full w-full object-contain" />
       </div>
     );
   }

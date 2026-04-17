@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { EyeOff, ExternalLink, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, Clock3, EyeOff, ExternalLink, MessageSquare, ShieldCheck, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -70,6 +70,7 @@ export function TicketDetailPage() {
     [assignedSearch, users],
   );
   const isOverdue = ticket ? new Date(ticket.due_at).getTime() < currentTimestamp : false;
+  const priorityTone = ticket?.priority === "urgent" || ticket?.priority === "high" ? "danger" : "warning";
 
   const updateTicket = useAppMutation({
     action: "ticket.update",
@@ -176,10 +177,34 @@ export function TicketDetailPage() {
       />
 
       <MetricStrip>
-        <MetricStripItem label="Trạng thái" value={formatTicketStatus(ticket.status)} helper="Workflow hiện tại của ticket." />
-        <MetricStripItem label="Ưu tiên" value={ticket.priority.toUpperCase()} helper="Dùng để ưu tiên xử lý trong queue." />
-        <MetricStripItem label="SLA" value={isOverdue ? "Quá hạn" : timeAgo(ticket.due_at)} helper={formatDateTime(ticket.due_at)} />
-        <MetricStripItem label="Trao đổi" value={formatNumberCompact(thread.length)} helper={`${formatNumberCompact(comments.length)} comment tổng cộng.`} />
+        <MetricStripItem
+          label="Trạng thái"
+          value={formatTicketStatus(ticket.status)}
+          helper="Workflow hiện tại của ticket."
+          icon={ShieldCheck}
+          tone="info"
+        />
+        <MetricStripItem
+          label="Ưu tiên"
+          value={ticket.priority.toUpperCase()}
+          helper="Dùng để ưu tiên xử lý trong queue."
+          icon={AlertTriangle}
+          tone={priorityTone}
+        />
+        <MetricStripItem
+          label="SLA"
+          value={isOverdue ? "Quá hạn" : timeAgo(ticket.due_at)}
+          helper={formatDateTime(ticket.due_at)}
+          icon={Clock3}
+          tone={isOverdue ? "danger" : "primary"}
+        />
+        <MetricStripItem
+          label="Trao đổi"
+          value={formatNumberCompact(thread.length)}
+          helper={`${formatNumberCompact(comments.length)} comment tổng cộng.`}
+          icon={MessageSquare}
+          tone="primary"
+        />
       </MetricStrip>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr),320px]">

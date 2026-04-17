@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans, "DM Sans")', "sans-serif"],
-        display: ['var(--font-sans, "DM Sans")', "sans-serif"],
+      sans: ['var(--font-sans, "Inter")', "sans-serif"],
+      display: ['var(--font-sans, "Inter")', "sans-serif"],
         mono: ['var(--font-mono, "JetBrains Mono")', "ui-monospace", "monospace"],
       },
       fontSize: {

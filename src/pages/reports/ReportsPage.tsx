@@ -1,15 +1,15 @@
 import { Download, FileText } from "lucide-react";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { DatePicker } from "@/components/shared/date-picker";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useReportSnapshot } from "@/hooks/useNexcrmQueries";
 import { formatDateInputValue } from "@/lib/utils";
@@ -34,6 +34,26 @@ function getDefaultFromDate() {
 
 function getDefaultToDate() {
   return toInputDate(new Date());
+}
+
+function getPreviousRange(from: string, to: string) {
+  const fromDate = new Date(`${from}T00:00:00`);
+  const toDate = new Date(`${to}T00:00:00`);
+
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    return { from, to };
+  }
+
+  const days = Math.max(1, Math.floor((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+  const previousTo = new Date(fromDate);
+  previousTo.setDate(previousTo.getDate() - 1);
+  const previousFrom = new Date(previousTo);
+  previousFrom.setDate(previousFrom.getDate() - (days - 1));
+
+  return {
+    from: toInputDate(previousFrom),
+    to: toInputDate(previousTo),
+  };
 }
 
 function isReportTab(value: string | null): value is ReportTab {
@@ -70,6 +90,13 @@ export function ReportsPage() {
     tab: activeTab,
     from,
     to,
+    groupBy,
+  });
+  const previousRange = useMemo(() => getPreviousRange(from, to), [from, to]);
+  const previousReportQuery = useReportSnapshot({
+    tab: activeTab,
+    from: previousRange.from,
+    to: previousRange.to,
     groupBy,
   });
 
@@ -145,27 +172,18 @@ export function ReportsPage() {
           <TabsTrigger value="tickets">Ticket</TabsTrigger>
           <TabsTrigger value="marketing">Marketing</TabsTrigger>
         </TabsList>
-        <Input
-          type="date"
-          value={from}
-          onChange={(event) => updateParams({ from: event.target.value })}
-          className="w-[148px]"
-        />
-        <Input
-          type="date"
-          value={to}
-          onChange={(event) => updateParams({ to: event.target.value })}
-          className="w-[148px]"
-        />
-        <Select
+        <DatePicker value={from} onChange={(nextValue) => updateParams({ from: nextValue })} className="w-[166px]" />
+        <DatePicker value={to} onChange={(nextValue) => updateParams({ to: nextValue })} className="w-[166px]" />
+        <FilterSelect
           value={groupBy}
-          onChange={(event) => updateParams({ groupBy: event.target.value })}
+          onValueChange={(nextValue) => updateParams({ groupBy: nextValue })}
+          options={[
+            { value: "day", label: "Theo ngày" },
+            { value: "week", label: "Theo tuần" },
+            { value: "month", label: "Theo tháng" },
+          ]}
           className="w-[146px]"
-        >
-          <option value="day">Theo ngày</option>
-          <option value="week">Theo tuần</option>
-          <option value="month">Theo tháng</option>
-        </Select>
+        />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
@@ -188,7 +206,7 @@ export function ReportsPage() {
       </StickyFilterBar>
 
       <Suspense fallback={<PageLoader panels={2} />}>
-        <ReportContent snapshot={snapshot} />
+        <ReportContent snapshot={snapshot} previousSnapshot={previousReportQuery.data ?? null} />
       </Suspense>
     </Tabs>
   );

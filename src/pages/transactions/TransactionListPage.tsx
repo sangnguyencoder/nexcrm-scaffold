@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
-import { ArrowLeftRight, Banknote, CreditCard, Plus, QrCode } from "lucide-react";
+import { ArrowLeftRight, BadgePercent, Banknote, CheckCircle2, CircleDollarSign, CreditCard, ListOrdered, Plus, QrCode } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,7 +11,9 @@ import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { CompactPagination } from "@/components/shared/compact-pagination";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
 import { InspectorList } from "@/components/shared/inspector-list";
@@ -494,57 +496,81 @@ export function TransactionListPage() {
       />
 
       <MetricStrip>
-        <MetricStripItem label="Tổng doanh thu" value={formatCurrencyCompact(summary.revenue)} helper="Theo bộ lọc hiện tại." />
-        <MetricStripItem label="Số đơn" value={formatNumberCompact(summary.orders)} helper="Số giao dịch đang hiển thị." />
-        <MetricStripItem label="Giá trị trung bình" value={formatCurrencyCompact(summary.average)} helper="Mỗi đơn hoàn tất trung bình." />
-        <MetricStripItem label="Tỷ lệ hoàn thành" value={formatPercentValue(summary.completionRate, { alreadyPercent: true })} helper="Tính trên trạng thái giao dịch." />
+        <MetricStripItem
+          label="Tổng doanh thu"
+          value={formatCurrencyCompact(summary.revenue)}
+          helper="Theo bộ lọc hiện tại."
+          icon={CircleDollarSign}
+          tone="success"
+        />
+        <MetricStripItem
+          label="Số đơn"
+          value={formatNumberCompact(summary.orders)}
+          helper="Số giao dịch đang hiển thị."
+          icon={ListOrdered}
+          tone="info"
+        />
+        <MetricStripItem
+          label="Giá trị trung bình"
+          value={formatCurrencyCompact(summary.average)}
+          helper="Mỗi đơn hoàn tất trung bình."
+          icon={Banknote}
+          tone="primary"
+        />
+        <MetricStripItem
+          label="Tỷ lệ hoàn thành"
+          value={formatPercentValue(summary.completionRate, { alreadyPercent: true })}
+          helper="Tính trên trạng thái giao dịch."
+          icon={BadgePercent}
+          tone="warning"
+        />
       </MetricStrip>
 
       <StickyFilterBar>
-        <Input
-          type="date"
+        <DatePicker
           value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
+          onChange={(nextValue) => {
+            setDateFrom(nextValue);
             setPage(1);
           }}
-          className="w-[152px]"
+          className="w-[166px]"
         />
-        <Input
-          type="date"
+        <DatePicker
           value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
+          onChange={(nextValue) => {
+            setDateTo(nextValue);
             setPage(1);
           }}
-          className="w-[152px]"
+          className="w-[166px]"
         />
-        <Select
+        <FilterSelect
           value={paymentFilter}
-          onChange={(event) => {
-            setPaymentFilter(event.target.value);
+          onValueChange={(nextValue) => {
+            setPaymentFilter(nextValue);
             setPage(1);
           }}
+          options={[
+            { value: "all", label: "Tất cả thanh toán" },
+            { value: "cash", label: "Tiền mặt" },
+            { value: "card", label: "Thẻ" },
+            { value: "transfer", label: "Chuyển khoản" },
+            { value: "qr", label: "QR" },
+          ]}
           className="w-[170px]"
-        >
-          <option value="all">Tất cả thanh toán</option>
-          <option value="cash">Tiền mặt</option>
-          <option value="card">Thẻ</option>
-          <option value="transfer">Chuyển khoản</option>
-          <option value="qr">QR</option>
-        </Select>
-        <Select
+        />
+        <FilterSelect
           value={statusFilter}
-          onChange={(event) => {
-            setStatusFilter(event.target.value);
+          onValueChange={(nextValue) => {
+            setStatusFilter(nextValue);
             setPage(1);
           }}
+          options={[
+            { value: "all", label: "Tất cả trạng thái" },
+            { value: "completed", label: "Hoàn tất" },
+            { value: "cancelled", label: "Đã hủy" },
+          ]}
           className="w-[170px]"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="completed">Hoàn tất</option>
-          <option value="cancelled">Đã hủy</option>
-        </Select>
+        />
         <Input
           value={search}
           onChange={(event) => {
@@ -604,6 +630,7 @@ export function TransactionListPage() {
                       <CustomerAvatar
                         name={customer?.full_name ?? "NA"}
                         type={customer?.customer_type ?? "potential"}
+                        gender={customer?.gender}
                         className="size-10 text-sm"
                       />
                       <div className="min-w-0">
@@ -617,7 +644,7 @@ export function TransactionListPage() {
                     {transaction.items.length > 1 ? ` +${transaction.items.length - 1} sản phẩm khác` : ""}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="font-mono text-sm font-semibold">{formatCurrencyCompact(transaction.total_amount)}</div>
+                    <div className="text-sm font-semibold tabular-nums">{formatCurrencyCompact(transaction.total_amount)}</div>
                     <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                       <Icon className="size-3.5" />
                       {formatPaymentMethod(transaction.payment_method)}
@@ -626,15 +653,17 @@ export function TransactionListPage() {
                   <TableCell>
                     <StatusBadge
                       label={formatTicketStatus(transaction.payment_status)}
-                      className="bg-muted text-foreground ring-border"
-                      dotClassName="bg-primary"
+                      className={getStatusBadgeColor(transaction.payment_status)}
+                      dotClassName="bg-current"
+                      icon={CreditCard}
                     />
                   </TableCell>
                   <TableCell>
                     <StatusBadge
                       label={formatTicketStatus(transaction.status)}
-                      className="bg-muted text-foreground ring-border"
-                      dotClassName="bg-primary"
+                      className={getStatusBadgeColor(transaction.status)}
+                      dotClassName="bg-current"
+                      icon={CheckCircle2}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -753,6 +782,7 @@ export function TransactionListPage() {
                   label={formatTicketStatus(selectedTransaction.payment_status)}
                   className={getStatusBadgeColor(selectedTransaction.payment_status)}
                   dotClassName="bg-current"
+                  icon={CreditCard}
                 />
               </div>
               <div className="flex justify-between">

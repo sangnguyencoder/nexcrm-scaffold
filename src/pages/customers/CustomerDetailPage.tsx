@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, CreditCard, MessageSquare, Plus, StickyNote, Target, Ticket } from "lucide-react";
+import { CheckCircle2, CreditCard, ListTodo, MessageSquare, Plus, StickyNote, Target, Ticket, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
@@ -308,7 +308,12 @@ export function CustomerDetailPage() {
           contentClassName="space-y-4"
         >
           <div className="flex items-start gap-4">
-            <CustomerAvatar name={customer.full_name} type={customer.customer_type} className="size-16 text-lg" />
+            <CustomerAvatar
+              name={customer.full_name}
+              type={customer.customer_type}
+              gender={customer.gender}
+              className="size-16 text-lg"
+            />
             <div className="min-w-0 space-y-2">
               <div className="text-xs text-muted-foreground">Cập nhật {timeAgo(customer.updated_at ?? customer.created_at)}</div>
               <div className="flex flex-wrap gap-2">
@@ -351,7 +356,7 @@ export function CustomerDetailPage() {
           <InspectorList
             items={[
               { label: "Điện thoại", value: customer.phone || "--" },
-              { label: "Email", value: customer.email || "--" },
+              { label: "Email", value: customer.email || "--", valueClassName: "break-all" },
               { label: "Địa chỉ", value: locationLabel },
               { label: "Nguồn", value: customer.source || "--" },
               { label: "Lần chạm gần nhất", value: timeAgo(latestActivityAt) },
@@ -461,11 +466,41 @@ export function CustomerDetailPage() {
         />
 
         <MetricStrip>
-          <MetricStripItem label="Doanh thu" value={formatCurrencyCompact(customer.total_spent)} helper="Tổng chi tiêu của hồ sơ này." />
-          <MetricStripItem label="Đơn hàng" value={formatNumberCompact(customer.total_orders)} helper={`Lần mua gần nhất ${timeAgo(customer.last_order_at)}.`} />
-          <MetricStripItem label="Cơ hội mở" value={formatNumberCompact(activeDealsCount)} helper="Lead đang còn trong pipeline." />
-          <MetricStripItem label="Ticket mở" value={formatNumberCompact(openTicketsCount)} helper="Case cần xử lý hoặc theo dõi." />
-          <MetricStripItem label="Task chờ" value={formatNumberCompact(pendingTasksCount)} helper="Follow-up chưa hoàn tất." />
+          <MetricStripItem
+            label="Doanh thu"
+            value={formatCurrencyCompact(customer.total_spent)}
+            helper="Tổng chi tiêu của hồ sơ này."
+            icon={Wallet}
+            tone="success"
+          />
+          <MetricStripItem
+            label="Đơn hàng"
+            value={formatNumberCompact(customer.total_orders)}
+            helper={`Lần mua gần nhất ${timeAgo(customer.last_order_at)}.`}
+            icon={CreditCard}
+            tone="primary"
+          />
+          <MetricStripItem
+            label="Cơ hội mở"
+            value={formatNumberCompact(activeDealsCount)}
+            helper="Lead đang còn trong pipeline."
+            icon={Target}
+            tone="info"
+          />
+          <MetricStripItem
+            label="Ticket mở"
+            value={formatNumberCompact(openTicketsCount)}
+            helper="Case cần xử lý hoặc theo dõi."
+            icon={Ticket}
+            tone="warning"
+          />
+          <MetricStripItem
+            label="Task chờ"
+            value={formatNumberCompact(pendingTasksCount)}
+            helper="Follow-up chưa hoàn tất."
+            icon={ListTodo}
+            tone="danger"
+          />
         </MetricStrip>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">

@@ -5,13 +5,13 @@ import { toast } from "sonner";
 
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePosSyncLogsQuery, useSettingsQuery } from "@/hooks/useNexcrmQueries";
 import { copyTextToClipboard, formatDateTime } from "@/lib/utils";
@@ -200,13 +200,18 @@ export function PosSyncPage() {
           placeholder="Tìm theo event id, order id, phone, email"
           className="min-w-[260px] flex-1"
         />
-        <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-[220px]">
-          <option value="all">Tất cả trạng thái</option>
-          <option value="success">Thành công</option>
-          <option value="duplicate">Duplicate</option>
-          <option value="processing">Đang xử lý</option>
-          <option value="failed">Thất bại</option>
-        </Select>
+        <FilterSelect
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          options={[
+            { value: "all", label: "Tất cả trạng thái" },
+            { value: "success", label: "Thành công" },
+            { value: "duplicate", label: "Trùng lặp" },
+            { value: "processing", label: "Đang xử lý" },
+            { value: "failed", label: "Thất bại" },
+          ]}
+          className="w-[220px]"
+        />
       </StickyFilterBar>
 
       <DataTableShell stickyHeader>

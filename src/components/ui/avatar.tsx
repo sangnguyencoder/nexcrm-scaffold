@@ -1,32 +1,41 @@
 import type { HTMLAttributes } from "react";
 import { useState } from "react";
+import { UserRound } from "lucide-react";
 
-import { cn, getInitials } from "@/lib/utils";
+import {
+  cn,
+  getDefaultPersonAvatarUrl,
+  normalizeAvatarGender,
+  type AvatarGender,
+} from "@/lib/utils";
 
 export function Avatar({
   name,
   src,
+  gender,
   className,
-}: HTMLAttributes<HTMLDivElement> & { name: string; src?: string | null }) {
+}: HTMLAttributes<HTMLDivElement> & { name: string; src?: string | null; gender?: AvatarGender | string | null }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const showImage = Boolean(src && failedSrc !== src);
+  const fallbackSrc = getDefaultPersonAvatarUrl(normalizeAvatarGender(gender, name));
+  const preferredSrc = src && failedSrc !== src ? src : fallbackSrc;
+  const showImage = Boolean(preferredSrc && failedSrc !== preferredSrc);
 
   return (
     <div
       className={cn(
-        "inline-flex size-10 items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-muted/80 font-semibold text-foreground",
+        "inline-flex size-10 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/80 text-foreground",
         className,
       )}
     >
       {showImage ? (
         <img
-          src={src ?? undefined}
+          src={preferredSrc ?? undefined}
           alt={name}
           className="size-full object-cover"
-          onError={() => setFailedSrc(src ?? null)}
+          onError={() => setFailedSrc(preferredSrc ?? null)}
         />
       ) : (
-        getInitials(name)
+        <UserRound className="size-5 text-muted-foreground" />
       )}
     </div>
   );

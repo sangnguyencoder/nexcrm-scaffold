@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   CalendarClock,
   Copy,
   Lightbulb,
@@ -19,6 +20,7 @@ import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
 import { InspectorList } from "@/components/shared/inspector-list";
@@ -386,10 +388,34 @@ export function AutomationPage() {
       />
 
       <MetricStrip>
-        <MetricStripItem label="Quy tắc" value={formatNumberCompact(rules.length)} helper={`${formatNumberCompact(summary.active)} rule đang hoạt động.`} />
-        <MetricStripItem label="Đã gửi" value={formatNumberCompact(summary.sent)} helper="Outbound message từ tất cả quy tắc." />
-        <MetricStripItem label="Thất bại" value={formatNumberCompact(summary.failed)} helper="Dùng để kiểm tra provider hoặc dữ liệu liên hệ." />
-        <MetricStripItem label="Đã chạy" value={formatNumberCompact(summary.recentRuns)} helper="Rule đã có ít nhất một lần run." />
+        <MetricStripItem
+          label="Quy tắc"
+          value={formatNumberCompact(rules.length)}
+          helper={`${formatNumberCompact(summary.active)} rule đang hoạt động.`}
+          icon={Zap}
+          tone="primary"
+        />
+        <MetricStripItem
+          label="Đã gửi"
+          value={formatNumberCompact(summary.sent)}
+          helper="Outbound message từ tất cả quy tắc."
+          icon={Mail}
+          tone="success"
+        />
+        <MetricStripItem
+          label="Thất bại"
+          value={formatNumberCompact(summary.failed)}
+          helper="Dùng để kiểm tra provider hoặc dữ liệu liên hệ."
+          icon={AlertTriangle}
+          tone="danger"
+        />
+        <MetricStripItem
+          label="Đã chạy"
+          value={formatNumberCompact(summary.recentRuns)}
+          helper="Rule đã có ít nhất một lần run."
+          icon={CalendarClock}
+          tone="info"
+        />
       </MetricStrip>
 
       <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
@@ -407,24 +433,26 @@ export function AutomationPage() {
           aria-label="Tìm quy tắc tự động"
           className="min-w-[260px] flex-1"
         />
-        <Select
+        <FilterSelect
           value={activeFilter}
-          onChange={(event) => setActiveFilter(event.target.value as typeof activeFilter)}
-          className="w-[150px]"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="active">Đang hoạt động</option>
-          <option value="inactive">Đã tắt</option>
-        </Select>
-        <Select
+          onValueChange={(nextValue) => setActiveFilter(nextValue as typeof activeFilter)}
+          options={[
+            { value: "all", label: "Tất cả trạng thái" },
+            { value: "active", label: "Đang hoạt động" },
+            { value: "inactive", label: "Đã tắt" },
+          ]}
+          className="w-[160px]"
+        />
+        <FilterSelect
           value={channelFilter}
-          onChange={(event) => setChannelFilter(event.target.value as typeof channelFilter)}
-          className="w-[130px]"
-        >
-          <option value="all">Tất cả kênh</option>
-          <option value="email">Email</option>
-          <option value="sms">SMS</option>
-        </Select>
+          onValueChange={(nextValue) => setChannelFilter(nextValue as typeof channelFilter)}
+          options={[
+            { value: "all", label: "Tất cả kênh" },
+            { value: "email", label: "Email" },
+            { value: "sms", label: "SMS" },
+          ]}
+          className="w-[140px]"
+        />
       </StickyFilterBar>
 
       <DataTableShell stickyHeader>

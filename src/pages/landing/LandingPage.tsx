@@ -244,9 +244,7 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
         <nav className="mx-auto flex h-14 w-full max-w-[1240px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-mono text-sm font-bold text-primary-foreground">
-              N
-            </div>
+            <img src="/branding/nexcrm-mark.svg" alt="NexCRM logo" className="size-8 rounded-lg object-cover" />
             <span className="text-sm font-semibold text-foreground">NexCRM</span>
           </div>
 
@@ -497,9 +495,7 @@ export function LandingPage() {
       <footer className="bg-background py-8">
         <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="inline-flex items-center gap-2.5 text-foreground">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-mono text-sm font-bold text-primary-foreground">
-              N
-            </div>
+            <img src="/branding/nexcrm-mark.svg" alt="NexCRM logo" className="size-8 rounded-lg object-cover" />
             <span className="font-semibold">NexCRM</span>
           </div>
 

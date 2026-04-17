@@ -20,6 +20,7 @@ import { CompactPagination } from "@/components/shared/compact-pagination";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
@@ -468,28 +469,42 @@ export function TicketListPage() {
             className="pl-9"
           />
         </div>
-        <Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="w-[170px]">
-          <option value="all">Tất cả mức ưu tiên</option>
-          <option value="urgent">Khẩn cấp</option>
-          <option value="high">Cao</option>
-          <option value="medium">Trung bình</option>
-          <option value="low">Thấp</option>
-        </Select>
-        <Select value={assignedFilter} onChange={(event) => setAssignedFilter(event.target.value)} className="w-[180px]">
-          <option value="all">Tất cả phụ trách</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name}
-            </option>
-          ))}
-        </Select>
-        <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-[170px]">
-          <option value="all">Tất cả danh mục</option>
-          <option value="inquiry">Yêu cầu</option>
-          <option value="feedback">Phản hồi</option>
-          <option value="complaint">Khiếu nại</option>
-          <option value="return">Đổi trả</option>
-        </Select>
+        <FilterSelect
+          value={priorityFilter}
+          onValueChange={setPriorityFilter}
+          options={[
+            { value: "all", label: "Tất cả mức ưu tiên" },
+            { value: "urgent", label: "Khẩn cấp" },
+            { value: "high", label: "Cao" },
+            { value: "medium", label: "Trung bình" },
+            { value: "low", label: "Thấp" },
+          ]}
+          className="w-[170px]"
+        />
+        <FilterSelect
+          value={assignedFilter}
+          onValueChange={setAssignedFilter}
+          options={[
+            { value: "all", label: "Tất cả phụ trách" },
+            ...users.map((user) => ({
+              value: user.id,
+              label: user.full_name,
+            })),
+          ]}
+          className="w-[180px]"
+        />
+        <FilterSelect
+          value={categoryFilter}
+          onValueChange={setCategoryFilter}
+          options={[
+            { value: "all", label: "Tất cả danh mục" },
+            { value: "inquiry", label: "Yêu cầu" },
+            { value: "feedback", label: "Phản hồi" },
+            { value: "complaint", label: "Khiếu nại" },
+            { value: "return", label: "Đổi trả" },
+          ]}
+          className="w-[170px]"
+        />
       </StickyFilterBar>
 
       {viewMode === "kanban" ? (
@@ -539,7 +554,7 @@ export function TicketListPage() {
                             highlightedTicketId === ticket.id ? "ring-2 ring-primary/40" : ""
                           } ${getPriorityBorderClass(ticket.priority)}`}
                         >
-                          <GripVertical className="absolute right-2 top-2 size-4 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+                          <GripVertical className="absolute right-2 top-2 size-4 text-muted-foreground/70" />
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span className="font-mono">{ticket.ticket_code}</span>
                             <span>{timeAgo(ticket.created_at)}</span>

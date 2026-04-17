@@ -20,10 +20,10 @@ const buttonVariants = cva(
         soft: "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15",
       },
       size: {
-        default: "h-9 px-4",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-10 px-5 text-sm",
-        icon: "size-9",
+        default: "h-10 px-4",
+        sm: "h-9 px-3 text-xs",
+        lg: "h-11 px-5 text-sm",
+        icon: "size-10",
       },
     },
     defaultVariants: {
