@@ -33,8 +33,8 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
-import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { usePermission } from "@/hooks/usePermission";
 import { queryKeys, useAutomationQuery, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
 import { cn, formatNumberCompact, timeAgo } from "@/lib/utils";
 import { automationService } from "@/services/automationService";
@@ -140,6 +140,10 @@ function formatIntervalLabel(intervalMinutes: number) {
 
 export function AutomationPage() {
   const queryClient = useQueryClient();
+  const { canAccess } = usePermission();
+  const canCreateAutomation = canAccess("automation:create");
+  const canUpdateAutomation = canAccess("automation:update");
+  const canDeleteAutomation = canAccess("automation:delete");
   const { data: rules = [], isLoading } = useAutomationQuery();
   const { data: outboundMessages = [] } = useOutboundMessagesQuery();
   const [open, setOpen] = useState(false);
@@ -283,6 +287,12 @@ export function AutomationPage() {
       ? "Đã cập nhật quy tắc tự động"
       : "Đã tạo quy tắc tự động mới",
     mutationFn: (values: RuleForm) => {
+      if (editingRule && !canUpdateAutomation) {
+        throw new Error("Bạn không có quyền chỉnh sửa quy tắc tự động.");
+      }
+      if (!editingRule && !canCreateAutomation) {
+        throw new Error("Bạn không có quyền tạo quy tắc tự động.");
+      }
       const scheduleEnabled = values.schedule_enabled === true;
       const scheduleIntervalMinutes = Number.isFinite(values.schedule_interval_minutes)
         ? Math.max(5, Math.round(values.schedule_interval_minutes))
@@ -384,6 +394,14 @@ export function AutomationPage() {
   });
 
   const openRuleEditor = (rule?: AutomationRule | null) => {
+    if (rule && !canUpdateAutomation) {
+      toast.error("Bạn không có quyền chỉnh sửa quy tắc tự động.");
+      return;
+    }
+    if (!rule && !canCreateAutomation) {
+      toast.error("Bạn không có quyền tạo quy tắc tự động.");
+      return;
+    }
     setEditingRule(rule ?? null);
     form.reset(getRuleDraft(rule));
     setOpen(true);
@@ -432,20 +450,22 @@ export function AutomationPage() {
         // subtitle="Rule list, trigger và kết quả gửi được gom vào cùng một workspace để team vận hành scan nhanh hơn."
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => runScheduler.mutate()}
-              disabled={runScheduler.isPending}
-            >
-              <CalendarClock className="size-4" />
-              {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
-            </Button>
-            <Can roles={["super_admin", "admin", "director", "marketing", "cskh"]}>
+            {canUpdateAutomation ? (
+              <Button
+                variant="secondary"
+                onClick={() => runScheduler.mutate()}
+                disabled={runScheduler.isPending}
+              >
+                <CalendarClock className="size-4" />
+                {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
+              </Button>
+            ) : null}
+            {canCreateAutomation ? (
               <Button onClick={() => openRuleEditor()}>
                 <Plus className="size-4" />
                 Tạo Quy Tắc
               </Button>
-            </Can>
+            ) : null}
           </div>
         }
       />
@@ -578,6 +598,7 @@ export function AutomationPage() {
                       <div className="flex items-center gap-3">
                         <Switch
                           checked={rule.is_active}
+                          disabled={!canUpdateAutomation}
                           onChange={(event) =>
                             void toggleRule.mutateAsync({ id: rule.id, isActive: event.target.checked })
                           }
@@ -636,19 +657,23 @@ export function AutomationPage() {
                         <Button variant="ghost" size="sm" onClick={() => setDetailRule(rule)}>
                           Xem
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openRuleEditor(rule)}>
-                          <Pencil className="size-4" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => runRule.mutate(rule.id)}
-                          disabled={runRule.isPending || !rule.is_active}
-                        >
-                          <Play className="size-4" />
-                          Chạy
-                        </Button>
+                        {canUpdateAutomation ? (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => openRuleEditor(rule)}>
+                              <Pencil className="size-4" />
+                              Sửa
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => runRule.mutate(rule.id)}
+                              disabled={runRule.isPending || !rule.is_active}
+                            >
+                              <Play className="size-4" />
+                              Chạy
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -685,22 +710,30 @@ export function AutomationPage() {
                 Đóng
               </Button>
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" onClick={() => openRuleEditor(detailRule)}>
-                  <Pencil className="size-4" />
-                  Chỉnh sửa
-                </Button>
-                <Button variant="outline" onClick={() => duplicateRule.mutate(detailRule.id)} disabled={duplicateRule.isPending}>
-                  <Copy className="size-4" />
-                  Nhân bản
-                </Button>
-                <Button variant="destructive" onClick={() => setDeleteTarget(detailRule)}>
-                  <Trash2 className="size-4" />
-                  Xóa
-                </Button>
-                <Button onClick={() => runRule.mutate(detailRule.id)} disabled={runRule.isPending || !detailRule.is_active}>
-                  <Play className="size-4" />
-                  Chạy ngay
-                </Button>
+                {canUpdateAutomation ? (
+                  <Button variant="outline" onClick={() => openRuleEditor(detailRule)}>
+                    <Pencil className="size-4" />
+                    Chỉnh sửa
+                  </Button>
+                ) : null}
+                {canCreateAutomation ? (
+                  <Button variant="outline" onClick={() => duplicateRule.mutate(detailRule.id)} disabled={duplicateRule.isPending}>
+                    <Copy className="size-4" />
+                    Nhân bản
+                  </Button>
+                ) : null}
+                {canDeleteAutomation ? (
+                  <Button variant="destructive" onClick={() => setDeleteTarget(detailRule)}>
+                    <Trash2 className="size-4" />
+                    Xóa
+                  </Button>
+                ) : null}
+                {canUpdateAutomation ? (
+                  <Button onClick={() => runRule.mutate(detailRule.id)} disabled={runRule.isPending || !detailRule.is_active}>
+                    <Play className="size-4" />
+                    Chạy ngay
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null
@@ -812,7 +845,11 @@ export function AutomationPage() {
             </Button>
             <Button
               onClick={form.handleSubmit((values) => saveRule.mutate(values))}
-              disabled={saveRule.isPending || !ruleName.trim()}
+              disabled={
+                saveRule.isPending ||
+                !ruleName.trim() ||
+                (editingRule ? !canUpdateAutomation : !canCreateAutomation)
+              }
             >
               {saveRule.isPending ? "Đang lưu…" : editingRule ? "Lưu thay đổi" : "Tạo quy tắc"}
             </Button>
@@ -1007,7 +1044,7 @@ export function AutomationPage() {
       </Modal>
 
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
+        open={Boolean(deleteTarget) && canDeleteAutomation}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
             setDeleteTarget(null);
@@ -1017,7 +1054,7 @@ export function AutomationPage() {
         description="Quy tắc này sẽ bị xóa khỏi hệ thống và không thể hoàn tác."
         confirmLabel="Xóa quy tắc"
         onConfirm={() => {
-          if (deleteTarget) {
+          if (deleteTarget && canDeleteAutomation) {
             deleteRule.mutate(deleteTarget.id);
             setDeleteTarget(null);
           }

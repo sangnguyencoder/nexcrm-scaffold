@@ -29,7 +29,6 @@ import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
-import { Can } from "@/components/shared/Can";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
@@ -39,6 +38,7 @@ import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuthStore } from "@/store/authStore";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -207,6 +207,7 @@ function CustomerFormModal({
 }) {
   const queryClient = useQueryClient();
   const { data: users = [] } = useUsersQuery();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
   const { data: existingNotes = [] } = useNotesQuery(
     initialCustomer?.id,
     Boolean(open && initialCustomer?.id),
@@ -217,6 +218,7 @@ function CustomerFormModal({
     () => existingNotes[0]?.content?.trim() ?? "",
     [existingNotes],
   );
+  const defaultAssigneeId = currentUserId || "";
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
@@ -228,7 +230,7 @@ function CustomerFormModal({
       source: "direct",
       address: "",
       province: "",
-      assigned_to: users[0]?.id ?? "",
+      assigned_to: defaultAssigneeId,
       notes: "",
     },
   });
@@ -246,11 +248,11 @@ function CustomerFormModal({
         source: normalizeSource(initialCustomer?.source),
         address: initialCustomer?.address ?? "",
         province: initialCustomer?.province ?? "",
-        assigned_to: initialCustomer?.assigned_to ?? users[0]?.id ?? "",
+        assigned_to: initialCustomer?.assigned_to ?? defaultAssigneeId,
         notes: "",
       });
     }
-  }, [form, initialCustomer, open, users]);
+  }, [defaultAssigneeId, form, initialCustomer, open]);
 
   useEffect(() => {
     if (!open || !isEdit || !latestInteractionNote) {
@@ -292,7 +294,7 @@ function CustomerFormModal({
         email: values.email || "",
         address: values.address || "",
         province: values.province || "",
-        assigned_to: values.assigned_to || users[0]?.id || "",
+        assigned_to: values.assigned_to || undefined,
         notes: values.notes || "",
         tags: [],
       });
@@ -460,7 +462,10 @@ function CustomerFormModal({
 
 export function CustomerListPage() {
   const navigate = useNavigate();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
   const { canAccess } = usePermission();
+  const canCreateCustomer = canAccess("customer:create");
+  const canUpdateCustomer = canAccess("customer:update");
   const canDeleteCustomer = canAccess("customer:delete");
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -487,7 +492,7 @@ export function CustomerListPage() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const requestedCreate = searchParams.get("create") === "1";
-  const formOpen = requestedCreate || formOpenLocal;
+  const formOpen = (requestedCreate && canCreateCustomer) || formOpenLocal;
 
   const clearCreateParam = () => {
     if (!requestedCreate) return;
@@ -573,8 +578,15 @@ export function CustomerListPage() {
 
   useEffect(() => {
     if (!requestedCreate) return;
+    if (!canCreateCustomer) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("create");
+      setSearchParams(next, { replace: true });
+      toast.error("Bạn không có quyền tạo khách hàng.");
+      return;
+    }
     setEditingCustomer(null);
-  }, [requestedCreate]);
+  }, [canCreateCustomer, requestedCreate, searchParams, setSearchParams]);
 
   const totalPages = Math.max(1, Math.ceil(sortedCustomers.length / 10));
   const currentPage = Math.min(page, totalPages);
@@ -682,6 +694,12 @@ export function CustomerListPage() {
   };
 
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!canCreateCustomer) {
+      toast.error("Bạn không có quyền nhập khách hàng.");
+      event.target.value = "";
+      return;
+    }
+
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -730,7 +748,7 @@ export function CustomerListPage() {
           source: mapImportedSource(normalizedRow.source || normalizedRow.nguon),
           address: normalizedRow.address || normalizedRow.diachi || "",
           province: normalizedRow.province || normalizedRow.tinhthanh || "",
-          assigned_to: users[0]?.id ?? "",
+          assigned_to: currentUserId || undefined,
           notes: normalizedRow.notes || normalizedRow.ghichu || "",
           tags: [],
         });
@@ -778,15 +796,17 @@ export function CustomerListPage() {
         actions={
           <div className="flex items-center gap-2">
             <Badge className="border border-border bg-muted text-muted-foreground">{customers.length} khách hàng</Badge>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="border-sky-500/35 bg-sky-500/10 text-sky-700 hover:bg-sky-500/15 dark:text-sky-300"
-              onClick={() => importInputRef.current?.click()}
-            >
-              <Upload className="size-4" />
-              Import
-            </Button>
+            {canCreateCustomer ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="border-sky-500/35 bg-sky-500/10 text-sky-700 hover:bg-sky-500/15 dark:text-sky-300"
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Upload className="size-4" />
+                Import
+              </Button>
+            ) : null}
             <Button
               variant="secondary"
               size="sm"
@@ -796,7 +816,7 @@ export function CustomerListPage() {
               <Download className="size-4" />
               Export
             </Button>
-            <Can roles={["sales", "admin", "super_admin"]}>
+            {canCreateCustomer ? (
               <Button
                 size="sm"
                 onClick={() => {
@@ -807,7 +827,7 @@ export function CustomerListPage() {
                 <UserPlus className="size-4" />
                 Thêm Khách Hàng
               </Button>
-            </Can>
+            ) : null}
           </div>
         }
       />
@@ -885,25 +905,29 @@ export function CustomerListPage() {
         <BulkActionBar>
           <div className="text-sm font-medium text-primary">{selectedIds.length} khách hàng đã chọn</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={bulkType}
-              onChange={(event) => setBulkType(event.target.value as Customer["customer_type"])}
-              className="w-[180px]"
-            >
-              <option value="potential">Tiềm năng</option>
-              <option value="new">Mới</option>
-              <option value="loyal">Thân thiết</option>
-              <option value="vip">VIP</option>
-              <option value="inactive">Không hoạt động</option>
-            </Select>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => bulkChangeTypeMutation.mutate({ ids: selectedIds, type: bulkType })}
-              disabled={bulkChangeTypeMutation.isPending || bulkDeleteMutation.isPending}
-            >
-              Đổi phân loại
-            </Button>
+            {canUpdateCustomer ? (
+              <>
+                <Select
+                  value={bulkType}
+                  onChange={(event) => setBulkType(event.target.value as Customer["customer_type"])}
+                  className="w-[180px]"
+                >
+                  <option value="potential">Tiềm năng</option>
+                  <option value="new">Mới</option>
+                  <option value="loyal">Thân thiết</option>
+                  <option value="vip">VIP</option>
+                  <option value="inactive">Không hoạt động</option>
+                </Select>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => bulkChangeTypeMutation.mutate({ ids: selectedIds, type: bulkType })}
+                  disabled={bulkChangeTypeMutation.isPending || bulkDeleteMutation.isPending}
+                >
+                  Đổi phân loại
+                </Button>
+              </>
+            ) : null}
             <Button
               variant="destructive"
               size="sm"
@@ -1032,9 +1056,9 @@ export function CustomerListPage() {
                     <div className="space-y-0.5">
                       <div className="text-sm text-foreground">{customer.phone || "--"}</div>
                       <div className="break-all text-xs text-muted-foreground">{customer.email || "--"}</div>
-                      <div className="text-xs text-muted-foreground">
+                      {/* <div className="text-xs text-muted-foreground">
                         Sinh nhật: {customer.date_of_birth ? formatDate(customer.date_of_birth) : "--"}
-                      </div>
+                      </div> */}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -1085,17 +1109,19 @@ export function CustomerListPage() {
                       <Button size="icon" variant="ghost" aria-label={`Xem hồ sơ ${customer.full_name}`} onClick={() => navigate(`/customers/${customer.id}`)}>
                         <Eye className="size-4" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={`Chỉnh sửa ${customer.full_name}`}
-                        onClick={() => {
-                          setEditingCustomer(customer);
-                          setFormOpenLocal(true);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
+                      {canUpdateCustomer ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Chỉnh sửa ${customer.full_name}`}
+                          onClick={() => {
+                            setEditingCustomer(customer);
+                            setFormOpenLocal(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      ) : null}
                       {canDeleteCustomer ? (
                         <Button size="icon" variant="ghost" aria-label={`Xóa mềm ${customer.full_name}`} onClick={() => setDeleteTarget(customer)}>
                           <Trash2 className="size-4 text-rose-500" />

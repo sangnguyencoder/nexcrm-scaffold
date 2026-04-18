@@ -18,6 +18,7 @@ import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { usePermission } from "@/hooks/usePermission";
 import {
   queryKeys,
   useCommentsQuery,
@@ -37,6 +38,9 @@ export function TicketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canAccess, canAccessAny } = usePermission();
+  const canUpdateTicket = canAccess("ticket:update");
+  const canCommentTicket = canAccessAny(["ticket:create", "ticket:update"]);
   const ticketQuery = useTicketDetailQuery(id);
   const usersQuery = useUsersQuery();
   const customerQuery = useCustomerDetailQuery(ticketQuery.data?.customer_id);
@@ -131,6 +135,9 @@ export function TicketDetailPage() {
     payload: Parameters<typeof ticketService.update>[1],
     successMessage: string,
   ) => {
+    if (!canUpdateTicket) {
+      return;
+    }
     try {
       await updateTicket.mutateAsync(payload);
       await queryClient.invalidateQueries({ queryKey: ["ticket-comments"] });
@@ -159,7 +166,7 @@ export function TicketDetailPage() {
                 Hồ sơ khách hàng
               </Button>
             ) : null}
-            {ticket.status === "resolved" ? (
+            {canUpdateTicket && ticket.status === "resolved" ? (
               <Button size="sm" onClick={() => setCloseConfirmOpen(true)}>
                 <ShieldCheck className="size-4" />
                 Close Ticket
@@ -284,83 +291,91 @@ export function TicketDetailPage() {
             // description="Soạn nhanh phản hồi công khai hoặc ghi chú nội bộ ngay trong cùng màn."
           >
             <div className="space-y-4">
-              {addComment.actionError ? (
-                <ActionErrorAlert
-                  error={addComment.actionError}
-                  onDismiss={addComment.clearActionError}
-                  onRetry={addComment.canRetry ? () => void addComment.retryLast() : undefined}
-                />
-              ) : null}
+              {canCommentTicket ? (
+                <>
+                  {addComment.actionError ? (
+                    <ActionErrorAlert
+                      error={addComment.actionError}
+                      onDismiss={addComment.clearActionError}
+                      onRetry={addComment.canRetry ? () => void addComment.retryLast() : undefined}
+                    />
+                  ) : null}
 
-              <FormField
-                label="Nội dung phản hồi"
-                hint={internalReply ? "Ghi chú chỉ hiển thị nội bộ" : "Sẽ được ghi vào thread ticket"}
-                description={replyTooShort ? "Phản hồi cần tối thiểu 10 ký tự để gửi." : undefined}
-                error={replyTooShort ? "Phản hồi tối thiểu 10 ký tự." : undefined}
-              >
-                <Textarea
-                  value={reply}
-                  onChange={(event) => setReply(event.target.value)}
-                  placeholder={
-                    internalReply
-                      ? "Nhập ghi chú nội bộ cho team xử lý ticket"
-                      : "Nhập phản hồi gửi cho khách hàng"
-                  }
-                  rows={6}
-                />
-              </FormField>
+                  <FormField
+                    label="Nội dung phản hồi"
+                    hint={internalReply ? "Ghi chú chỉ hiển thị nội bộ" : "Sẽ được ghi vào thread ticket"}
+                    description={replyTooShort ? "Phản hồi cần tối thiểu 10 ký tự để gửi." : undefined}
+                    error={replyTooShort ? "Phản hồi tối thiểu 10 ký tự." : undefined}
+                  >
+                    <Textarea
+                      value={reply}
+                      onChange={(event) => setReply(event.target.value)}
+                      placeholder={
+                        internalReply
+                          ? "Nhập ghi chú nội bộ cho team xử lý ticket"
+                          : "Nhập phản hồi gửi cho khách hàng"
+                      }
+                      rows={6}
+                    />
+                  </FormField>
 
-              <div className="grid gap-2 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setInternalReply(false)}
-                  className={
-                    internalReply
-                      ? "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
-                      : "rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-left text-sm text-primary transition"
-                  }
-                >
-                  <div className="font-medium">Public reply</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Hiển thị trong luồng trao đổi với khách hàng.</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInternalReply(true)}
-                  className={
-                    internalReply
-                      ? "rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-left text-sm text-amber-700 transition dark:text-amber-200"
-                      : "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
-                  }
-                >
-                  <div className="flex items-center gap-2 font-medium">
-                    <EyeOff className="size-4" />
-                    Internal note
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setInternalReply(false)}
+                      className={
+                        internalReply
+                          ? "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
+                          : "rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-left text-sm text-primary transition"
+                      }
+                    >
+                      <div className="font-medium">Public reply</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Hiển thị trong luồng trao đổi với khách hàng.</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInternalReply(true)}
+                      className={
+                        internalReply
+                          ? "rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-left text-sm text-amber-700 transition dark:text-amber-200"
+                          : "rounded-xl border border-border/80 px-3 py-2.5 text-left text-sm transition hover:bg-muted/35"
+                      }
+                    >
+                      <div className="flex items-center gap-2 font-medium">
+                        <EyeOff className="size-4" />
+                        Internal note
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">Chỉ team nội bộ nhìn thấy, không gửi cho khách.</div>
+                    </button>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">Chỉ team nội bộ nhìn thấy, không gửi cho khách.</div>
-                </button>
-              </div>
 
-              <div className="flex justify-end">
-                <Button
-                  onClick={async () => {
-                    if (reply.trim().length < 10) {
-                      toast.error("Phản hồi tối thiểu 10 ký tự");
-                      return;
-                    }
-                    try {
-                      await addComment.mutateAsync({
-                        content: reply.trim(),
-                        isInternal: internalReply,
-                      });
-                    } catch {
-                      return;
-                    }
-                  }}
-                  disabled={addComment.isPending}
-                >
-                  {addComment.isPending ? "Đang gửi…" : "Gửi phản hồi"}
-                </Button>
-              </div>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={async () => {
+                        if (reply.trim().length < 10) {
+                          toast.error("Phản hồi tối thiểu 10 ký tự");
+                          return;
+                        }
+                        try {
+                          await addComment.mutateAsync({
+                            content: reply.trim(),
+                            isInternal: internalReply,
+                          });
+                        } catch {
+                          return;
+                        }
+                      }}
+                      disabled={addComment.isPending}
+                    >
+                      {addComment.isPending ? "Đang gửi…" : "Gửi phản hồi"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                  Bạn không có quyền gửi phản hồi cho ticket này.
+                </div>
+              )}
             </div>
           </SectionPanel>
         </div>
@@ -371,7 +386,7 @@ export function TicketDetailPage() {
             // description="Cập nhật title, status, priority và assignee mà không làm đứt luồng xử lý."
           >
             <div className="space-y-4">
-              {updateTicket.actionError ? (
+              {canUpdateTicket && updateTicket.actionError ? (
                 <ActionErrorAlert
                   error={updateTicket.actionError}
                   onDismiss={updateTicket.clearActionError}
@@ -382,6 +397,7 @@ export function TicketDetailPage() {
               <FormField label="Tiêu đề">
                 <Input
                   value={titleDraft || ticket.title}
+                  disabled={!canUpdateTicket}
                   onChange={(event) => setTitleDraft(event.target.value)}
                   onBlur={() => void saveTitle()}
                   aria-label="Tiêu đề ticket"
@@ -392,6 +408,7 @@ export function TicketDetailPage() {
                 <FormField label="Trạng thái">
                   <Select
                     value={ticket.status}
+                    disabled={!canUpdateTicket}
                     onChange={(event) =>
                       void applyUpdate(
                         { status: event.target.value as typeof ticket.status },
@@ -410,6 +427,7 @@ export function TicketDetailPage() {
                 <FormField label="Ưu tiên">
                   <Select
                     value={ticket.priority}
+                    disabled={!canUpdateTicket}
                     onChange={(event) =>
                       void applyUpdate(
                         { priority: event.target.value as typeof ticket.priority },
@@ -432,6 +450,7 @@ export function TicketDetailPage() {
                 <FormField label="Người phụ trách">
                   <UserSelect
                     value={ticket.assigned_to}
+                    disabled={!canUpdateTicket}
                     onValueChange={(nextValue) =>
                       void applyUpdate(
                         { assigned_to: nextValue },
@@ -484,7 +503,7 @@ export function TicketDetailPage() {
       </div>
 
       <ConfirmDialog
-        open={closeConfirmOpen}
+        open={closeConfirmOpen && canUpdateTicket}
         onOpenChange={setCloseConfirmOpen}
         title="Đóng ticket này?"
         description="Ticket đã resolved sẽ được chuyển sang trạng thái closed."

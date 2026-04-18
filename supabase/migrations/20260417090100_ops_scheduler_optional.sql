@@ -20,9 +20,9 @@ select cron.schedule(
   'run-daily-automation',
   '0 2 * * *',
   $$select net.http_post(
-      url := 'https://oqkqncodmvvndofkfmux.supabase.co/functions/v1/run-automation',
+      url := 'https://cmcgpiqfyysirwpwpoiy.supabase.co/functions/v1/run-automation',
       headers := jsonb_build_object(
-        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xa3FuY29kbXZ2bmRvZmtmbXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjQwNTU0NCwiZXhwIjoyMDkxOTgxNTQ0fQ.cDAPwbQsTEtU6MsBs4co-3ZRTUucEUq-Pj0Oy4CsogY',
+        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtY2dwaXFmeXlzaXJ3cHdwb2l5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjQzMzIzNCwiZXhwIjoyMDkyMDA5MjM0fQ.MFV82hHhBKTUUmpOkgpfRI7tLH10ACuEBuKNiDnMgpQ',
         'Content-Type', 'application/json'
       ),
       body := '{}'::jsonb

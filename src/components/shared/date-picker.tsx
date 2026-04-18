@@ -14,7 +14,7 @@ const MONTH_DISPLAY_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
   month: "long",
   year: "numeric",
 });
-const PANEL_WIDTH = 304;
+const PANEL_WIDTH = 280;
 const PANEL_OFFSET = 8;
 const VIEWPORT_MARGIN = 12;
 
@@ -116,10 +116,15 @@ export function DatePicker({
   useEffect(() => {
     if (!open) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const inTrigger = containerRef.current?.contains(target);
-      const inPanel = panelRef.current?.contains(target);
+    const handlePointerDown = (event: PointerEvent) => {
+      const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+      const target = event.target instanceof Node ? event.target : null;
+      const inTrigger =
+        path.includes(containerRef.current as EventTarget) ||
+        (target ? containerRef.current?.contains(target) : false);
+      const inPanel =
+        path.includes(panelRef.current as EventTarget) ||
+        (target ? panelRef.current?.contains(target) : false);
       if (!inTrigger && !inPanel) {
         setOpen(false);
       }
@@ -131,10 +136,10 @@ export function DatePicker({
       }
     };
 
-    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("pointerdown", handlePointerDown, true);
     window.addEventListener("keydown", handleEscape);
     return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("pointerdown", handlePointerDown, true);
       window.removeEventListener("keydown", handleEscape);
     };
   }, [open]);
@@ -180,7 +185,7 @@ export function DatePicker({
     setDisplayMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1));
 
   return (
-    <div ref={containerRef} className={cn("min-w-[176px]", className)}>
+    <div ref={containerRef} className={cn("min-w-[188px]", className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -214,7 +219,7 @@ export function DatePicker({
                 left: panelStyle.left,
                 width: panelStyle.width,
               }}
-              className="fixed z-[70] overflow-hidden rounded-2xl border border-border/80 bg-popover p-3 shadow-soft"
+              className="fixed z-[120] overflow-hidden rounded-2xl border border-border/80 bg-popover p-3 shadow-soft pointer-events-auto"
             >
           <div className="mb-3 flex items-center justify-between gap-2 px-1">
             <div className="text-sm font-semibold text-foreground">{monthLabel}</div>
@@ -238,7 +243,7 @@ export function DatePicker({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-0.5 px-1 pb-1.5">
+          <div className="grid grid-cols-7 gap-0 px-1 pb-1.5">
             {WEEKDAY_LABELS.map((label) => (
               <div key={label} className="py-1 text-center text-[11px] font-semibold text-muted-foreground">
                 {label}
@@ -246,7 +251,7 @@ export function DatePicker({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-0.5 px-1">
+          <div className="grid grid-cols-7 gap-0 px-1">
             {gridDays.map((date) => {
               const outsideCurrentMonth = date.getMonth() !== displayMonth.getMonth();
               const selected = selectedDate ? isSameDate(date, selectedDate) : false;
@@ -260,7 +265,7 @@ export function DatePicker({
                   disabled={disabledDate}
                   onClick={() => selectDate(date)}
                   className={cn(
-                    "inline-flex h-8 w-8 items-center justify-center rounded-lg text-[13px] tabular-nums transition-colors",
+                    "inline-flex h-7 w-7 items-center justify-center rounded-md text-xs tabular-nums transition-colors",
                     outsideCurrentMonth ? "text-muted-foreground/65" : "text-foreground",
                     isToday && !selected && "border border-primary/40 text-primary",
                     selected && "bg-primary font-semibold text-primary-foreground shadow-xs",

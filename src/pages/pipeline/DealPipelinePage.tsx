@@ -32,10 +32,10 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { UserSelect } from "@/components/shared/user-select";
-import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,6 +144,8 @@ function DealFormModal({
   const queryClient = useQueryClient();
   const { data: customers = [] } = useCustomersQuery();
   const { data: users = [] } = useUsersQuery();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
+  const defaultOwnerId = currentUserId || "";
   const [customerSearch, setCustomerSearch] = useState("");
   const deferredCustomerSearch = useDebouncedValue(customerSearch, 150);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -170,14 +172,14 @@ function DealFormModal({
     form.reset({
       title: initialDeal?.title ?? "",
       customer_id: initialDeal?.customer_id ?? prefillCustomerId ?? "",
-      owner_id: initialDeal?.owner_id ?? users[0]?.id ?? "",
+      owner_id: initialDeal?.owner_id ?? defaultOwnerId,
       stage: initialDeal?.stage ?? "lead",
       value: initialDeal?.value ?? 0,
       probability: initialDeal?.probability ?? 20,
       expected_close_at: initialDeal?.expected_close_at?.slice(0, 10) ?? "",
       description: initialDeal?.description ?? "",
     });
-  }, [form, initialDeal, open, prefillCustomerId, users]);
+  }, [defaultOwnerId, form, initialDeal, open, prefillCustomerId]);
 
   const mutation = useAppMutation({
     action: isEdit ? "deal.update" : "deal.create",
@@ -349,9 +351,17 @@ function DealFormModal({
   );
 }
 
-function TaskForm({ dealId }: { dealId: string }) {
+function TaskForm({
+  dealId,
+  canCreateTask,
+}: {
+  dealId: string;
+  canCreateTask: boolean;
+}) {
   const queryClient = useQueryClient();
   const { data: users = [] } = useUsersQuery();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
+  const defaultAssigneeId = currentUserId || "";
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -369,9 +379,9 @@ function TaskForm({ dealId }: { dealId: string }) {
     const current = form.getValues();
     form.reset({
       ...current,
-      assigned_to: current.assigned_to || users[0]?.id || "",
+      assigned_to: current.assigned_to || defaultAssigneeId,
     });
-  }, [form, users]);
+  }, [defaultAssigneeId, form]);
 
   const createTask = useAppMutation({
     action: "deal.task.create",
@@ -403,12 +413,20 @@ function TaskForm({ dealId }: { dealId: string }) {
       form.reset({
         title: "",
         description: "",
-        assigned_to: users[0]?.id ?? "",
+        assigned_to: defaultAssigneeId,
         priority: "medium",
         due_at: "",
       });
     },
   });
+
+  if (!canCreateTask) {
+    return (
+      <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+        Bạn không có quyền tạo nhiệm vụ follow-up cho cơ hội này.
+      </div>
+    );
+  }
 
   return (
     <form className="space-y-3 rounded-2xl border border-border p-4" onSubmit={form.handleSubmit((values) => createTask.mutate(values))}>
@@ -473,7 +491,10 @@ export function DealPipelinePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { canAccess } = usePermission();
+  const canCreateDeal = canAccess("deal:create");
   const canUpdateDeal = canAccess("deal:update");
+  const canCreateTask = canAccess("task:create");
+  const canUpdateTask = canAccess("task:update");
   const canDeleteDeal = canAccess("deal:delete");
   const canDeleteTask = canAccess("task:delete");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -531,7 +552,7 @@ export function DealPipelinePage() {
 
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
-  const formOpen = requestedCreate || formOpenLocal;
+  const formOpen = (requestedCreate && canCreateDeal) || formOpenLocal;
 
   const clearPrefillParams = () => {
     if (!requestedCreate && !prefillCustomerId) return;
@@ -540,6 +561,21 @@ export function DealPipelinePage() {
     next.delete("customerId");
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (!requestedCreate) {
+      return;
+    }
+    if (!canCreateDeal) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("create");
+      next.delete("customerId");
+      setSearchParams(next, { replace: true });
+      toast.error("Bạn không có quyền tạo cơ hội.");
+      return;
+    }
+    setEditingDeal(null);
+  }, [canCreateDeal, requestedCreate, searchParams, setSearchParams]);
 
   const customerMap = useMemo(
     () =>
@@ -730,7 +766,7 @@ export function DealPipelinePage() {
         title="Phễu Cơ Hội Bán Hàng"
         subtitle="Quản lý cơ hội theo giai đoạn xử lý, kết hợp bảng nhiệm vụ follow-up để theo sát tiến trình chốt deal."
         actions={
-          <Can roles={["super_admin", "admin", "director", "sales"]}>
+          canCreateDeal ? (
             <Button
               onClick={() => {
                 setEditingDeal(null);
@@ -740,7 +776,7 @@ export function DealPipelinePage() {
               <Plus className="size-4" />
               Tạo cơ hội
             </Button>
-          </Can>
+          ) : null
         }
       />
 
@@ -926,11 +962,15 @@ export function DealPipelinePage() {
           icon={Target}
           title="Chưa có cơ hội phù hợp bộ lọc"
           description="Thử đổi tiêu chí tìm kiếm/lọc hoặc tạo mới cơ hội bán hàng để bắt đầu theo dõi pipeline."
-          actionLabel="Tạo cơ hội"
-          onAction={() => {
-            setEditingDeal(null);
-            setFormOpenLocal(true);
-          }}
+          actionLabel={canCreateDeal ? "Tạo cơ hội" : undefined}
+          onAction={
+            canCreateDeal
+              ? () => {
+                  setEditingDeal(null);
+                  setFormOpenLocal(true);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -1051,7 +1091,7 @@ export function DealPipelinePage() {
                 <div className="text-sm text-muted-foreground">{selectedDealTasks.length} nhiệm vụ</div>
               </div>
 
-              <TaskForm dealId={selectedDeal.id} />
+              <TaskForm dealId={selectedDeal.id} canCreateTask={canCreateTask} />
 
               {selectedDealTasks.length ? (
                 <div className="space-y-3">
@@ -1084,7 +1124,7 @@ export function DealPipelinePage() {
                             {userMap[task.assigned_to]?.full_name ?? "--"} · {task.due_at ? `Hạn ${formatDate(task.due_at)}` : "Chưa có deadline"}
                           </div>
                           <div className="flex gap-2">
-                            {task.status !== "done" ? (
+                            {task.status !== "done" && canUpdateTask ? (
                               <Button
                                 variant="secondary"
                                 onClick={() => completeTask.mutate(task.id)}

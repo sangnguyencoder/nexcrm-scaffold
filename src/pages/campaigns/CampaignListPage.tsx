@@ -14,7 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -31,8 +31,8 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionHeaderCompact } from "@/components/shared/section-header-compact";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
-import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { usePermission } from "@/hooks/usePermission";
 import { useCampaignsQuery, useOutboundMessagesQuery } from "@/hooks/useNexcrmQueries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,11 @@ function Field({
 export function CampaignListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { canAccess } = usePermission();
+  const canCreateCampaign = canAccess("campaign:create");
+  const canUpdateCampaign = canAccess("campaign:update");
+  const canDeleteCampaign = canAccess("campaign:delete");
+  const canSendCampaign = canAccess("campaign:send");
   const { data: campaigns = [], isLoading } = useCampaignsQuery();
   const [statusFilter, setStatusFilter] = useState<Campaign["status"] | "all">("all");
   const [search, setSearch] = useState("");
@@ -222,7 +227,7 @@ export function CampaignListPage() {
   const [detailCampaign, setDetailCampaign] = useState<Campaign | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
   const requestedCreate = searchParams.get("create") === "1";
-  const composerOpen = requestedCreate || composerOpenLocal;
+  const composerOpen = (requestedCreate && canCreateCampaign) || composerOpenLocal;
   const { data: detailMessages = [] } = useOutboundMessagesQuery(
     detailCampaign ? { campaignId: detailCampaign.id } : undefined,
     Boolean(detailCampaign),
@@ -234,6 +239,16 @@ export function CampaignListPage() {
     next.delete("create");
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (!requestedCreate || canCreateCampaign) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    setSearchParams(next, { replace: true });
+    toast.error("Bạn không có quyền tạo chiến dịch.");
+  }, [canCreateCampaign, requestedCreate, searchParams, setSearchParams]);
 
   const estimatedRecipients = estimateRecipients(wizard.customer_types);
 
@@ -399,6 +414,12 @@ export function CampaignListPage() {
     action: editingCampaign ? "campaign.update" : "campaign.create",
     errorMessage: "Không thể lưu chiến dịch.",
     mutationFn: async (submitMode: "draft" | "send_now" | "schedule") => {
+      if (editingCampaign && !canUpdateCampaign) {
+        throw new Error("Bạn không có quyền chỉnh sửa chiến dịch.");
+      }
+      if (!editingCampaign && !canCreateCampaign) {
+        throw new Error("Bạn không có quyền tạo chiến dịch.");
+      }
       const firstInvalidStep = composerTabOrder.find((tabKey) => sectionValidation[tabKey].length > 0);
       if (firstInvalidStep) {
         throw new Error(sectionValidation[firstInvalidStep][0] ?? "Thông tin chiến dịch chưa hợp lệ.");
@@ -430,6 +451,9 @@ export function CampaignListPage() {
         : await campaignService.create(payload);
 
       if (submitMode === "send_now") {
+        if (!canSendCampaign) {
+          throw new Error("Bạn không có quyền gửi chiến dịch.");
+        }
         const dispatchResult = await communicationService.dispatchCampaign(campaign.id);
         return {
           campaign: dispatchResult.campaign,
@@ -537,6 +561,15 @@ export function CampaignListPage() {
   });
 
   const openComposer = (campaign?: Campaign | null) => {
+    if (campaign && !canUpdateCampaign) {
+      toast.error("Bạn không có quyền chỉnh sửa chiến dịch.");
+      return;
+    }
+    if (!campaign && !canCreateCampaign) {
+      toast.error("Bạn không có quyền tạo chiến dịch.");
+      return;
+    }
+
     setEditingCampaign(campaign ?? null);
     setWizard(
       campaign
@@ -670,21 +703,23 @@ export function CampaignListPage() {
           ))}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => runScheduler.mutate()}
-            disabled={runScheduler.isPending}
-          >
-            <CalendarClock className="size-4" />
-            {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
-          </Button>
-          <Can roles={["super_admin", "admin", "director", "marketing"]}>
+          {canSendCampaign ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => runScheduler.mutate()}
+              disabled={runScheduler.isPending}
+            >
+              <CalendarClock className="size-4" />
+              {runScheduler.isPending ? "Đang chạy lịch..." : "Chạy lịch"}
+            </Button>
+          ) : null}
+          {canCreateCampaign ? (
             <Button size="sm" onClick={() => openComposer()}>
               <Plus className="size-4" />
               Tạo chiến dịch
             </Button>
-          </Can>
+          ) : null}
         </div>
       </StickyFilterBar>
 
@@ -793,7 +828,7 @@ export function CampaignListPage() {
                       <Button variant="ghost" size="icon" aria-label={`Xem ${campaign.name}`} onClick={() => setDetailCampaign(campaign)}>
                         <Eye className="size-4" />
                       </Button>
-                      {campaign.status === "scheduled" ? (
+                      {campaign.status === "scheduled" && canSendCampaign ? (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -804,27 +839,33 @@ export function CampaignListPage() {
                           <Send className="size-4" />
                         </Button>
                       ) : null}
-                      <Button variant="ghost" size="icon" aria-label={`Sửa ${campaign.name}`} onClick={() => openComposer(campaign)}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Nhân bản ${campaign.name}`}
-                        onClick={() => duplicateCampaign.mutate(campaign.id)}
-                        disabled={duplicatingCampaignId === campaign.id}
-                      >
-                        <Copy className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Xóa ${campaign.name}`}
-                        onClick={() => setDeleteTarget(campaign)}
-                        disabled={deletingCampaignId === campaign.id}
-                      >
-                        <Trash2 className="size-4 text-rose-500" />
-                      </Button>
+                      {canUpdateCampaign ? (
+                        <Button variant="ghost" size="icon" aria-label={`Sửa ${campaign.name}`} onClick={() => openComposer(campaign)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                      ) : null}
+                      {canCreateCampaign ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Nhân bản ${campaign.name}`}
+                          onClick={() => duplicateCampaign.mutate(campaign.id)}
+                          disabled={duplicatingCampaignId === campaign.id}
+                        >
+                          <Copy className="size-4" />
+                        </Button>
+                      ) : null}
+                      {canDeleteCampaign ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Xóa ${campaign.name}`}
+                          onClick={() => setDeleteTarget(campaign)}
+                          disabled={deletingCampaignId === campaign.id}
+                        >
+                          <Trash2 className="size-4 text-rose-500" />
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1144,7 +1185,7 @@ export function CampaignListPage() {
                 Đóng
               </Button>
               <div className="flex flex-wrap items-center gap-2">
-                {(detailCampaign.status === "draft" || detailCampaign.status === "scheduled") ? (
+                {(detailCampaign.status === "draft" || detailCampaign.status === "scheduled") && canSendCampaign ? (
                   <Button
                     variant="outline"
                     onClick={() => sendCampaign.mutate(detailCampaign.id)}
@@ -1154,35 +1195,41 @@ export function CampaignListPage() {
                     Chạy ngay
                   </Button>
                 ) : null}
-                <Button
-                  variant="outline"
-                  onClick={() => duplicateCampaign.mutate(detailCampaign.id)}
-                  disabled={duplicatingCampaignId === detailCampaign.id}
-                >
-                  <Copy className="size-4" />
-                  Nhân bản
-                </Button>
-                <Button
-                  onClick={() => {
-                    const current = detailCampaign;
-                    setDetailCampaign(null);
-                    openComposer(current);
-                  }}
-                >
-                  <Pencil className="size-4" />
-                  Chỉnh sửa
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setDeleteTarget(detailCampaign);
-                    setDetailCampaign(null);
-                  }}
-                  disabled={deletingCampaignId === detailCampaign.id}
-                >
-                  <Trash2 className="size-4" />
-                  Xóa
-                </Button>
+                {canCreateCampaign ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => duplicateCampaign.mutate(detailCampaign.id)}
+                    disabled={duplicatingCampaignId === detailCampaign.id}
+                  >
+                    <Copy className="size-4" />
+                    Nhân bản
+                  </Button>
+                ) : null}
+                {canUpdateCampaign ? (
+                  <Button
+                    onClick={() => {
+                      const current = detailCampaign;
+                      setDetailCampaign(null);
+                      openComposer(current);
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                    Chỉnh sửa
+                  </Button>
+                ) : null}
+                {canDeleteCampaign ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setDeleteTarget(detailCampaign);
+                      setDetailCampaign(null);
+                    }}
+                    disabled={deletingCampaignId === detailCampaign.id}
+                  >
+                    <Trash2 className="size-4" />
+                    Xóa
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null
@@ -1300,7 +1347,7 @@ export function CampaignListPage() {
       </Sheet>
 
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
+        open={Boolean(deleteTarget) && canDeleteCampaign}
         onOpenChange={(open) => {
           if (!open) {
             setDeleteTarget(null);
@@ -1310,7 +1357,7 @@ export function CampaignListPage() {
         description="Hành động này sẽ xóa chiến dịch khỏi danh sách và không thể hoàn tác."
         confirmLabel="Xóa chiến dịch"
         onConfirm={() => {
-          if (deleteTarget) {
+          if (deleteTarget && canDeleteCampaign) {
             deleteCampaign.mutate(deleteTarget.id);
           }
         }}

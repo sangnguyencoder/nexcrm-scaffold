@@ -10,6 +10,7 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermission } from "@/hooks/usePermission";
 import { useReportSnapshot } from "@/hooks/useNexcrmQueries";
 import { formatDateInputValue } from "@/lib/utils";
 import { exportService, hasExportableRows } from "@/services/exportService";
@@ -85,6 +86,8 @@ function isGroupBy(value: string | null): value is ReportGroupBy {
 }
 
 export function ReportsPage() {
+  const { canAccess } = usePermission();
+  const canExportReport = canAccess("report:export");
   const [searchParams, setSearchParams] = useSearchParams();
   const [exportingFormat, setExportingFormat] = useState<"xlsx" | "pdf" | null>(null);
   const tabParam = searchParams.get("tab");
@@ -190,23 +193,27 @@ export function ReportsPage() {
           className="w-[180px]"
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void handleExport("xlsx")}
-            disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
-          >
-            <Download className="size-4" />
-            {exportingFormat === "xlsx" ? "Đang xuất..." : "Xuất Excel"}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => void handleExport("pdf")}
-            disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
-          >
-            <FileText className="size-4" />
-            {exportingFormat === "pdf" ? "Đang xuất..." : "Xuất PDF"}
-          </Button>
+          {canExportReport ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleExport("xlsx")}
+                disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
+              >
+                <Download className="size-4" />
+                {exportingFormat === "xlsx" ? "Đang xuất..." : "Xuất Excel"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => void handleExport("pdf")}
+                disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
+              >
+                <FileText className="size-4" />
+                {exportingFormat === "pdf" ? "Đang xuất..." : "Xuất PDF"}
+              </Button>
+            </>
+          ) : null}
         </div>
       </StickyFilterBar>
       {!canRunReportQuery ? (

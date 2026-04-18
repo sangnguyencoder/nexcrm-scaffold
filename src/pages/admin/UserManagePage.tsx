@@ -17,8 +17,8 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
-import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { usePermission } from "@/hooks/usePermission";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import { useUsersQuery, queryKeys } from "@/hooks/useNexcrmQueries";
 import { getDefaultAvatarUrl, getRoleBadgeColor } from "@/lib/utils";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/store/authStore";
-import { PERMISSIONS, hasPermission, type PermissionKey } from "@/utils/permissions";
 import type { User } from "@/types";
 
 const baseUserSchema = z.object({
@@ -58,40 +57,27 @@ type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 const DEFAULT_MEMBER_PASSWORD = "12345678";
 
-const permissionActionLabelMap: Record<string, string> = {
-  read: "Xem",
-  create: "Tạo",
-  update: "Cập nhật",
-  delete: "Xóa",
-  export: "Xuất dữ liệu",
-  run: "Chạy tác vụ",
-  send: "Gửi",
-  markRead: "Đánh dấu đã đọc",
-};
-
-const permissionGroupLabelMap: Record<string, string> = {
-  dashboard: "Dashboard",
-  report: "Báo cáo",
-  customer: "Khách hàng",
-  transaction: "Giao dịch",
-  ticket: "Ticket",
-  campaign: "Chiến dịch",
-  automation: "Automation",
-  deal: "Pipeline",
-  task: "Nhiệm vụ",
-  user: "Người dùng",
-  audit: "Nhật ký",
-  posSync: "POS Sync",
-  settings: "Thiết lập",
-  notification: "Thông báo",
-};
-
-function getPermissionLabel(permission: PermissionKey) {
-  const [group, action] = permission.split(":");
-  const groupLabel = permissionGroupLabelMap[group] ?? group;
-  const actionLabel = permissionActionLabelMap[action] ?? action;
-  return `${groupLabel} · ${actionLabel}`;
-}
+const ROLE_PERMISSION_REPORT: Array<{ role: string; summary: string }> = [
+  { role: "super_admin", summary: "Full quyền toàn hệ thống (bypass toàn bộ)." },
+  { role: "admin", summary: "Gần như full CRUD toàn hệ thống." },
+  {
+    role: "director",
+    summary:
+      "Chủ yếu quyền đọc + report:export + customer:delete + user:read/audit:read/posSync:read.",
+  },
+  {
+    role: "sales",
+    summary: "CRUD khách hàng, tạo/sửa giao dịch, tạo ticket, tạo/sửa deal, tạo/sửa task.",
+  },
+  {
+    role: "cskh",
+    summary: "Đọc khách hàng/giao dịch/ticket + tạo/sửa ticket + tạo/sửa task + đọc automation.",
+  },
+  {
+    role: "marketing",
+    summary: "Đọc báo cáo/khách hàng + tạo/sửa/gửi campaign + tạo/sửa automation.",
+  },
+];
 
 function UserModal({
   open,
@@ -276,6 +262,10 @@ export function UserManagePage() {
   const queryClient = useQueryClient();
   const currentRole = useAuthStore((state) => state.role);
   const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? null);
+  const { canAccess } = usePermission();
+  const canCreateUser = canAccess("user:create");
+  const canUpdateUser = canAccess("user:update");
+  const canDeleteUser = canAccess("user:delete");
   const { data: users = [], isLoading } = useUsersQuery();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<User["role"] | "all">("all");
@@ -284,7 +274,6 @@ export function UserManagePage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [resetPasswordTarget, setResetPasswordTarget] = useState<User | null>(null);
-  const [permissionUserId, setPermissionUserId] = useState<string>("");
   const resetPasswordForm = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -409,33 +398,6 @@ export function UserManagePage() {
     [roleFilter, search, statusFilter, users],
   );
 
-  const permissionGroups = useMemo(() => {
-    return Object.keys(PERMISSIONS).reduce<Record<string, PermissionKey[]>>((acc, permission) => {
-      const permissionKey = permission as PermissionKey;
-      const group = permissionKey.split(":")[0] ?? "other";
-      (acc[group] ??= []).push(permissionKey);
-      return acc;
-    }, {});
-  }, []);
-
-  useEffect(() => {
-    if (!filteredUsers.length) {
-      setPermissionUserId("");
-      return;
-    }
-
-    const exists = filteredUsers.some((user) => user.id === permissionUserId);
-    if (!exists) {
-      setPermissionUserId(filteredUsers[0]?.id ?? "");
-    }
-  }, [filteredUsers, permissionUserId]);
-
-  const selectedPermissionUser = useMemo(
-    () => filteredUsers.find((user) => user.id === permissionUserId) ?? null,
-    [filteredUsers, permissionUserId],
-  );
-  const canManagePermissionPanel = currentRole === "super_admin";
-
   if (isLoading) {
     return <PageLoader panels={1} />;
   }
@@ -452,15 +414,17 @@ export function UserManagePage() {
               className="bg-primary/10 text-primary ring-primary/20"
               dotClassName="bg-primary"
             />
-            <Button
-              onClick={() => {
-                setEditingUser(null);
-                setModalOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              Thêm Người Dùng
-            </Button>
+            {canCreateUser ? (
+              <Button
+                onClick={() => {
+                  setEditingUser(null);
+                  setModalOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Thêm Người Dùng
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -533,8 +497,15 @@ export function UserManagePage() {
                   <TableCell>
                     <Select
                       value={user.role}
-                      disabled={user.has_profile === false || roleUpdatingUserId === user.id}
+                      disabled={
+                        !canUpdateUser ||
+                        user.has_profile === false ||
+                        roleUpdatingUserId === user.id
+                      }
                       onChange={(event) => {
+                        if (!canUpdateUser) {
+                          return;
+                        }
                         const nextRole = event.target.value as User["role"];
                         if (currentUserId === user.id && user.role === "super_admin" && nextRole !== "super_admin") {
                           toast.error("Super Admin không thể tự hạ quyền của chính mình.");
@@ -557,7 +528,12 @@ export function UserManagePage() {
                     <label className="flex items-center gap-3">
                       <Switch
                         checked={user.is_active}
-                        disabled={user.has_profile === false || togglingUserId === user.id || currentUserId === user.id}
+                        disabled={
+                          !canUpdateUser ||
+                          user.has_profile === false ||
+                          togglingUserId === user.id ||
+                          currentUserId === user.id
+                        }
                         onChange={() => toggleStatus.mutate(user.id)}
                       />
                       <span className="text-sm">{user.is_active ? "Đang hoạt động" : "Đã khóa"}</span>
@@ -565,33 +541,39 @@ export function UserManagePage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingUser(user);
-                          setModalOpen(true);
-                        }}
-                        disabled={user.has_profile === false}
-                      >
-                        <UserCog className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setResetPasswordTarget(user)}
-                        disabled={resettingUserId === user.id}
-                      >
-                        <KeyRound className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={user.has_profile === false || deletingUserId === user.id || currentUserId === user.id}
-                        onClick={() => setDeleteTarget(user)}
-                      >
-                        <Trash2 className="size-4 text-rose-500" />
-                      </Button>
+                      {canUpdateUser ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setModalOpen(true);
+                            }}
+                            disabled={user.has_profile === false}
+                          >
+                            <UserCog className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setResetPasswordTarget(user)}
+                            disabled={resettingUserId === user.id}
+                          >
+                            <KeyRound className="size-4" />
+                          </Button>
+                        </>
+                      ) : null}
+                      {canDeleteUser ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={user.has_profile === false || deletingUserId === user.id || currentUserId === user.id}
+                          onClick={() => setDeleteTarget(user)}
+                        >
+                          <Trash2 className="size-4 text-rose-500" />
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -610,100 +592,40 @@ export function UserManagePage() {
         )}
       </DataTableShell>
 
-      {canManagePermissionPanel ? (
-        <SectionPanel
-          title="Phân quyền thao tác theo nhân viên"
-          contentClassName="space-y-4"
-        >
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr),220px]">
-            <FormField label="Nhân viên cần kiểm tra quyền">
-              <UserSelect
-                value={permissionUserId}
-                onValueChange={setPermissionUserId}
-                users={filteredUsers}
-                placeholder="Chọn nhân viên"
-              />
-            </FormField>
-            <FormField label="Vai trò áp dụng">
-              <Select
-                value={selectedPermissionUser?.role ?? "sales"}
-                disabled={!selectedPermissionUser}
-                onChange={(event) => {
-                  if (!selectedPermissionUser) return;
-                  const nextRole = event.target.value as User["role"];
-                  if (
-                    currentUserId === selectedPermissionUser.id &&
-                    selectedPermissionUser.role === "super_admin" &&
-                    nextRole !== "super_admin"
-                  ) {
-                    toast.error("Super Admin không thể tự hạ quyền của chính mình.");
-                    return;
-                  }
-
-                  updateRole.mutate({ id: selectedPermissionUser.id, role: nextRole });
-                }}
-              >
-                <option value="super_admin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="director">Director</option>
-                <option value="sales">Sales</option>
-                <option value="cskh">CSKH</option>
-                <option value="marketing">Marketing</option>
-              </Select>
-            </FormField>
-          </div>
-
-          {selectedPermissionUser ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {Object.entries(permissionGroups)
-                .sort(([left], [right]) =>
-                  (permissionGroupLabelMap[left] ?? left).localeCompare(permissionGroupLabelMap[right] ?? right),
-                )
-                .map(([group, permissions]) => (
-                  <div key={group} className="rounded-xl border border-border/80 bg-muted/20 p-3">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                      {permissionGroupLabelMap[group] ?? group}
-                    </div>
-                    <div className="space-y-1.5">
-                      {permissions.map((permission) => {
-                        const allowed = hasPermission(selectedPermissionUser.role, permission);
-                        return (
-                          <div
-                            key={permission}
-                            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-card px-2.5 py-2"
-                          >
-                            <span className="text-xs text-foreground">{getPermissionLabel(permission)}</span>
-                            <StatusBadge
-                              label={allowed ? "Cho phép" : "Không cho phép"}
-                              className={
-                                allowed
-                                  ? "bg-emerald-500/15 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300"
-                                  : "bg-muted text-muted-foreground ring-border"
-                              }
-                              dotClassName="bg-current"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+      <SectionPanel
+        title="Báo Cáo Quyền Theo Role"
+        contentClassName="space-y-4"
+      >
+        <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+          Đây là báo cáo quyền theo role đang khai báo để thay cho phần phân quyền thao tác theo nhân viên.
+          Hệ thống đã áp dụng phân quyền theo báo cáo này để điều khiển hiển thị thao tác trong UI.
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {ROLE_PERMISSION_REPORT.map((item) => (
+            <div
+              key={item.role}
+              className="rounded-xl border border-border/80 bg-card px-3 py-3"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-foreground">{item.role}</div>
+                {currentRole === item.role ? (
+                  <StatusBadge
+                    label="Role hiện tại"
+                    className="bg-primary/10 text-primary ring-primary/20"
+                    dotClassName="bg-primary"
+                  />
+                ) : null}
+              </div>
+              <div className="text-sm text-muted-foreground">{item.summary}</div>
             </div>
-          ) : (
-            <EmptyState
-              icon={UserCog}
-              title="Chọn nhân viên để xem quyền"
-              description="Super Admin có thể chọn nhân viên để xem ngay các thao tác được phép trong UI."
-              className="min-h-[180px] border-dashed bg-transparent shadow-none"
-            />
-          )}
-        </SectionPanel>
-      ) : null}
+          ))}
+        </div>
+      </SectionPanel>
 
       <UserModal open={modalOpen} onOpenChange={setModalOpen} initialUser={editingUser} />
 
       <Modal
-        open={Boolean(resetPasswordTarget)}
+        open={Boolean(resetPasswordTarget) && canUpdateUser}
         onOpenChange={(open) => {
           if (!open) {
             setResetPasswordTarget(null);
@@ -718,7 +640,7 @@ export function UserManagePage() {
         <form
           className="space-y-4"
           onSubmit={resetPasswordForm.handleSubmit((values) => {
-            if (!resetPasswordTarget) return;
+            if (!resetPasswordTarget || !canUpdateUser) return;
             resetPassword.mutate({
               id: resetPasswordTarget.id,
               password: values.password,
@@ -762,9 +684,9 @@ export function UserManagePage() {
             <Button
               type="button"
               variant="outline"
-              disabled={resetPassword.isPending || !resetPasswordTarget}
+              disabled={resetPassword.isPending || !resetPasswordTarget || !canUpdateUser}
               onClick={() => {
-                if (!resetPasswordTarget) return;
+                if (!resetPasswordTarget || !canUpdateUser) return;
                 resetPassword.mutate({
                   id: resetPasswordTarget.id,
                   password: DEFAULT_MEMBER_PASSWORD,
@@ -787,7 +709,7 @@ export function UserManagePage() {
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={resetPassword.isPending}>
+            <Button type="submit" disabled={resetPassword.isPending || !canUpdateUser}>
               {resetPassword.isPending ? "Đang đặt lại..." : "Xác nhận đặt lại"}
             </Button>
           </div>
@@ -795,7 +717,7 @@ export function UserManagePage() {
       </Modal>
 
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
+        open={Boolean(deleteTarget) && canDeleteUser}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
@@ -803,7 +725,7 @@ export function UserManagePage() {
         description="Hệ thống sẽ thử xóa tài khoản khỏi Auth. Nếu tài khoản còn liên kết dữ liệu CRM, hệ thống sẽ tự chuyển sang vô hiệu hóa để giữ toàn vẹn dữ liệu."
         confirmLabel="Xác nhận"
         onConfirm={() => {
-          if (deleteTarget) {
+          if (deleteTarget && canDeleteUser) {
             deleteUser.mutate(deleteTarget.id);
             setDeleteTarget(null);
           }

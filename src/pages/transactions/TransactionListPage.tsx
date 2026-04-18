@@ -38,6 +38,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -105,15 +106,18 @@ function AddTransactionModal({
   open,
   onOpenChange,
   prefillCustomerId,
+  initialTransaction,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prefillCustomerId?: string;
+  initialTransaction?: Transaction | null;
 }) {
   const queryClient = useQueryClient();
   const { data: customers = [] } = useCustomersQuery();
   const [customerSearch, setCustomerSearch] = useState("");
   const deferredCustomerSearch = useDebouncedValue(customerSearch, 150);
+  const isEdit = Boolean(initialTransaction);
   const form = useForm<TransactionValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -140,26 +144,39 @@ function AddTransactionModal({
     if (!open) return;
 
     form.reset({
-      customer_id: prefillCustomerId ?? "",
-      invoice_code: "",
-      items: [{ name: "", qty: 1, price: 0 }],
-      discount_rate: 0,
-      tax_rate: 0,
-      payment_method: "transfer",
-      notes: "",
+      customer_id: initialTransaction?.customer_id ?? prefillCustomerId ?? "",
+      invoice_code: initialTransaction?.invoice_code ?? "",
+      items:
+        initialTransaction?.items?.length
+          ? initialTransaction.items.map((item) => ({
+              name: item.name,
+              qty: item.qty,
+              price: item.price,
+            }))
+          : [{ name: "", qty: 1, price: 0 }],
+      discount_rate: initialTransaction?.discount_rate ?? 0,
+      tax_rate: initialTransaction?.tax_rate ?? 0,
+      payment_method:
+        initialTransaction?.payment_method === "cash" ||
+        initialTransaction?.payment_method === "card" ||
+        initialTransaction?.payment_method === "transfer" ||
+        initialTransaction?.payment_method === "qr"
+          ? initialTransaction.payment_method
+          : "transfer",
+      notes: initialTransaction?.notes ?? "",
     });
-  }, [form, open, prefillCustomerId]);
+  }, [form, initialTransaction, open, prefillCustomerId]);
   const subtotal = watchedItems.reduce((sum, item) => sum + item.qty * item.price, 0);
   const discountAmount = subtotal * (discountRate / 100);
   const taxableAmount = subtotal - discountAmount;
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = taxableAmount + taxAmount;
 
-  const createTransaction = useAppMutation({
-    action: "transaction.create",
-    errorMessage: "Không thể tạo giao dịch mới.",
-    mutationFn: (values: TransactionValues) =>
-      transactionService.create({
+  const saveTransaction = useAppMutation({
+    action: isEdit ? "transaction.update" : "transaction.create",
+    errorMessage: isEdit ? "Không thể cập nhật giao dịch." : "Không thể tạo giao dịch mới.",
+    mutationFn: async (values: TransactionValues) => {
+      const payload = {
         customer_id: values.customer_id,
         invoice_code: values.invoice_code || undefined,
         items: values.items.map((item) => ({
@@ -171,27 +188,34 @@ function AddTransactionModal({
         tax_rate: values.tax_rate,
         tax_amount: taxAmount,
         payment_method: values.payment_method,
-        payment_status: "paid",
-        status: "completed",
+        payment_status: "paid" as const,
+        status: "completed" as const,
         notes: values.notes || "",
-      }),
-    onSuccess: (createdTransaction) => {
+      };
+
+      if (isEdit && initialTransaction) {
+        return transactionService.update(initialTransaction.id, payload);
+      }
+
+      return transactionService.create(payload);
+    },
+    onSuccess: (savedTransaction) => {
       queryClient.setQueriesData<Transaction[]>({ queryKey: ["transactions"] }, (current = []) => {
-        const exists = current.some((item) => item.id === createdTransaction.id);
+        const exists = current.some((item) => item.id === savedTransaction.id);
         if (exists) {
           return current.map((item) =>
-            item.id === createdTransaction.id ? createdTransaction : item,
+            item.id === savedTransaction.id ? savedTransaction : item,
           );
         }
 
-        return [createdTransaction, ...current];
+        return [savedTransaction, ...current];
       });
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"], refetchType: "active" }),
         queryClient.invalidateQueries({ queryKey: ["customers"], refetchType: "active" }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"], refetchType: "active" }),
       ]);
-      toast.success("Đã tạo giao dịch mới");
+      toast.success(isEdit ? "Đã cập nhật giao dịch" : "Đã tạo giao dịch mới");
       form.reset();
       onOpenChange(false);
     },
@@ -205,21 +229,21 @@ function AddTransactionModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Thêm Giao Dịch"
+      title={isEdit ? "Chỉnh sửa giao dịch" : "Thêm Giao Dịch"}
       // description="Tạo hóa đơn mới với đủ thông tin thanh toán nhưng vẫn giữ biểu mẫu ngắn và dễ scan."
       className="w-[min(96vw,980px)]"
     >
       <form
         className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_320px]"
-        onSubmit={form.handleSubmit((values) => createTransaction.mutate(values))}
+        onSubmit={form.handleSubmit((values) => saveTransaction.mutate(values))}
       >
         <div className="space-y-4">
-          {createTransaction.actionError ? (
+          {saveTransaction.actionError ? (
             <div>
               <ActionErrorAlert
-                error={createTransaction.actionError}
-                onDismiss={createTransaction.clearActionError}
-                onRetry={createTransaction.canRetry ? () => void createTransaction.retryLast() : undefined}
+                error={saveTransaction.actionError}
+                onDismiss={saveTransaction.clearActionError}
+                onRetry={saveTransaction.canRetry ? () => void saveTransaction.retryLast() : undefined}
               />
             </div>
           ) : null}
@@ -396,8 +420,12 @@ function AddTransactionModal({
           </Card>
 
           <div className="flex flex-col gap-2">
-            <Button type="submit" disabled={createTransaction.isPending}>
-              {createTransaction.isPending ? "Đang lưu..." : "Lưu giao dịch"}
+            <Button type="submit" disabled={saveTransaction.isPending}>
+              {saveTransaction.isPending
+                ? "Đang lưu..."
+                : isEdit
+                  ? "Lưu thay đổi"
+                  : "Lưu giao dịch"}
             </Button>
             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Hủy
@@ -410,6 +438,9 @@ function AddTransactionModal({
 }
 
 export function TransactionListPage() {
+  const { canAccess } = usePermission();
+  const canCreateTransaction = canAccess("transaction:create");
+  const canUpdateTransaction = canAccess("transaction:update");
   const [searchParams, setSearchParams] = useSearchParams();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -427,13 +458,14 @@ export function TransactionListPage() {
   const transactions = useMemo(() => transactionsQuery.data ?? [], [transactionsQuery.data]);
   const customers = useMemo(() => customersQuery.data ?? [], [customersQuery.data]);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [createOpenLocal, setCreateOpenLocal] = useState(false);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<TransactionSortKey>("invoice_code");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
-  const createOpen = requestedCreate || createOpenLocal;
+  const createOpen = (requestedCreate && canCreateTransaction) || createOpenLocal;
 
   const clearPrefillParams = () => {
     if (!requestedCreate && !prefillCustomerId) return;
@@ -442,6 +474,17 @@ export function TransactionListPage() {
     next.delete("customerId");
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (!requestedCreate || canCreateTransaction) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    next.delete("customerId");
+    setSearchParams(next, { replace: true });
+    toast.error("Bạn không có quyền tạo giao dịch.");
+  }, [canCreateTransaction, requestedCreate, searchParams, setSearchParams]);
 
   const customerMap = useMemo(
     () =>
@@ -526,6 +569,7 @@ export function TransactionListPage() {
   );
 
   const selectedTransaction = sortedTransactions.find((item) => item.id === selectedTransactionId);
+  const editingTransaction = sortedTransactions.find((item) => item.id === editingTransactionId) ?? null;
 
   const summary = useMemo(() => {
     const completedTransactions = filteredTransactions.filter((item) => item.status === "completed");
@@ -586,10 +630,12 @@ export function TransactionListPage() {
         title="Giao Dịch"
         // subtitle="Doanh thu, thanh toán và trạng thái hóa đơn trên cùng một bảng thao tác."
         actions={
-          <Button size="sm" onClick={() => setCreateOpenLocal(true)}>
-            <Plus className="size-4" />
-            Thêm Giao Dịch
-          </Button>
+          canCreateTransaction ? (
+            <Button size="sm" onClick={() => setCreateOpenLocal(true)}>
+              <Plus className="size-4" />
+              Thêm Giao Dịch
+            </Button>
+          ) : null
         }
       />
 
@@ -631,7 +677,7 @@ export function TransactionListPage() {
             setDateFrom(nextValue);
             setPage(1);
           }}
-          className="w-[190px]"
+          className="w-[220px]"
         />
         <DatePicker
           value={dateTo}
@@ -639,7 +685,7 @@ export function TransactionListPage() {
             setDateTo(nextValue);
             setPage(1);
           }}
-          className="w-[190px]"
+          className="w-[220px]"
         />
         <FilterSelect
           value={paymentFilter}
@@ -654,7 +700,7 @@ export function TransactionListPage() {
             { value: "transfer", label: "Chuyển khoản" },
             { value: "qr", label: "QR" },
           ]}
-          className="w-[190px]"
+          className="w-[220px]"
         />
         <FilterSelect
           value={statusFilter}
@@ -667,7 +713,7 @@ export function TransactionListPage() {
             { value: "completed", label: "Hoàn tất" },
             { value: "cancelled", label: "Đã hủy" },
           ]}
-          className="w-[190px]"
+          className="w-[220px]"
         />
         <Input
           value={search}
@@ -676,7 +722,7 @@ export function TransactionListPage() {
             setPage(1);
           }}
           placeholder="Tìm theo hóa đơn hoặc khách hàng"
-          className="min-w-[280px] flex-1"
+          className="min-w-[320px] flex-1"
         />
       </StickyFilterBar>
 
@@ -731,7 +777,7 @@ export function TransactionListPage() {
                   {renderSortIcon("status")}
                 </button>
               </TableHead>
-              <TableHead className="text-right">Chi tiết</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -790,7 +836,30 @@ export function TransactionListPage() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">Xem</Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedTransactionId(transaction.id);
+                        }}
+                      >
+                        Xem
+                      </Button>
+                      {canUpdateTransaction ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingTransactionId(transaction.id);
+                          }}
+                        >
+                          Sửa
+                        </Button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -819,6 +888,15 @@ export function TransactionListPage() {
         }}
         prefillCustomerId={prefillCustomerId}
       />
+      <AddTransactionModal
+        open={Boolean(editingTransaction)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTransactionId(null);
+          }
+        }}
+        initialTransaction={editingTransaction}
+      />
 
       <Sheet
         open={Boolean(selectedTransaction)}
@@ -830,7 +908,18 @@ export function TransactionListPage() {
         className="w-[min(100vw,720px)]"
         footer={
           selectedTransaction ? (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {canUpdateTransaction ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditingTransactionId(selectedTransaction.id);
+                    setSelectedTransactionId(null);
+                  }}
+                >
+                  Sửa giao dịch
+                </Button>
+              ) : null}
               <Button variant="secondary" onClick={() => setSelectedTransactionId(null)}>
                 Đóng
               </Button>

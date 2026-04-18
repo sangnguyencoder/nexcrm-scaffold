@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { usePermission } from "@/hooks/usePermission";
 import { usePosSyncLogsQuery, useSettingsQuery } from "@/hooks/useNexcrmQueries";
 import { copyTextToClipboard, formatDateTime } from "@/lib/utils";
 import type { PosSyncStatus } from "@/types";
@@ -81,6 +82,8 @@ function toLastSyncLabel(value: string | undefined) {
 
 export function PosSyncPage() {
   const navigate = useNavigate();
+  const { canAccess } = usePermission();
+  const canViewSettings = canAccess("settings:update");
   const { data: logs = [], isFetching: isFetchingLogs, refetch: refetchLogs } = usePosSyncLogsQuery(150);
   const { data: settings, isFetching: isFetchingSettings, refetch: refetchSettings } = useSettingsQuery();
   const [statusFilter, setStatusFilter] = useState("all");
@@ -128,14 +131,16 @@ export function PosSyncPage() {
               <div className="text-sm text-muted-foreground">
                 Vui lòng kiểm tra log thất bại gần nhất và xác nhận webhook payload từ hệ thống POS.
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                onClick={() => navigate("/admin/settings")}
-              >
-                Kiểm tra cấu hình
-              </Button>
+              {canViewSettings ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => navigate("/admin/settings")}
+                >
+                  Kiểm tra cấu hình
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>

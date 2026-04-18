@@ -22,6 +22,8 @@ import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuthStore } from "@/store/authStore";
 import {
   queryKeys,
   useCustomerDetailQuery,
@@ -87,6 +89,13 @@ export function CustomerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canAccess } = usePermission();
+  const canUpdateCustomer = canAccess("customer:update");
+  const canCreateTicket = canAccess("ticket:create");
+  const canCreateTransaction = canAccess("transaction:create");
+  const canCreateDeal = canAccess("deal:create");
+  const canCreateTask = canAccess("task:create");
+  const canCreateNote = canUpdateCustomer;
   const { data: customer, isLoading } = useCustomerDetailQuery(id);
   const { data: transactions = [] } = useTransactionsQuery(
     id ? { customerId: id } : undefined,
@@ -103,6 +112,7 @@ export function CustomerDetailPage() {
   );
   const { data: notes = [] } = useNotesQuery(id, Boolean(id));
   const { data: users = [] } = useUsersQuery();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
   const [activeTab, setActiveTab] = useState("history");
 
   const noteForm = useForm<NoteValues>({
@@ -157,7 +167,7 @@ export function CustomerDetailPage() {
     },
   });
 
-  const defaultAssigneeId = customer?.assigned_to ?? users[0]?.id ?? "";
+  const defaultAssigneeId = customer?.assigned_to || currentUserId || "";
 
   useEffect(() => {
     if (!defaultAssigneeId) {
@@ -455,26 +465,32 @@ export function CustomerDetailPage() {
           </TabsList>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => navigate(`/tickets?customerId=${customer.id}&create=1`)}
-            >
-              <Ticket className="size-4" />
-              Tạo Ticket
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => navigate(`/transactions?customerId=${customer.id}&create=1`)}
-            >
-              <CreditCard className="size-4" />
-              Thêm Giao Dịch
-            </Button>
-            <Button size="sm" onClick={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}>
-              <Target className="size-4" />
-              Tạo Cơ Hội
-            </Button>
+            {canCreateTicket ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/tickets?customerId=${customer.id}&create=1`)}
+              >
+                <Ticket className="size-4" />
+                Tạo Ticket
+              </Button>
+            ) : null}
+            {canCreateTransaction ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/transactions?customerId=${customer.id}&create=1`)}
+              >
+                <CreditCard className="size-4" />
+                Thêm Giao Dịch
+              </Button>
+            ) : null}
+            {canCreateDeal ? (
+              <Button size="sm" onClick={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}>
+                <Target className="size-4" />
+                Tạo Cơ Hội
+              </Button>
+            ) : null}
             <Button size="sm" variant="soft" onClick={() => setActiveTab("notes")}>
               <StickyNote className="size-4" />
               Mở Ghi Chú
@@ -482,7 +498,7 @@ export function CustomerDetailPage() {
           </div>
 
           <div className="w-full border-t border-border/70 pt-3">
-            {updateCustomer.actionError ? (
+            {canUpdateCustomer && updateCustomer.actionError ? (
               <ActionErrorAlert
                 error={updateCustomer.actionError}
                 onDismiss={updateCustomer.clearActionError}
@@ -494,6 +510,7 @@ export function CustomerDetailPage() {
               <FormField label="Điều phối hồ sơ · Người phụ trách">
                 <UserSelect
                   value={customer.assigned_to}
+                  disabled={!canUpdateCustomer}
                   onValueChange={(nextValue) =>
                     updateCustomer.mutate({
                       id: id ?? "",
@@ -507,6 +524,7 @@ export function CustomerDetailPage() {
               <FormField label="Điều phối hồ sơ · Phân loại khách hàng">
                 <Select
                   value={customer.customer_type}
+                  disabled={!canUpdateCustomer}
                   onChange={(event) =>
                     updateCustomer.mutate({
                       id: id ?? "",
@@ -644,8 +662,8 @@ export function CustomerDetailPage() {
                 icon={Target}
                 title="Chưa có cơ hội bán hàng"
                 description="Tạo cơ hội mới để theo dõi pipeline cho khách hàng này."
-                actionLabel="Tạo Cơ Hội"
-                onAction={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}
+                actionLabel={canCreateDeal ? "Tạo Cơ Hội" : undefined}
+                onAction={canCreateDeal ? () => navigate(`/pipeline?customerId=${customer.id}&create=1`) : undefined}
               />
             )}
           </TabsContent>
@@ -656,68 +674,74 @@ export function CustomerDetailPage() {
                 title="Tạo nhiệm vụ follow-up"
                 // description="Giữ form ngắn và ưu tiên deadline, assignee, priority."
               >
-                <form className="space-y-4" onSubmit={taskForm.handleSubmit((values) => addTask.mutate(values))}>
-                  {addTask.actionError ? (
-                    <ActionErrorAlert
-                      error={addTask.actionError}
-                      onDismiss={addTask.clearActionError}
-                      onRetry={addTask.canRetry ? () => void addTask.retryLast() : undefined}
-                    />
-                  ) : null}
-                  <FormSection title="Thông tin nhiệm vụ" /* description="Tạo việc mới mà không phải mở modal riêng." */>
-                    <div className="grid gap-4">
-                      <FormField label="Tiêu đề" error={taskForm.formState.errors.title?.message}>
-                        <Input {...taskForm.register("title")} placeholder="Ví dụ: Gọi chốt lịch demo" />
-                      </FormField>
-                      <FormField label="Phụ trách">
-                        <UserSelect
-                          value={taskAssignedValue}
-                          onValueChange={(nextValue) =>
-                            taskForm.setValue("assigned_to", nextValue, {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            })
-                          }
-                          users={users}
-                          placeholder="Chọn người phụ trách"
-                        />
-                      </FormField>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <FormField label="Ưu tiên">
-                          <Select {...taskForm.register("priority")}>
-                            <option value="low">Thấp</option>
-                            <option value="medium">Trung bình</option>
-                            <option value="high">Cao</option>
-                          </Select>
+                {canCreateTask ? (
+                  <form className="space-y-4" onSubmit={taskForm.handleSubmit((values) => addTask.mutate(values))}>
+                    {addTask.actionError ? (
+                      <ActionErrorAlert
+                        error={addTask.actionError}
+                        onDismiss={addTask.clearActionError}
+                        onRetry={addTask.canRetry ? () => void addTask.retryLast() : undefined}
+                      />
+                    ) : null}
+                    <FormSection title="Thông tin nhiệm vụ" /* description="Tạo việc mới mà không phải mở modal riêng." */>
+                      <div className="grid gap-4">
+                        <FormField label="Tiêu đề" error={taskForm.formState.errors.title?.message}>
+                          <Input {...taskForm.register("title")} placeholder="Ví dụ: Gọi chốt lịch demo" />
                         </FormField>
-                        <FormField label="Deadline">
-                          <DatePicker
-                            value={taskDueAtValue}
-                            onChange={(nextValue) =>
-                              taskForm.setValue("due_at", nextValue, {
+                        <FormField label="Phụ trách">
+                          <UserSelect
+                            value={taskAssignedValue}
+                            onValueChange={(nextValue) =>
+                              taskForm.setValue("assigned_to", nextValue, {
                                 shouldDirty: true,
                                 shouldValidate: true,
                               })
                             }
-                            placeholder="Chọn deadline"
+                            users={users}
+                            placeholder="Chọn người phụ trách"
+                          />
+                        </FormField>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <FormField label="Ưu tiên">
+                            <Select {...taskForm.register("priority")}>
+                              <option value="low">Thấp</option>
+                              <option value="medium">Trung bình</option>
+                              <option value="high">Cao</option>
+                            </Select>
+                          </FormField>
+                          <FormField label="Deadline">
+                            <DatePicker
+                              value={taskDueAtValue}
+                              onChange={(nextValue) =>
+                                taskForm.setValue("due_at", nextValue, {
+                                  shouldDirty: true,
+                                  shouldValidate: true,
+                                })
+                              }
+                              placeholder="Chọn deadline"
+                            />
+                          </FormField>
+                        </div>
+                        <FormField label="Mô tả">
+                          <Textarea
+                            {...taskForm.register("description")}
+                            placeholder="Thông tin bổ sung cho người phụ trách"
                           />
                         </FormField>
                       </div>
-                      <FormField label="Mô tả">
-                        <Textarea
-                          {...taskForm.register("description")}
-                          placeholder="Thông tin bổ sung cho người phụ trách"
-                        />
-                      </FormField>
+                    </FormSection>
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={addTask.isPending}>
+                        <Plus className="size-4" />
+                        {addTask.isPending ? "Đang lưu…" : "Thêm nhiệm vụ"}
+                      </Button>
                     </div>
-                  </FormSection>
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={addTask.isPending}>
-                      <Plus className="size-4" />
-                      {addTask.isPending ? "Đang lưu…" : "Thêm nhiệm vụ"}
-                    </Button>
+                  </form>
+                ) : (
+                  <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                    Bạn không có quyền tạo nhiệm vụ follow-up cho hồ sơ khách hàng.
                   </div>
-                </form>
+                )}
               </SectionPanel>
 
               <SectionPanel
@@ -878,33 +902,39 @@ export function CustomerDetailPage() {
                 title="Thêm ghi chú mới"
                 // description="Lưu nhanh thông tin call, meeting hoặc nội bộ ngay trên hồ sơ."
               >
-                <form className="space-y-4" onSubmit={noteForm.handleSubmit((values) => addNote.mutate(values))}>
-                  {addNote.actionError ? (
-                    <ActionErrorAlert
-                      error={addNote.actionError}
-                      onDismiss={addNote.clearActionError}
-                      onRetry={addNote.canRetry ? () => void addNote.retryLast() : undefined}
-                    />
-                  ) : null}
-                  <FormSection title="Nội dung ghi chú" description="Giữ cấu trúc ngắn để đội vận hành nhập nhanh hơn.">
-                    <FormField label="Loại ghi chú">
-                      <Select {...noteForm.register("note_type")}>
-                        <option value="general">Tổng quát</option>
-                        <option value="call">Cuộc gọi</option>
-                        <option value="meeting">Cuộc họp</option>
-                        <option value="internal">Nội bộ</option>
-                      </Select>
-                    </FormField>
-                    <FormField label="Nội dung" error={noteForm.formState.errors.content?.message}>
-                      <Textarea {...noteForm.register("content")} placeholder="Nhập ghi chú chăm sóc khách hàng" />
-                    </FormField>
-                  </FormSection>
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={addNote.isPending}>
-                      {addNote.isPending ? "Đang lưu…" : "Thêm ghi chú"}
-                    </Button>
+                {canCreateNote ? (
+                  <form className="space-y-4" onSubmit={noteForm.handleSubmit((values) => addNote.mutate(values))}>
+                    {addNote.actionError ? (
+                      <ActionErrorAlert
+                        error={addNote.actionError}
+                        onDismiss={addNote.clearActionError}
+                        onRetry={addNote.canRetry ? () => void addNote.retryLast() : undefined}
+                      />
+                    ) : null}
+                    <FormSection title="Nội dung ghi chú" description="Giữ cấu trúc ngắn để đội vận hành nhập nhanh hơn.">
+                      <FormField label="Loại ghi chú">
+                        <Select {...noteForm.register("note_type")}>
+                          <option value="general">Tổng quát</option>
+                          <option value="call">Cuộc gọi</option>
+                          <option value="meeting">Cuộc họp</option>
+                          <option value="internal">Nội bộ</option>
+                        </Select>
+                      </FormField>
+                      <FormField label="Nội dung" error={noteForm.formState.errors.content?.message}>
+                        <Textarea {...noteForm.register("content")} placeholder="Nhập ghi chú chăm sóc khách hàng" />
+                      </FormField>
+                    </FormSection>
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={addNote.isPending}>
+                        {addNote.isPending ? "Đang lưu…" : "Thêm ghi chú"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                    Bạn không có quyền thêm ghi chú cho hồ sơ khách hàng.
                   </div>
-                </form>
+                )}
               </SectionPanel>
 
               <SectionPanel

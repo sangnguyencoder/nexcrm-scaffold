@@ -32,6 +32,8 @@ import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
 import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuthStore } from "@/store/authStore";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -115,6 +117,8 @@ function TicketFormModal({
   const queryClient = useQueryClient();
   const { data: customers = [] } = useCustomersQuery();
   const { data: users = [] } = useUsersQuery();
+  const currentUserId = useAuthStore((state) => state.profile?.id ?? state.user?.id ?? "");
+  const defaultAssigneeId = currentUserId || "";
   const [customerSearch, setCustomerSearch] = useState("");
   const deferredCustomerSearch = useDebouncedValue(customerSearch, 150);
   const form = useForm<TicketFormValues>({
@@ -126,7 +130,7 @@ function TicketFormModal({
       category: "inquiry",
       priority: "medium",
       channel: "email",
-      assigned_to: users[0]?.id ?? "",
+      assigned_to: defaultAssigneeId,
     },
   });
   const assignedValue = useWatch({ control: form.control, name: "assigned_to" });
@@ -144,9 +148,9 @@ function TicketFormModal({
       category: "inquiry",
       priority: "medium",
       channel: "email",
-      assigned_to: users[0]?.id ?? "",
+      assigned_to: defaultAssigneeId,
     });
-  }, [form, open, prefillCustomerId, users]);
+  }, [defaultAssigneeId, form, open, prefillCustomerId]);
 
   const createTicket = useAppMutation({
     action: "ticket.create",
@@ -178,7 +182,7 @@ function TicketFormModal({
           createTicket.mutate({
             ...values,
             description: values.description || "",
-            assigned_to: values.assigned_to || users[0]?.id || "",
+            assigned_to: values.assigned_to || undefined,
             status: "open",
           }),
         )}
@@ -319,6 +323,9 @@ function Field({
 export function TicketListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canAccess } = usePermission();
+  const canCreateTicket = canAccess("ticket:create");
+  const canUpdateTicket = canAccess("ticket:update");
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<"kanban" | "table">("table");
   const [search, setSearch] = useState("");
@@ -343,7 +350,7 @@ export function TicketListPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
-  const createOpen = requestedCreate || createOpenLocal;
+  const createOpen = (requestedCreate && canCreateTicket) || createOpenLocal;
 
   const clearPrefillParams = () => {
     if (!requestedCreate && !prefillCustomerId) return;
@@ -352,6 +359,17 @@ export function TicketListPage() {
     next.delete("customerId");
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (!requestedCreate || canCreateTicket) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    next.delete("customerId");
+    setSearchParams(next, { replace: true });
+    toast.error("Bạn không có quyền tạo ticket.");
+  }, [canCreateTicket, requestedCreate, searchParams, setSearchParams]);
 
   const customerMap = useMemo(
     () =>
@@ -574,19 +592,21 @@ export function TicketListPage() {
                 <LayoutGrid className="size-4" />
                 Kanban
               </Button>
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                onClick={() => setViewMode("table")}
-                size="sm"
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              onClick={() => setViewMode("table")}
+              size="sm"
               >
                 <Table2 className="size-4" />
                 Bảng
               </Button>
             </div>
-            <Button onClick={() => setCreateOpenLocal(true)}>
-              <Plus className="size-4" />
-              Tạo Ticket
-            </Button>
+            {canCreateTicket ? (
+              <Button onClick={() => setCreateOpenLocal(true)}>
+                <Plus className="size-4" />
+                Tạo Ticket
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -659,7 +679,7 @@ export function TicketListPage() {
                   className={`border-t-4 ${column.borderClass}`}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
-                    if (draggedTicketId) {
+                    if (canUpdateTicket && draggedTicketId) {
                       updateStatus.mutate({ id: draggedTicketId, status: column.value });
                       setDraggedTicketId(null);
                     }
@@ -673,21 +693,26 @@ export function TicketListPage() {
                           {columnTickets.length}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setCreateOpenLocal(true)}
-                        className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                      >
-                        Thêm
-                      </button>
+                      {canCreateTicket ? (
+                        <button
+                          type="button"
+                          onClick={() => setCreateOpenLocal(true)}
+                          className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        >
+                          Thêm
+                        </button>
+                      ) : null}
                     </div>
                     <div className="space-y-3">
                       {columnTickets.map((ticket) => (
                         <button
                           key={ticket.id}
                           type="button"
-                          draggable
-                          onDragStart={() => setDraggedTicketId(ticket.id)}
+                          draggable={canUpdateTicket}
+                          onDragStart={() => {
+                            if (!canUpdateTicket) return;
+                            setDraggedTicketId(ticket.id);
+                          }}
                           onMouseEnter={() => preloadRoutePath(`/tickets/${ticket.id}`)}
                           onFocus={() => preloadRoutePath(`/tickets/${ticket.id}`)}
                           onClick={() => navigate(`/tickets/${ticket.id}`)}

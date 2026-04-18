@@ -12,19 +12,19 @@ const ALL_ROLES: readonly UserRole[] = [
 export const PERMISSIONS = {
   "dashboard:read": ALL_ROLES,
   "report:read": ALL_ROLES,
-  "report:export": ["super_admin", "admin", "director", "marketing"],
+  "report:export": ["super_admin", "admin", "director"],
 
   "customer:read": ALL_ROLES,
   "customer:create": ["super_admin", "admin", "sales"],
   "customer:update": ["super_admin", "admin", "sales"],
   "customer:delete": ["super_admin", "admin", "director", "sales"],
 
-  "transaction:read": ["super_admin", "admin", "director", "sales", "cskh"],
+  "transaction:read": ["super_admin", "admin", "director", "sales", "cskh", "marketing"],
   "transaction:create": ["super_admin", "admin", "sales"],
   "transaction:update": ["super_admin", "admin", "sales"],
   "transaction:delete": ["super_admin", "admin"],
 
-  "ticket:read": ["super_admin", "admin", "director", "sales", "cskh"],
+  "ticket:read": ["super_admin", "admin", "director", "sales", "cskh", "marketing"],
   "ticket:create": ["super_admin", "admin", "sales", "cskh"],
   "ticket:update": ["super_admin", "admin", "cskh"],
   "ticket:delete": ["super_admin", "admin"],
@@ -40,12 +40,12 @@ export const PERMISSIONS = {
   "automation:update": ["super_admin", "admin", "marketing"],
   "automation:delete": ["super_admin", "admin"],
 
-  "deal:read": ["super_admin", "admin", "director", "sales"],
+  "deal:read": ["super_admin", "admin", "director", "sales", "marketing"],
   "deal:create": ["super_admin", "admin", "sales"],
   "deal:update": ["super_admin", "admin", "sales"],
   "deal:delete": ["super_admin", "admin"],
 
-  "task:read": ["super_admin", "admin", "director", "sales", "cskh"],
+  "task:read": ["super_admin", "admin", "director", "sales", "cskh", "marketing"],
   "task:create": ["super_admin", "admin", "sales", "cskh"],
   "task:update": ["super_admin", "admin", "sales", "cskh"],
   "task:delete": ["super_admin", "admin"],
