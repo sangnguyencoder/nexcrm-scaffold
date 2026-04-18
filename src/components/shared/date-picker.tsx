@@ -1,5 +1,6 @@
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { cn, formatDateInputValue } from "@/lib/utils";
 
@@ -13,6 +14,9 @@ const MONTH_DISPLAY_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
   month: "long",
   year: "numeric",
 });
+const PANEL_WIDTH = 304;
+const PANEL_OFFSET = 8;
+const VIEWPORT_MARGIN = 12;
 
 function parseDateValue(value?: string | null) {
   if (!value) return null;
@@ -54,7 +58,10 @@ export function DatePicker({
   max?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState({ top: 0, left: 0, width: PANEL_WIDTH });
   const selectedDate = parseDateValue(value);
   const today = startOfDay(new Date());
   const [displayMonth, setDisplayMonth] = useState<Date>(() => {
@@ -64,11 +71,56 @@ export function DatePicker({
   const minDate = parseDateValue(min);
   const maxDate = parseDateValue(max);
 
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    const updatePanelPosition = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const panelHeight = panelRef.current?.offsetHeight ?? 360;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const width = Math.min(PANEL_WIDTH, viewportWidth - VIEWPORT_MARGIN * 2);
+      const maxLeft = Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN);
+      const left = Math.min(Math.max(triggerRect.left, VIEWPORT_MARGIN), maxLeft);
+
+      const belowTop = triggerRect.bottom + PANEL_OFFSET;
+      const aboveTop = triggerRect.top - panelHeight - PANEL_OFFSET;
+      let top = belowTop;
+
+      if (belowTop + panelHeight > viewportHeight - VIEWPORT_MARGIN && aboveTop >= VIEWPORT_MARGIN) {
+        top = aboveTop;
+      }
+
+      if (top + panelHeight > viewportHeight - VIEWPORT_MARGIN) {
+        top = Math.max(VIEWPORT_MARGIN, viewportHeight - panelHeight - VIEWPORT_MARGIN);
+      }
+
+      setPanelStyle({ top, left, width });
+    };
+
+    updatePanelPosition();
+    const frameId = window.requestAnimationFrame(updatePanelPosition);
+    window.addEventListener("resize", updatePanelPosition);
+    window.addEventListener("scroll", updatePanelPosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", updatePanelPosition);
+      window.removeEventListener("scroll", updatePanelPosition, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inTrigger = containerRef.current?.contains(target);
+      const inPanel = panelRef.current?.contains(target);
+      if (!inTrigger && !inPanel) {
         setOpen(false);
       }
     };
@@ -128,8 +180,9 @@ export function DatePicker({
     setDisplayMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1));
 
   return (
-    <div ref={containerRef} className={cn("relative min-w-[160px]", className)}>
+    <div ref={containerRef} className={cn("min-w-[176px]", className)}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() =>
           setOpen((current) => {
@@ -142,18 +195,27 @@ export function DatePicker({
         }
         disabled={disabled}
         className={cn(
-          "inline-flex h-11 w-full items-center justify-between gap-2 rounded-full border border-border/80 bg-card px-4 text-left text-base font-medium text-foreground shadow-xs transition-colors hover:border-primary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60 sm:text-[13px]",
+          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3.5 text-left text-sm font-medium text-foreground shadow-xs transition-colors hover:border-primary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60",
           !value && "text-muted-foreground",
         )}
       >
         <span className="truncate">{selectedDate ? DATE_DISPLAY_FORMATTER.format(selectedDate) : placeholder}</span>
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground">
           <CalendarDays className="size-4" />
         </span>
       </button>
 
-      {open ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] overflow-hidden rounded-2xl border border-border/80 bg-popover p-3 shadow-soft">
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={panelRef}
+              style={{
+                top: panelStyle.top,
+                left: panelStyle.left,
+                width: panelStyle.width,
+              }}
+              className="fixed z-[70] overflow-hidden rounded-2xl border border-border/80 bg-popover p-3 shadow-soft"
+            >
           <div className="mb-3 flex items-center justify-between gap-2 px-1">
             <div className="text-sm font-semibold text-foreground">{monthLabel}</div>
             <div className="flex items-center gap-1">
@@ -176,15 +238,15 @@ export function DatePicker({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 px-1 pb-2">
+          <div className="grid grid-cols-7 gap-0.5 px-1 pb-1.5">
             {WEEKDAY_LABELS.map((label) => (
-              <div key={label} className="py-1 text-center text-xs font-semibold text-muted-foreground">
+              <div key={label} className="py-1 text-center text-[11px] font-semibold text-muted-foreground">
                 {label}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1 px-1">
+          <div className="grid grid-cols-7 gap-0.5 px-1">
             {gridDays.map((date) => {
               const outsideCurrentMonth = date.getMonth() !== displayMonth.getMonth();
               const selected = selectedDate ? isSameDate(date, selectedDate) : false;
@@ -198,7 +260,7 @@ export function DatePicker({
                   disabled={disabledDate}
                   onClick={() => selectDate(date)}
                   className={cn(
-                    "inline-flex size-9 items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
+                    "inline-flex h-8 w-8 items-center justify-center rounded-lg text-[13px] tabular-nums transition-colors",
                     outsideCurrentMonth ? "text-muted-foreground/65" : "text-foreground",
                     isToday && !selected && "border border-primary/40 text-primary",
                     selected && "bg-primary font-semibold text-primary-foreground shadow-xs",
@@ -219,20 +281,22 @@ export function DatePicker({
                 onChange("");
                 setOpen(false);
               }}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Xóa
             </button>
             <button
               type="button"
               onClick={() => selectDate(today)}
-              className="text-sm font-semibold text-primary transition-colors hover:text-primary/85"
+              className="text-xs font-semibold text-primary transition-colors hover:text-primary/85"
             >
               Hôm nay
             </button>
           </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

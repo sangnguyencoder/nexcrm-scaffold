@@ -7,13 +7,14 @@ import {
   CheckCircle2,
   CircleDot,
   Plus,
+  RotateCcw,
   Search,
   Target,
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -21,6 +22,7 @@ import { z } from "zod";
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
@@ -29,6 +31,7 @@ import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { UserSelect } from "@/components/shared/user-select";
 import { Can } from "@/components/shared/Can";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -158,6 +161,8 @@ function DealFormModal({
       description: "",
     },
   });
+  const ownerValue = useWatch({ control: form.control, name: "owner_id" });
+  const expectedCloseAtValue = useWatch({ control: form.control, name: "expected_close_at" });
 
   useEffect(() => {
     if (!open) return;
@@ -267,14 +272,17 @@ function DealFormModal({
             </Field>
 
             <Field label="Phụ trách" error={form.formState.errors.owner_id?.message}>
-              <Select {...form.register("owner_id")}>
-                <option value="">Chọn người phụ trách</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name} · {user.department}
-                  </option>
-                ))}
-              </Select>
+              <UserSelect
+                value={ownerValue}
+                onValueChange={(nextValue) =>
+                  form.setValue("owner_id", nextValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                users={users}
+                placeholder="Chọn người phụ trách"
+              />
             </Field>
 
             <Field label="Giai đoạn">
@@ -296,7 +304,16 @@ function DealFormModal({
             </Field>
 
             <Field label="Ngày dự kiến chốt">
-              <Input type="date" {...form.register("expected_close_at")} />
+              <DatePicker
+                value={expectedCloseAtValue}
+                onChange={(nextValue) =>
+                  form.setValue("expected_close_at", nextValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                placeholder="Chọn ngày dự kiến chốt"
+              />
             </Field>
           </div>
 
@@ -345,6 +362,8 @@ function TaskForm({ dealId }: { dealId: string }) {
       due_at: "",
     },
   });
+  const taskAssignedValue = useWatch({ control: form.control, name: "assigned_to" });
+  const taskDueAtValue = useWatch({ control: form.control, name: "due_at" });
 
   useEffect(() => {
     const current = form.getValues();
@@ -409,14 +428,17 @@ function TaskForm({ dealId }: { dealId: string }) {
       </Field>
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="Phụ trách" error={form.formState.errors.assigned_to?.message}>
-          <Select {...form.register("assigned_to")}>
-            <option value="">Chọn người phụ trách</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name}
-              </option>
-            ))}
-          </Select>
+          <UserSelect
+            value={taskAssignedValue}
+            onValueChange={(nextValue) =>
+              form.setValue("assigned_to", nextValue, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            users={users}
+            placeholder="Chọn người phụ trách"
+          />
         </Field>
         <Field label="Ưu tiên">
           <Select {...form.register("priority")}>
@@ -426,7 +448,16 @@ function TaskForm({ dealId }: { dealId: string }) {
           </Select>
         </Field>
         <Field label="Deadline">
-          <Input type="date" {...form.register("due_at")} />
+          <DatePicker
+            value={taskDueAtValue}
+            onChange={(nextValue) =>
+              form.setValue("due_at", nextValue, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            placeholder="Chọn deadline"
+          />
         </Field>
       </div>
       <div className="flex justify-end">
@@ -754,17 +785,13 @@ export function DealPipelinePage() {
             placeholder="Tìm theo cơ hội, khách hàng hoặc người phụ trách"
           />
         </div>
-        <FilterSelect
+        <UserSelect
           value={ownerFilter}
           onValueChange={setOwnerFilter}
-          options={[
-            { value: "all", label: "Tất cả phụ trách" },
-            ...users.map((user) => ({
-              value: user.id,
-              label: user.full_name,
-            })),
-          ]}
-          className="w-[220px]"
+          users={users}
+          includeAllOption
+          allLabel="Tất cả phụ trách"
+          className="w-[250px]"
         />
         <FilterSelect
           value={stageFilter}
@@ -780,13 +807,15 @@ export function DealPipelinePage() {
         />
         <Button
           variant="secondary"
+          className="h-11 border-primary/20"
           onClick={() => {
             setSearch("");
             setOwnerFilter("all");
             setStageFilter("all");
           }}
         >
-          Xóa lọc
+          <RotateCcw className="size-4 text-primary" />
+          Xóa bộ lọc
         </Button>
       </StickyFilterBar>
 

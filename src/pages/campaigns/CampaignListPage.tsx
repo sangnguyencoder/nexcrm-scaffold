@@ -1,7 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowUpDown,
   CalendarClock,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Eye,
   Megaphone,
@@ -11,7 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -19,7 +22,9 @@ import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { CompactPagination } from "@/components/shared/compact-pagination";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTableShell } from "@/components/shared/data-table-shell";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { MetricStrip, MetricStripItem } from "@/components/shared/metric-strip";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
@@ -82,6 +87,8 @@ type WizardState = {
 };
 
 type ComposerTab = "audience" | "content" | "schedule";
+type CampaignSortKey = "status" | "name" | "channel" | "recipient_count" | "schedule" | "performance";
+type SortDirection = "asc" | "desc";
 
 const composerTabOrder: ComposerTab[] = ["audience", "content", "schedule"];
 
@@ -104,6 +111,36 @@ function toDateTimeLocalInput(value?: string | null) {
   const pad = (input: number) => String(input).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+function splitDateTimeLocalInput(value: string) {
+  if (!value) {
+    return { date: "", time: "09:00" };
+  }
+
+  const [datePart = "", timePart = "09:00"] = value.split("T");
+  return { date: datePart, time: timePart.slice(0, 5) || "09:00" };
+}
+
+function combineDateAndTime(date: string, time: string) {
+  if (!date) return "";
+  return `${date}T${time || "09:00"}`;
+}
+
+const SCHEDULE_TIME_OPTIONS = [
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+].map((time) => ({ value: time, label: time }));
 
 function formatCampaignStatus(status: Campaign["status"]) {
   const map: Record<Campaign["status"], string> = {
@@ -176,6 +213,8 @@ export function CampaignListPage() {
   const [statusFilter, setStatusFilter] = useState<Campaign["status"] | "all">("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<CampaignSortKey>("schedule");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [composerOpenLocal, setComposerOpenLocal] = useState(false);
   const [composerTab, setComposerTab] = useState<ComposerTab>("audience");
   const [wizard, setWizard] = useState<WizardState>(initialWizardState);
@@ -217,9 +256,49 @@ export function CampaignListPage() {
     [campaigns, search, statusFilter],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / 10));
+  const sortedCampaigns = useMemo(() => {
+    const statusRank: Record<Campaign["status"], number> = {
+      draft: 1,
+      scheduled: 2,
+      sending: 3,
+      sent: 4,
+      sent_with_errors: 5,
+      cancelled: 6,
+    };
+
+    return [...filteredCampaigns].sort((left, right) => {
+      let compare = 0;
+
+      if (sortBy === "status") {
+        compare = statusRank[left.status] - statusRank[right.status];
+      } else if (sortBy === "name") {
+        compare = left.name.localeCompare(right.name, "vi");
+      } else if (sortBy === "channel") {
+        compare = formatChannel(left.channel).localeCompare(formatChannel(right.channel), "vi");
+      } else if (sortBy === "recipient_count") {
+        compare = left.recipient_count - right.recipient_count;
+      } else if (sortBy === "performance") {
+        compare = (left.open_rate ?? 0) - (right.open_rate ?? 0);
+        if (compare === 0) {
+          compare = (left.click_rate ?? 0) - (right.click_rate ?? 0);
+        }
+      } else {
+        const leftSchedule = new Date(left.sent_at ?? left.scheduled_at ?? left.created_at).getTime();
+        const rightSchedule = new Date(right.sent_at ?? right.scheduled_at ?? right.created_at).getTime();
+        compare = leftSchedule - rightSchedule;
+      }
+
+      if (compare === 0) {
+        compare = left.name.localeCompare(right.name, "vi");
+      }
+
+      return sortDirection === "asc" ? compare : -compare;
+    });
+  }, [filteredCampaigns, sortBy, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedCampaigns.length / 10));
   const currentPage = Math.min(page, totalPages);
-  const pagedCampaigns = filteredCampaigns.slice((currentPage - 1) * 10, currentPage * 10);
+  const pagedCampaigns = sortedCampaigns.slice((currentPage - 1) * 10, currentPage * 10);
 
   const summary = useMemo(() => {
     const sent = filteredCampaigns.reduce((sum, item) => sum + item.sent_count, 0);
@@ -234,6 +313,7 @@ export function CampaignListPage() {
     .replaceAll("{ma_khach_hang}", "KH-2026-0182")
     .replaceAll("{tong_chi_tieu}", "18.500.000 ₫")
     .replaceAll("{lan_mua_cuoi}", "3 ngày trước");
+  const scheduleParts = useMemo(() => splitDateTimeLocalInput(wizard.scheduledAt), [wizard.scheduledAt]);
   const sectionValidation = useMemo<Record<ComposerTab, string[]>>(() => {
     const audienceErrors: string[] = [];
     const contentErrors: string[] = [];
@@ -268,12 +348,30 @@ export function CampaignListPage() {
   const isLastComposerStep = currentStepIndex === composerTabOrder.length - 1;
   const canSubmitCampaign = composerTabOrder.every((tabKey) => sectionValidation[tabKey].length === 0);
 
-  useEffect(() => {
-    if (!requestedCreate) return;
-    setEditingCampaign(null);
-    setWizard(initialWizardState);
-    setComposerTab("audience");
-  }, [requestedCreate]);
+  const toggleSort = (key: CampaignSortKey) => {
+    setSortBy((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+
+      setSortDirection("asc");
+      return key;
+    });
+    setPage(1);
+  };
+
+  const renderSortIcon = (key: CampaignSortKey) => {
+    if (sortBy !== key) {
+      return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ChevronUp className="size-3.5 text-primary" />
+    ) : (
+      <ChevronDown className="size-3.5 text-primary" />
+    );
+  };
 
   const runScheduler = useAppMutation({
     action: "scheduler.tick",
@@ -596,22 +694,52 @@ export function CampaignListPage() {
           <CompactPagination
             page={currentPage}
             totalPages={totalPages}
-            label={`${filteredCampaigns.length} chiến dịch`}
+            label={`${sortedCampaigns.length} chiến dịch`}
             onPrevious={() => setPage(Math.max(1, currentPage - 1))}
             onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
           />
         }
       >
-        {filteredCampaigns.length ? (
+        {sortedCampaigns.length ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Chiến dịch</TableHead>
-                <TableHead>Kênh</TableHead>
-                <TableHead>Tệp nhận</TableHead>
-                <TableHead>Lịch / gửi</TableHead>
-                <TableHead>Hiệu quả</TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>
+                    Trạng thái
+                    {renderSortIcon("status")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}>
+                    Chiến dịch
+                    {renderSortIcon("name")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("channel")}>
+                    Kênh
+                    {renderSortIcon("channel")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("recipient_count")}>
+                    Tệp nhận
+                    {renderSortIcon("recipient_count")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("schedule")}>
+                    Lịch / gửi
+                    {renderSortIcon("schedule")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("performance")}>
+                    Hiệu quả
+                    {renderSortIcon("performance")}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
@@ -935,11 +1063,29 @@ export function CampaignListPage() {
               </Field>
               {wizard.scheduleMode === "later" ? (
                 <Field label="Thời điểm gửi">
-                  <Input
-                    type="datetime-local"
-                    value={wizard.scheduledAt}
-                    onChange={(event) => setWizard({ ...wizard, scheduledAt: event.target.value })}
-                  />
+                  <div className="grid gap-2 sm:grid-cols-[170px,minmax(0,1fr)]">
+                    <DatePicker
+                      value={scheduleParts.date}
+                      onChange={(nextDate) =>
+                        setWizard((current) => ({
+                          ...current,
+                          scheduledAt: combineDateAndTime(nextDate, scheduleParts.time),
+                        }))
+                      }
+                      placeholder="Chọn ngày gửi"
+                    />
+                    <FilterSelect
+                      value={scheduleParts.time}
+                      onValueChange={(nextTime) =>
+                        setWizard((current) => ({
+                          ...current,
+                          scheduledAt: combineDateAndTime(scheduleParts.date, nextTime),
+                        }))
+                      }
+                      options={SCHEDULE_TIME_OPTIONS}
+                      placeholder="Chọn giờ gửi"
+                    />
+                  </div>
                 </Field>
               ) : null}
               <Card>
@@ -961,7 +1107,13 @@ export function CampaignListPage() {
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Lịch gửi</span>
-                    <span>{wizard.scheduleMode === "later" ? wizard.scheduledAt || "--" : "Gửi ngay"}</span>
+                    <span>
+                      {wizard.scheduleMode === "later"
+                        ? wizard.scheduledAt
+                          ? wizard.scheduledAt.replace("T", " ")
+                          : "--"
+                        : "Gửi ngay"}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

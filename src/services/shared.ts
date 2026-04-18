@@ -251,7 +251,17 @@ export type CustomerFilters = {
   search?: string;
   customerType?: CustomerType | "all";
   includeInactive?: boolean;
-  sortBy?: "full_name" | "total_spent" | "created_at";
+  sortBy?:
+    | "full_name"
+    | "phone"
+    | "email"
+    | "customer_type"
+    | "assigned_to"
+    | "total_spent"
+    | "total_orders"
+    | "created_at"
+    | "updated_at"
+    | "last_order_at";
   sortDirection?: "asc" | "desc";
 };
 
@@ -901,6 +911,7 @@ export function toCustomer(row: CustomerRow): Customer {
     customer_code: row.customer_code ?? `KH-${new Date(row.created_at).getFullYear()}-0000`,
     full_name: row.full_name,
     gender: row.gender,
+    date_of_birth: row.date_of_birth,
     phone: row.phone ?? "",
     email: row.email ?? "",
     address: row.address ?? "",

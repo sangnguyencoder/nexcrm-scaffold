@@ -1,11 +1,10 @@
-import { Download, FileText } from "lucide-react";
+import { AlertTriangle, Download, FileText, RefreshCw } from "lucide-react";
 import { Suspense, lazy, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DatePicker } from "@/components/shared/date-picker";
 import { FilterSelect } from "@/components/shared/filter-select";
-import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
@@ -56,6 +55,27 @@ function getPreviousRange(from: string, to: string) {
   };
 }
 
+function getRangeValidation(from: string, to: string) {
+  const fromDate = new Date(`${from}T00:00:00`);
+  const toDate = new Date(`${to}T00:00:00`);
+
+  if (!from || !to || Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    return {
+      valid: false,
+      message: "Khoảng thời gian chưa hợp lệ. Vui lòng chọn lại ngày bắt đầu và kết thúc.",
+    };
+  }
+
+  if (fromDate.getTime() > toDate.getTime()) {
+    return {
+      valid: false,
+      message: "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.",
+    };
+  }
+
+  return { valid: true, message: "" };
+}
+
 function isReportTab(value: string | null): value is ReportTab {
   return value === "revenue" || value === "customers" || value === "tickets" || value === "marketing";
 }
@@ -73,6 +93,8 @@ export function ReportsPage() {
   const from = searchParams.get("from") || getDefaultFromDate();
   const to = searchParams.get("to") || getDefaultToDate();
   const groupBy: ReportGroupBy = isGroupBy(groupByParam) ? groupByParam : "day";
+  const rangeValidation = useMemo(() => getRangeValidation(from, to), [from, to]);
+  const canRunReportQuery = rangeValidation.valid;
 
   const updateParams = (updates: Partial<Record<"tab" | "from" | "to" | "groupBy", string>>) => {
     const next = new URLSearchParams(searchParams);
@@ -86,19 +108,25 @@ export function ReportsPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const reportQuery = useReportSnapshot({
-    tab: activeTab,
-    from,
-    to,
-    groupBy,
-  });
+  const reportQuery = useReportSnapshot(
+    {
+      tab: activeTab,
+      from,
+      to,
+      groupBy,
+    },
+    canRunReportQuery,
+  );
   const previousRange = useMemo(() => getPreviousRange(from, to), [from, to]);
-  const previousReportQuery = useReportSnapshot({
-    tab: activeTab,
-    from: previousRange.from,
-    to: previousRange.to,
-    groupBy,
-  });
+  const previousReportQuery = useReportSnapshot(
+    {
+      tab: activeTab,
+      from: previousRange.from,
+      to: previousRange.to,
+      groupBy,
+    },
+    canRunReportQuery,
+  );
 
   const handleExport = async (format: "xlsx" | "pdf") => {
     if (!reportQuery.data) {
@@ -130,33 +158,10 @@ export function ReportsPage() {
     }
   };
 
-  if (reportQuery.isLoading) {
+  if (canRunReportQuery && reportQuery.isLoading && !reportQuery.data) {
     return <PageLoader panels={3} />;
   }
-
-  if (reportQuery.error) {
-    return (
-      <div className="space-y-4">
-        <PageHeader
-          title="Báo Cáo"
-          // subtitle="KPI và bảng tóm tắt đang không tải được. Bạn có thể thử lại ngay từ đây."
-        />
-        <PageErrorState
-          title="Không thể tải báo cáo"
-          description={getAppErrorMessage(
-            reportQuery.error,
-            "Dữ liệu báo cáo chưa đồng bộ được. Vui lòng kiểm tra bộ lọc ngày và thử lại.",
-          )}
-          onRetry={() => void reportQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
   const snapshot = reportQuery.data;
-  if (!snapshot) {
-    return <PageLoader panels={2} />;
-  }
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => updateParams({ tab: value })} className="space-y-4">
@@ -172,8 +177,8 @@ export function ReportsPage() {
           <TabsTrigger value="tickets">Ticket</TabsTrigger>
           <TabsTrigger value="marketing">Marketing</TabsTrigger>
         </TabsList>
-        <DatePicker value={from} onChange={(nextValue) => updateParams({ from: nextValue })} className="w-[166px]" />
-        <DatePicker value={to} onChange={(nextValue) => updateParams({ to: nextValue })} className="w-[166px]" />
+        <DatePicker value={from} onChange={(nextValue) => updateParams({ from: nextValue })} className="w-[190px]" />
+        <DatePicker value={to} onChange={(nextValue) => updateParams({ to: nextValue })} className="w-[190px]" />
         <FilterSelect
           value={groupBy}
           onValueChange={(nextValue) => updateParams({ groupBy: nextValue })}
@@ -182,14 +187,14 @@ export function ReportsPage() {
             { value: "week", label: "Theo tuần" },
             { value: "month", label: "Theo tháng" },
           ]}
-          className="w-[146px]"
+          className="w-[180px]"
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => void handleExport("xlsx")}
-            disabled={Boolean(exportingFormat)}
+            disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
           >
             <Download className="size-4" />
             {exportingFormat === "xlsx" ? "Đang xuất..." : "Xuất Excel"}
@@ -197,17 +202,45 @@ export function ReportsPage() {
           <Button
             size="sm"
             onClick={() => void handleExport("pdf")}
-            disabled={Boolean(exportingFormat)}
+            disabled={Boolean(exportingFormat) || !canRunReportQuery || !snapshot}
           >
             <FileText className="size-4" />
             {exportingFormat === "pdf" ? "Đang xuất..." : "Xuất PDF"}
           </Button>
         </div>
       </StickyFilterBar>
+      {!canRunReportQuery ? (
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>{rangeValidation.message}</span>
+          </div>
+        </div>
+      ) : null}
 
-      <Suspense fallback={<PageLoader panels={2} />}>
-        <ReportContent snapshot={snapshot} previousSnapshot={previousReportQuery.data ?? null} />
-      </Suspense>
+      {canRunReportQuery && reportQuery.error ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {getAppErrorMessage(
+                reportQuery.error,
+                "Không thể tải báo cáo với khoảng thời gian hiện tại. Vui lòng thử lại.",
+              )}
+            </span>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => void reportQuery.refetch()}>
+            <RefreshCw className="size-4" />
+            Thử lại
+          </Button>
+        </div>
+      ) : null}
+
+      {canRunReportQuery && snapshot ? (
+        <Suspense fallback={<PageLoader panels={2} />}>
+          <ReportContent snapshot={snapshot} previousSnapshot={previousReportQuery.data ?? null} />
+        </Suspense>
+      ) : null}
     </Tabs>
   );
 }

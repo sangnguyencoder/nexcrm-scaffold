@@ -90,6 +90,10 @@ export function hasPermission(
     return false;
   }
 
+  if (role === "super_admin") {
+    return true;
+  }
+
   return (PERMISSIONS[permission] as readonly UserRole[]).includes(role);
 }
 

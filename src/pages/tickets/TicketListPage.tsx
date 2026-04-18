@@ -1,23 +1,26 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
   GripVertical,
   LayoutGrid,
   MessageSquare,
   Plus,
+  RotateCcw,
   Search,
   Table2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { CompactPagination } from "@/components/shared/compact-pagination";
-import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -26,8 +29,10 @@ import { PageErrorState } from "@/components/shared/page-error-state";
 import { PageLoader } from "@/components/shared/page-loader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,6 +53,7 @@ import {
   useUsersQuery,
 } from "@/hooks/useNexcrmQueries";
 import {
+  formatRole,
   formatTicketStatus,
   getStatusBadgeColor,
   getPriorityColor,
@@ -70,6 +76,17 @@ const ticketSchema = z.object({
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
+type TicketSortKey =
+  | "ticket_code"
+  | "title"
+  | "customer"
+  | "priority"
+  | "category"
+  | "assignee"
+  | "status"
+  | "created_at"
+  | "due_at";
+type SortDirection = "asc" | "desc";
 
 const columns: Array<{ label: string; value: TicketStatus; borderClass: string }> = [
   { label: "MỞ", value: "open", borderClass: "border-blue-500" },
@@ -112,6 +129,10 @@ function TicketFormModal({
       assigned_to: users[0]?.id ?? "",
     },
   });
+  const assignedValue = useWatch({ control: form.control, name: "assigned_to" });
+  const categoryValue = useWatch({ control: form.control, name: "category" });
+  const priorityValue = useWatch({ control: form.control, name: "priority" });
+  const channelValue = useWatch({ control: form.control, name: "channel" });
 
   useEffect(() => {
     if (!open) return;
@@ -201,36 +222,67 @@ function TicketFormModal({
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Danh mục">
-            <Select {...form.register("category")}>
-              <option value="inquiry">Yêu cầu</option>
-              <option value="feedback">Phản hồi</option>
-              <option value="complaint">Khiếu nại</option>
-              <option value="return">Đổi trả</option>
-            </Select>
+            <FilterSelect
+              value={categoryValue}
+              onValueChange={(nextValue) =>
+                form.setValue("category", nextValue as TicketFormValues["category"], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              options={[
+                { value: "inquiry", label: "Yêu cầu" },
+                { value: "feedback", label: "Phản hồi" },
+                { value: "complaint", label: "Khiếu nại" },
+                { value: "return", label: "Đổi trả" },
+              ]}
+            />
           </Field>
           <Field label="Ưu tiên">
-            <Select {...form.register("priority")}>
-              <option value="low">Thấp</option>
-              <option value="medium">Trung bình</option>
-              <option value="high">Cao</option>
-              <option value="urgent">Khẩn cấp</option>
-            </Select>
+            <FilterSelect
+              value={priorityValue}
+              onValueChange={(nextValue) =>
+                form.setValue("priority", nextValue as TicketFormValues["priority"], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              options={[
+                { value: "low", label: "Thấp" },
+                { value: "medium", label: "Trung bình" },
+                { value: "high", label: "Cao" },
+                { value: "urgent", label: "Khẩn cấp" },
+              ]}
+            />
           </Field>
           <Field label="Kênh">
-            <Select {...form.register("channel")}>
-              <option value="email">Email</option>
-              <option value="phone">Điện thoại</option>
-              <option value="direct">Trực tiếp</option>
-            </Select>
+            <FilterSelect
+              value={channelValue}
+              onValueChange={(nextValue) =>
+                form.setValue("channel", nextValue as TicketFormValues["channel"], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              options={[
+                { value: "email", label: "Email" },
+                { value: "phone", label: "Điện thoại" },
+                { value: "direct", label: "Trực tiếp" },
+              ]}
+            />
           </Field>
           <Field label="Phụ trách">
-            <Select {...form.register("assigned_to")}>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.full_name}
-                </option>
-              ))}
-            </Select>
+            <UserSelect
+              value={assignedValue}
+              onValueChange={(nextValue) =>
+                form.setValue("assigned_to", nextValue, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              users={users}
+              placeholder="Chọn người phụ trách"
+            />
           </Field>
         </div>
         <div className="flex justify-end gap-3">
@@ -287,6 +339,8 @@ export function TicketListPage() {
   const [createOpenLocal, setCreateOpenLocal] = useState(false);
   const [currentTimestamp] = useState(() => Date.now());
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<TicketSortKey>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
   const createOpen = requestedCreate || createOpenLocal;
@@ -309,8 +363,8 @@ export function TicketListPage() {
   );
   const userMap = useMemo(
     () =>
-      users.reduce<Record<string, string>>((acc, user) => {
-        acc[user.id] = user.full_name;
+      users.reduce<Record<string, (typeof users)[number]>>((acc, user) => {
+        acc[user.id] = user;
         return acc;
       }, {}),
     [users],
@@ -330,20 +384,74 @@ export function TicketListPage() {
     [customerMap, deferredSearch, tickets],
   );
 
+  const sortedTickets = useMemo(() => {
+    const priorityRank: Record<(typeof filteredTickets)[number]["priority"], number> = {
+      low: 1,
+      medium: 2,
+      high: 3,
+      urgent: 4,
+    };
+    const statusRank: Record<TicketStatus, number> = {
+      open: 1,
+      in_progress: 2,
+      pending: 3,
+      resolved: 4,
+      closed: 5,
+    };
+
+    return [...filteredTickets].sort((left, right) => {
+      let compare = 0;
+
+      if (sortBy === "ticket_code") {
+        compare = left.ticket_code.localeCompare(right.ticket_code, "vi");
+      } else if (sortBy === "title") {
+        compare = left.title.localeCompare(right.title, "vi");
+      } else if (sortBy === "customer") {
+        compare = (customerMap[left.customer_id]?.full_name ?? "").localeCompare(
+          customerMap[right.customer_id]?.full_name ?? "",
+          "vi",
+        );
+      } else if (sortBy === "priority") {
+        compare = priorityRank[left.priority] - priorityRank[right.priority];
+      } else if (sortBy === "category") {
+        compare = left.category.localeCompare(right.category, "vi");
+      } else if (sortBy === "assignee") {
+        compare = (userMap[left.assigned_to]?.full_name ?? "").localeCompare(
+          userMap[right.assigned_to]?.full_name ?? "",
+          "vi",
+        );
+      } else if (sortBy === "status") {
+        compare = statusRank[left.status] - statusRank[right.status];
+      } else if (sortBy === "due_at") {
+        const leftDue = left.due_at ? new Date(left.due_at).getTime() : Number.POSITIVE_INFINITY;
+        const rightDue = right.due_at ? new Date(right.due_at).getTime() : Number.POSITIVE_INFINITY;
+        compare = leftDue - rightDue;
+      } else {
+        compare = new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+      }
+
+      if (compare === 0) {
+        compare = left.ticket_code.localeCompare(right.ticket_code, "vi");
+      }
+
+      return sortDirection === "asc" ? compare : -compare;
+    });
+  }, [customerMap, filteredTickets, sortBy, sortDirection, userMap]);
+
   useEffect(() => {
     setPage(1);
-  }, [assignedFilter, categoryFilter, deferredSearch, priorityFilter, viewMode]);
+  }, [assignedFilter, categoryFilter, deferredSearch, priorityFilter, sortBy, sortDirection, viewMode]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / 12));
+  const totalPages = Math.max(1, Math.ceil(sortedTickets.length / 12));
   const currentPage = Math.min(page, totalPages);
   const pagedTickets = useMemo(
-    () => filteredTickets.slice((currentPage - 1) * 12, currentPage * 12),
-    [currentPage, filteredTickets],
+    () => sortedTickets.slice((currentPage - 1) * 12, currentPage * 12),
+    [currentPage, sortedTickets],
   );
 
   const ticketsByStatus = useMemo(
     () =>
-      filteredTickets.reduce<Record<TicketStatus, typeof filteredTickets>>(
+      sortedTickets.reduce<Record<TicketStatus, typeof sortedTickets>>(
         (acc, ticket) => {
           (acc[ticket.status] ??= []).push(ticket);
           return acc;
@@ -356,8 +464,32 @@ export function TicketListPage() {
           closed: [],
         },
       ),
-    [filteredTickets],
+    [sortedTickets],
   );
+
+  const toggleSort = (key: TicketSortKey) => {
+    setSortBy((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+
+      setSortDirection("asc");
+      return key;
+    });
+  };
+
+  const renderSortIcon = (key: TicketSortKey) => {
+    if (sortBy !== key) {
+      return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ChevronUp className="size-3.5 text-primary" />
+    ) : (
+      <ChevronDown className="size-3.5 text-primary" />
+    );
+  };
 
   const updateStatus = useAppMutation({
     action: "ticket.update-status",
@@ -481,17 +613,13 @@ export function TicketListPage() {
           ]}
           className="w-[170px]"
         />
-        <FilterSelect
+        <UserSelect
           value={assignedFilter}
           onValueChange={setAssignedFilter}
-          options={[
-            { value: "all", label: "Tất cả phụ trách" },
-            ...users.map((user) => ({
-              value: user.id,
-              label: user.full_name,
-            })),
-          ]}
-          className="w-[180px]"
+          users={users}
+          includeAllOption
+          allLabel="Tất cả phụ trách"
+          className="w-[250px]"
         />
         <FilterSelect
           value={categoryFilter}
@@ -505,6 +633,19 @@ export function TicketListPage() {
           ]}
           className="w-[170px]"
         />
+        <Button
+          variant="secondary"
+          className="h-10 border-primary/20"
+          onClick={() => {
+            setSearch("");
+            setPriorityFilter("all");
+            setAssignedFilter("all");
+            setCategoryFilter("all");
+          }}
+        >
+          <RotateCcw className="size-4 text-primary" />
+          Xóa bộ lọc
+        </Button>
       </StickyFilterBar>
 
       {viewMode === "kanban" ? (
@@ -563,27 +704,27 @@ export function TicketListPage() {
                           <div className="mt-1 truncate text-xs text-muted-foreground">
                             {customerMap[ticket.customer_id]?.full_name ?? "--"}
                           </div>
-                          <div className="mt-3 flex items-center justify-between gap-2">
-                            <div className="flex flex-wrap gap-2">
-                              <StatusBadge
-                                label={ticket.priority}
-                                className={getPriorityColor(ticket.priority)}
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              <div className="flex flex-wrap gap-2">
+                                <StatusBadge
+                                  label={ticket.priority}
+                                  className={getPriorityColor(ticket.priority)}
                                 dotClassName="bg-current"
                               />
-                              <StatusBadge
-                                label={ticket.category}
-                                className="bg-muted text-muted-foreground ring-border"
-                                dotClassName="bg-primary"
+                                <StatusBadge
+                                  label={ticket.category}
+                                  className="bg-muted text-muted-foreground ring-border"
+                                  dotClassName="bg-primary"
+                                />
+                              </div>
+                              <Avatar
+                                name={userMap[ticket.assigned_to]?.full_name ?? "NA"}
+                                src={userMap[ticket.assigned_to]?.avatar_url}
+                                className="size-6"
                               />
                             </div>
-                            <CustomerAvatar
-                              name={userMap[ticket.assigned_to] ?? "NA"}
-                              type="potential"
-                              className="size-6 text-[10px]"
-                            />
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        ))}
                       {!columnTickets.length ? (
                         <div className="rounded-lg border border-dashed border-border/70 bg-background/75 px-3 py-4 text-center text-xs text-muted-foreground">
                           Không có ticket
@@ -596,20 +737,65 @@ export function TicketListPage() {
             })}
           </div>
         </div>
-      ) : filteredTickets.length ? (
+      ) : sortedTickets.length ? (
         <DataTableShell stickyHeader>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Tiêu đề</TableHead>
-                <TableHead>Khách Hàng</TableHead>
-                <TableHead>Ưu Tiên</TableHead>
-                <TableHead>Danh Mục</TableHead>
-                <TableHead>Phụ Trách</TableHead>
-                <TableHead>Trạng Thái</TableHead>
-                <TableHead>Ngày Tạo</TableHead>
-                <TableHead>SLA</TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("ticket_code")}>
+                    Code
+                    {renderSortIcon("ticket_code")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("title")}>
+                    Tiêu đề
+                    {renderSortIcon("title")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("customer")}>
+                    Khách Hàng
+                    {renderSortIcon("customer")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("priority")}>
+                    Ưu Tiên
+                    {renderSortIcon("priority")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("category")}>
+                    Danh Mục
+                    {renderSortIcon("category")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("assignee")}>
+                    Phụ Trách
+                    {renderSortIcon("assignee")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>
+                    Trạng Thái
+                    {renderSortIcon("status")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("created_at")}>
+                    Ngày Tạo
+                    {renderSortIcon("created_at")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("due_at")}>
+                    SLA
+                    {renderSortIcon("due_at")}
+                  </button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -640,7 +826,27 @@ export function TicketListPage() {
                       />
                     </TableCell>
                     <TableCell>{ticket.category}</TableCell>
-                    <TableCell>{userMap[ticket.assigned_to] ?? "--"}</TableCell>
+                    <TableCell>
+                      {userMap[ticket.assigned_to] ? (
+                        <div className="flex items-center gap-2.5">
+                          <Avatar
+                            name={userMap[ticket.assigned_to]?.full_name ?? "--"}
+                            src={userMap[ticket.assigned_to]?.avatar_url}
+                            className="size-7"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">
+                              {userMap[ticket.assigned_to]?.full_name}
+                            </span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {formatRole(userMap[ticket.assigned_to]?.role ?? "sales")}
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        "--"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <StatusBadge
                         label={formatTicketStatus(ticket.status)}
@@ -666,12 +872,12 @@ export function TicketListPage() {
         />
       )}
 
-      {filteredTickets.length ? (
+      {sortedTickets.length ? (
         <div className="rounded-lg border border-border bg-card p-3">
           <CompactPagination
             page={currentPage}
             totalPages={totalPages}
-            label={`${filteredTickets.length} ticket`}
+            label={`${sortedTickets.length} ticket`}
             onPrevious={() => setPage(Math.max(1, currentPage - 1))}
             onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
           />

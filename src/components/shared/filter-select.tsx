@@ -32,7 +32,7 @@ export function FilterSelect({
     <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectPrimitive.Trigger
         className={cn(
-          "inline-flex h-11 w-full items-center justify-between gap-2 rounded-full border border-border/80 bg-card px-4 text-base font-medium text-foreground shadow-xs transition-colors hover:border-primary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-muted-foreground sm:text-[13px]",
+          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-primary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-muted-foreground",
           triggerClassName,
           className,
         )}
@@ -48,7 +48,7 @@ export function FilterSelect({
           position="popper"
           sideOffset={8}
           className={cn(
-            "z-50 min-w-[220px] overflow-hidden rounded-2xl border border-border/80 bg-popover p-1.5 shadow-soft",
+            "z-[70] min-w-[220px] overflow-hidden rounded-2xl border border-border/80 bg-popover p-1.5 shadow-soft",
             contentClassName,
           )}
         >
@@ -58,7 +58,7 @@ export function FilterSelect({
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                className="relative flex min-h-10 cursor-pointer select-none items-center rounded-xl px-3.5 py-2 text-sm font-medium text-foreground outline-none transition data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+                className="relative flex min-h-9 cursor-pointer select-none items-center rounded-xl px-3 py-2 text-sm font-medium text-foreground outline-none transition data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
               >
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex items-center text-primary">

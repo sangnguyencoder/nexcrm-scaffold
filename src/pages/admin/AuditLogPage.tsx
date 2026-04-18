@@ -102,7 +102,7 @@ export function AuditLogPage() {
               label: user.full_name,
             })),
           ]}
-          className="w-[170px]"
+          className="w-[190px]"
         />
         <FilterSelect
           value={actionFilter}
@@ -113,7 +113,7 @@ export function AuditLogPage() {
             { value: "update", label: "Cập nhật" },
             { value: "delete", label: "Xóa" },
           ]}
-          className="w-[160px]"
+          className="w-[180px]"
         />
         <FilterSelect
           value={entityFilter}
@@ -126,9 +126,9 @@ export function AuditLogPage() {
             { value: "transaction", label: "Giao dịch" },
             { value: "user", label: "Người dùng" },
           ]}
-          className="w-[170px]"
+          className="w-[190px]"
         />
-        <DatePicker value={dateFilter} onChange={setDateFilter} className="w-[166px]" />
+        <DatePicker value={dateFilter} onChange={setDateFilter} className="w-[190px]" />
       </StickyFilterBar>
 
       <DataTableShell stickyHeader>

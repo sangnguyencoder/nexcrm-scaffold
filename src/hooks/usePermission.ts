@@ -6,7 +6,17 @@ export function usePermission() {
   const role = useAuthStore((state) => state.role);
   const canAccess = useAuthStore((state) => state.canAccess);
 
-  const hasRole = (roles: UserRole[]) => Boolean(role && roles.includes(role));
+  const hasRole = (roles: UserRole[]) => {
+    if (!role) {
+      return false;
+    }
+
+    if (role === "super_admin") {
+      return true;
+    }
+
+    return roles.includes(role);
+  };
 
   const canAccessAny = (permissions: PermissionKey[]) =>
     hasAnyPermission(role, permissions);

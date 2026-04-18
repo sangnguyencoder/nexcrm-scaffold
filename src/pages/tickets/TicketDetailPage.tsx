@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import {
   queryKeys,
@@ -48,7 +49,6 @@ export function TicketDetailPage() {
   const [reply, setReply] = useState("");
   const [internalReply, setInternalReply] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [assignedSearch, setAssignedSearch] = useState("");
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [currentTimestamp] = useState(() => Date.now());
   const replyTooShort = reply.trim().length > 0 && reply.trim().length < 10;
@@ -62,13 +62,6 @@ export function TicketDetailPage() {
     [comments, showInternal, ticket?.id],
   );
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) =>
-        user.full_name.toLowerCase().includes(assignedSearch.toLowerCase()),
-      ),
-    [assignedSearch, users],
-  );
   const isOverdue = ticket ? new Date(ticket.due_at).getTime() < currentTimestamp : false;
   const priorityTone = ticket?.priority === "urgent" || ticket?.priority === "high" ? "danger" : "warning";
 
@@ -436,30 +429,18 @@ export function TicketDetailPage() {
                 title="Phụ trách"
                 // description={assignedUser ? `${assignedUser.full_name} · ${assignedUser.department}` : "Chưa gán người xử lý"}
               >
-                <FormField label="Tìm theo tên">
-                  <Input
-                    value={assignedSearch}
-                    onChange={(event) => setAssignedSearch(event.target.value)}
-                    placeholder="Tìm người phụ trách…"
-                    aria-label="Tìm người phụ trách ticket"
-                  />
-                </FormField>
                 <FormField label="Người phụ trách">
-                  <Select
+                  <UserSelect
                     value={ticket.assigned_to}
-                    onChange={(event) =>
+                    onValueChange={(nextValue) =>
                       void applyUpdate(
-                        { assigned_to: event.target.value },
+                        { assigned_to: nextValue },
                         "Đã cập nhật người phụ trách",
                       )
                     }
-                  >
-                    {filteredUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.full_name}
-                      </option>
-                    ))}
-                  </Select>
+                    users={users}
+                    placeholder="Chọn người phụ trách"
+                  />
                 </FormField>
               </FormSection>
             </div>

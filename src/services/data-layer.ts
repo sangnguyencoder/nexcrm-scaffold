@@ -31,15 +31,6 @@ export type ListParams = {
 const DEFAULT_LIST_LIMIT = 30;
 const MAX_LIST_LIMIT = 200;
 
-const userRoleSchema = z.enum([
-  "super_admin",
-  "admin",
-  "director",
-  "sales",
-  "cskh",
-  "marketing",
-]);
-
 const customerTypeSchema = z.enum(["new", "potential", "loyal", "vip", "inactive"]);
 const campaignChannelSchema = z.enum(["email", "sms", "both"]);
 const campaignStatusSchema = z.enum(["draft", "scheduled", "sending", "sent", "sent_with_errors", "cancelled"]);
@@ -224,6 +215,7 @@ function mapCustomer(row: Record<string, unknown>) {
     org_id: String(row.org_id ?? ""),
     customer_code: String(row.customer_code ?? ""),
     full_name: String(row.full_name ?? ""),
+    date_of_birth: row.date_of_birth ? String(row.date_of_birth) : null,
     phone: row.phone ? String(row.phone) : "",
     email: row.email ? String(row.email) : "",
     address: row.address ? String(row.address) : "",
@@ -376,7 +368,10 @@ function mapNotification(row: Record<string, unknown>) {
   };
 }
 
-function applyCursor(query: any, cursor?: string | null) {
+function applyCursor<TQuery extends { lt: (column: string, value: string) => TQuery }>(
+  query: TQuery,
+  cursor?: string | null,
+) {
   const decoded = decodeCursor(cursor);
   if (!decoded) {
     return query;
@@ -433,6 +428,16 @@ const transactionListSchema = listParamsSchema.extend({
   from: z.string().trim().optional(),
   to: z.string().trim().optional(),
 });
+
+function resolveInvoiceCode(input?: string | null) {
+  const normalized = typeof input === "string" ? input.trim() : "";
+  if (normalized) return normalized;
+
+  const now = new Date();
+  const pad = (value: number, length = 2) => String(value).padStart(length, "0");
+  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+  return `HD-${timestamp}`;
+}
 
 const ticketCreateSchema = z.object({
   customer_id: idSchema,
@@ -1100,7 +1105,7 @@ export const transactionService = {
         .insert({
           org_id: context.orgId,
           customer_id: parsed.data.customer_id,
-          invoice_code: parsed.data.invoice_code ?? null,
+          invoice_code: resolveInvoiceCode(parsed.data.invoice_code),
           items,
           total_amount: totalAmount,
           payment_method: parsed.data.payment_method,
@@ -1809,7 +1814,7 @@ export const automationService = {
 
       if (current.error) return fail(current.error);
 
-      const nextState = typeof isActive === "boolean" ? isActive : !Boolean(current.data?.is_active);
+      const nextState = typeof isActive === "boolean" ? isActive : !current.data?.is_active;
       const { data, error } = await supabase
         .from("automation_rules")
         .update({

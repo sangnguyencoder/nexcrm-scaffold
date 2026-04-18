@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, CreditCard, ListTodo, MessageSquare, Plus, StickyNote, Target, Ticket, Wallet } from "lucide-react";
+import { CheckCircle2, Clock3, CreditCard, ListTodo, MessageSquare, Plus, StickyNote, Target, Ticket, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import { ActionErrorAlert } from "@/components/shared/action-error-alert";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
@@ -19,6 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageLoader } from "@/components/shared/page-loader";
 import { SectionPanel } from "@/components/shared/section-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import {
   queryKeys,
@@ -39,6 +41,7 @@ import {
   formatDealStage,
   formatNumberCompact,
   formatPaymentMethod,
+  formatRole,
   formatTaskStatus,
   formatTicketStatus,
   getDealStageColor,
@@ -101,7 +104,6 @@ export function CustomerDetailPage() {
   const { data: notes = [] } = useNotesQuery(id, Boolean(id));
   const { data: users = [] } = useUsersQuery();
   const [activeTab, setActiveTab] = useState("history");
-  const [reassignSearch, setReassignSearch] = useState("");
 
   const noteForm = useForm<NoteValues>({
     resolver: zodResolver(noteSchema),
@@ -111,6 +113,8 @@ export function CustomerDetailPage() {
     resolver: zodResolver(taskSchema),
     defaultValues: { title: "", description: "", assigned_to: "", priority: "medium", due_at: "" },
   });
+  const taskAssignedValue = useWatch({ control: taskForm.control, name: "assigned_to" });
+  const taskDueAtValue = useWatch({ control: taskForm.control, name: "due_at" });
 
   const updateCustomer = useAppMutation({
     action: "customer.update",
@@ -226,13 +230,6 @@ export function CustomerDetailPage() {
   );
 
   const assignedUser = users.find((item) => item.id === customer?.assigned_to);
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) =>
-        user.full_name.toLowerCase().includes(reassignSearch.toLowerCase()),
-      ),
-    [reassignSearch, users],
-  );
 
   const historyItems = useMemo(() => {
     const transactionItems = customerTransactions.map((transaction) => ({
@@ -299,15 +296,19 @@ export function CustomerDetailPage() {
   const latestActivityAt = historyItems[0]?.date ?? customer.updated_at ?? customer.created_at;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
-      <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-        <SectionPanel
-          eyebrow="Customer record"
-          title={customer.full_name}
-          // description={`${customer.customer_code} · ${formatCustomerType(customer.customer_type)}`}
-          contentClassName="space-y-4"
-        >
-          <div className="flex items-start gap-4">
+    <div className="space-y-5">
+      <PageHeader
+        title="Chi Tiết Khách Hàng"
+        // subtitle={`${formatCustomerType(customer.customer_type)} · Hồ sơ đủ dữ liệu để sales và CSKH thao tác nhanh trong một màn.`}
+      />
+
+      <SectionPanel
+        eyebrow="Customer record"
+        title="Tổng quan hồ sơ"
+        contentClassName="space-y-4"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-4">
             <CustomerAvatar
               name={customer.full_name}
               type={customer.customer_type}
@@ -315,14 +316,22 @@ export function CustomerDetailPage() {
               className="size-16 text-lg"
             />
             <div className="min-w-0 space-y-2">
-              <div className="text-xs text-muted-foreground">Cập nhật {timeAgo(customer.updated_at ?? customer.created_at)}</div>
+              <div className="truncate text-xl font-semibold text-foreground">{customer.full_name}</div>
+              <div className="text-xs text-muted-foreground">
+                Cập nhật {timeAgo(customer.updated_at ?? customer.created_at)}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <StatusBadge
                   label={formatCustomerType(customer.customer_type)}
                   className="bg-muted text-foreground ring-border"
                   dotClassName="bg-primary"
                 />
-                {customer.tags.slice(0, 3).map((tag) => (
+                <StatusBadge
+                  label={customer.customer_code}
+                  className="bg-muted/70 text-muted-foreground ring-border"
+                  dotClassName="bg-primary/70"
+                />
+                {customer.tags.slice(0, 2).map((tag) => (
                   <StatusBadge
                     key={tag}
                     label={tag}
@@ -334,7 +343,7 @@ export function CustomerDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border/70 bg-muted/25 p-4">
+          <div className="min-w-[220px] rounded-lg border border-border/70 bg-muted/25 p-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Lifetime value
             </div>
@@ -352,7 +361,9 @@ export function CustomerDetailPage() {
               </div>
             </div>
           </div>
+        </div>
 
+        <div className="grid gap-4 xl:grid-cols-2">
           <InspectorList
             items={[
               { label: "Điện thoại", value: customer.phone || "--" },
@@ -362,110 +373,21 @@ export function CustomerDetailPage() {
               { label: "Lần chạm gần nhất", value: timeAgo(latestActivityAt) },
             ]}
           />
-        </SectionPanel>
+          <InspectorList
+            items={[
+              {
+                label: "Người phụ trách",
+                value: assignedUser ? `${assignedUser.full_name} · ${formatRole(assignedUser.role)}` : "--",
+              },
+              { label: "Ticket đang mở", value: String(openTicketsCount) },
+              { label: "Task cần làm", value: String(pendingTasksCount) },
+              { label: "Cơ hội đang chạy", value: String(activeDealsCount) },
+            ]}
+          />
+        </div>
+      </SectionPanel>
 
-        <SectionPanel
-          title="Điều phối hồ sơ"
-          // description="Giữ người phụ trách và thao tác chính trong cùng một khối để xử lý nhanh."
-          contentClassName="space-y-4"
-        >
-          {updateCustomer.actionError ? (
-            <ActionErrorAlert
-              error={updateCustomer.actionError}
-              onDismiss={updateCustomer.clearActionError}
-              onRetry={updateCustomer.canRetry ? () => void updateCustomer.retryLast() : undefined}
-            />
-          ) : null}
-
-          <FormSection
-            title="Phụ trách"
-            // description={assignedUser ? `${assignedUser.full_name} · ${assignedUser.department}` : "Chưa gán người phụ trách"}
-          >
-            <FormField label="Tìm theo tên">
-              <Input
-                value={reassignSearch}
-                onChange={(event) => setReassignSearch(event.target.value)}
-                placeholder="Tìm người phụ trách…"
-                aria-label="Tìm người phụ trách"
-              />
-            </FormField>
-            <FormField label="Người phụ trách">
-              <Select
-                value={customer.assigned_to}
-                onChange={(event) => {
-                  updateCustomer.mutate({ id: id ?? "", payload: { assigned_to: event.target.value } });
-                }}
-              >
-                {filteredUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name} · {user.department}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            <FormField label="Phân loại khách hàng">
-              <Select
-                value={customer.customer_type}
-                onChange={(event) =>
-                  updateCustomer.mutate({
-                    id: id ?? "",
-                    payload: { customer_type: event.target.value as typeof customer.customer_type },
-                  })
-                }
-              >
-                <option value="new">Mới</option>
-                <option value="potential">Tiềm năng</option>
-                <option value="loyal">Thân thiết</option>
-                <option value="vip">VIP</option>
-                <option value="inactive">Không hoạt động</option>
-              </Select>
-            </FormField>
-          </FormSection>
-
-          <div className="grid gap-2">
-            <Button variant="secondary" onClick={() => navigate(`/tickets?customerId=${customer.id}&create=1`)}>
-              <Ticket className="size-4" />
-              Tạo Ticket
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/transactions?customerId=${customer.id}&create=1`)}>
-              <CreditCard className="size-4" />
-              Thêm Giao Dịch
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}>
-              <Target className="size-4" />
-              Tạo Cơ Hội
-            </Button>
-            <Button variant="ghost" onClick={() => setActiveTab("notes")}>
-              <StickyNote className="size-4" />
-              Mở Ghi Chú
-            </Button>
-          </div>
-        </SectionPanel>
-      </aside>
-
-      <main className="min-w-0 space-y-5">
-        <PageHeader
-          title="Chi Tiết Khách Hàng"
-          // subtitle={`${formatCustomerType(customer.customer_type)} · Hồ sơ đủ dữ liệu để sales và CSKH thao tác nhanh trong một màn.`}
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => setActiveTab("tasks")}>
-                <Plus className="size-4" />
-                Follow-up
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setActiveTab("transactions")}>
-                <CreditCard className="size-4" />
-                Giao dịch
-              </Button>
-              <Button size="sm" onClick={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}>
-                <Target className="size-4" />
-                Tạo Cơ Hội
-              </Button>
-            </div>
-          }
-        />
-
-        <MetricStrip>
+      <MetricStrip>
           <MetricStripItem
             label="Doanh thu"
             value={formatCurrencyCompact(customer.total_spent)}
@@ -501,19 +423,109 @@ export function CustomerDetailPage() {
             icon={ListTodo}
             tone="danger"
           />
-        </MetricStrip>
+      </MetricStrip>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="history">Lịch Sử</TabsTrigger>
-            <TabsTrigger value="deals">Cơ Hội</TabsTrigger>
-            <TabsTrigger value="tasks">Nhiệm Vụ</TabsTrigger>
-            <TabsTrigger value="transactions">Giao Dịch</TabsTrigger>
-            <TabsTrigger value="tickets">Tickets</TabsTrigger>
-            <TabsTrigger value="notes">Ghi Chú</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-card/90 p-2">
+          <TabsList className="h-10 justify-start overflow-x-auto rounded-xl bg-muted/60">
+            <TabsTrigger value="history">
+              <Clock3 className="size-4" />
+              Lịch Sử
+            </TabsTrigger>
+            <TabsTrigger value="deals">
+              <Target className="size-4" />
+              Cơ Hội
+            </TabsTrigger>
+            <TabsTrigger value="tasks">
+              <ListTodo className="size-4" />
+              Nhiệm Vụ
+            </TabsTrigger>
+            <TabsTrigger value="transactions">
+              <CreditCard className="size-4" />
+              Giao Dịch
+            </TabsTrigger>
+            <TabsTrigger value="tickets">
+              <Ticket className="size-4" />
+              Tickets
+            </TabsTrigger>
+            <TabsTrigger value="notes">
+              <StickyNote className="size-4" />
+              Ghi Chú
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="history" className="space-y-5">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate(`/tickets?customerId=${customer.id}&create=1`)}
+            >
+              <Ticket className="size-4" />
+              Tạo Ticket
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate(`/transactions?customerId=${customer.id}&create=1`)}
+            >
+              <CreditCard className="size-4" />
+              Thêm Giao Dịch
+            </Button>
+            <Button size="sm" onClick={() => navigate(`/pipeline?customerId=${customer.id}&create=1`)}>
+              <Target className="size-4" />
+              Tạo Cơ Hội
+            </Button>
+            <Button size="sm" variant="soft" onClick={() => setActiveTab("notes")}>
+              <StickyNote className="size-4" />
+              Mở Ghi Chú
+            </Button>
+          </div>
+
+          <div className="w-full border-t border-border/70 pt-3">
+            {updateCustomer.actionError ? (
+              <ActionErrorAlert
+                error={updateCustomer.actionError}
+                onDismiss={updateCustomer.clearActionError}
+                onRetry={updateCustomer.canRetry ? () => void updateCustomer.retryLast() : undefined}
+              />
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr),220px]">
+              <FormField label="Điều phối hồ sơ · Người phụ trách">
+                <UserSelect
+                  value={customer.assigned_to}
+                  onValueChange={(nextValue) =>
+                    updateCustomer.mutate({
+                      id: id ?? "",
+                      payload: { assigned_to: nextValue },
+                    })
+                  }
+                  users={users}
+                  placeholder="Chọn người phụ trách"
+                />
+              </FormField>
+              <FormField label="Điều phối hồ sơ · Phân loại khách hàng">
+                <Select
+                  value={customer.customer_type}
+                  onChange={(event) =>
+                    updateCustomer.mutate({
+                      id: id ?? "",
+                      payload: { customer_type: event.target.value as typeof customer.customer_type },
+                    })
+                  }
+                >
+                  <option value="new">Mới</option>
+                  <option value="potential">Tiềm năng</option>
+                  <option value="loyal">Thân thiết</option>
+                  <option value="vip">VIP</option>
+                  <option value="inactive">Không hoạt động</option>
+                </Select>
+              </FormField>
+            </div>
+          </div>
+        </div>
+
+        <TabsContent value="history" className="space-y-5">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr),320px]">
               <SectionPanel
                 title="Timeline hoạt động"
@@ -554,7 +566,10 @@ export function CustomerDetailPage() {
                 >
                   <InspectorList
                     items={[
-                      { label: "Người phụ trách", value: assignedUser?.full_name ?? "--" },
+                      {
+                        label: "Người phụ trách",
+                        value: assignedUser ? `${assignedUser.full_name} · ${formatRole(assignedUser.role)}` : "--",
+                      },
                       { label: "Ticket đang mở", value: String(openTicketsCount) },
                       { label: "Task cần làm", value: String(pendingTasksCount) },
                       { label: "Cơ hội đang chạy", value: String(activeDealsCount) },
@@ -655,14 +670,17 @@ export function CustomerDetailPage() {
                         <Input {...taskForm.register("title")} placeholder="Ví dụ: Gọi chốt lịch demo" />
                       </FormField>
                       <FormField label="Phụ trách">
-                        <Select {...taskForm.register("assigned_to")}>
-                          <option value="">Chọn người phụ trách</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.full_name}
-                            </option>
-                          ))}
-                        </Select>
+                        <UserSelect
+                          value={taskAssignedValue}
+                          onValueChange={(nextValue) =>
+                            taskForm.setValue("assigned_to", nextValue, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            })
+                          }
+                          users={users}
+                          placeholder="Chọn người phụ trách"
+                        />
                       </FormField>
                       <div className="grid gap-4 md:grid-cols-2">
                         <FormField label="Ưu tiên">
@@ -673,10 +691,15 @@ export function CustomerDetailPage() {
                           </Select>
                         </FormField>
                         <FormField label="Deadline">
-                          <Input
-                            type="date"
-                            {...taskForm.register("due_at")}
-                            className="h-11 w-full"
+                          <DatePicker
+                            value={taskDueAtValue}
+                            onChange={(nextValue) =>
+                              taskForm.setValue("due_at", nextValue, {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              })
+                            }
+                            placeholder="Chọn deadline"
                           />
                         </FormField>
                       </div>
@@ -919,7 +942,6 @@ export function CustomerDetailPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
     </div>
   );
 }

@@ -13,6 +13,7 @@ type DataLayerResult<T> = {
 
 export type CustomerCreateInput = {
   full_name: string;
+  date_of_birth?: string | null;
   phone?: string;
   email?: string;
   address?: string;
@@ -57,6 +58,13 @@ function normalizeCustomerError(error: unknown, fallbackMessage: string) {
   return new Error(message || fallbackMessage);
 }
 
+function normalizeSortText(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function requireOrgContext() {
   const state = useAuthStore.getState();
   const orgId = state.orgId;
@@ -94,6 +102,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     customer_code: String(row.customer_code ?? ""),
     full_name: String(row.full_name ?? ""),
     gender: row.gender ? String(row.gender) : null,
+    date_of_birth: row.date_of_birth ? String(row.date_of_birth) : null,
     phone: row.phone ? String(row.phone) : "",
     email: row.email ? String(row.email) : "",
     address: row.address ? String(row.address) : "",
@@ -155,15 +164,39 @@ async function collectCustomers(filters: CustomerFilters = {}) {
   if (filters.sortBy) {
     const direction = filters.sortDirection === "asc" ? 1 : -1;
     rows.sort((left, right) => {
-      if (filters.sortBy === "full_name") {
-        return left.full_name.localeCompare(right.full_name) * direction;
+      switch (filters.sortBy) {
+        case "full_name":
+          return normalizeSortText(left.full_name).localeCompare(normalizeSortText(right.full_name)) * direction;
+        case "phone":
+          return normalizeSortText(left.phone).localeCompare(normalizeSortText(right.phone)) * direction;
+        case "email":
+          return normalizeSortText(left.email).localeCompare(normalizeSortText(right.email)) * direction;
+        case "customer_type":
+          return normalizeSortText(left.customer_type).localeCompare(normalizeSortText(right.customer_type)) * direction;
+        case "assigned_to":
+          return normalizeSortText(left.assigned_to).localeCompare(normalizeSortText(right.assigned_to)) * direction;
+        case "total_spent":
+          return (left.total_spent - right.total_spent) * direction;
+        case "total_orders":
+          return (left.total_orders - right.total_orders) * direction;
+        case "updated_at":
+          return (
+            (new Date(left.updated_at ?? left.created_at).getTime() -
+              new Date(right.updated_at ?? right.created_at).getTime()) *
+            direction
+          );
+        case "last_order_at":
+          return (
+            (new Date(left.last_order_at || left.created_at).getTime() -
+              new Date(right.last_order_at || right.created_at).getTime()) *
+            direction
+          );
+        case "created_at":
+        default:
+          return (
+            (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()) * direction
+          );
       }
-      if (filters.sortBy === "total_spent") {
-        return (left.total_spent - right.total_spent) * direction;
-      }
-      return (
-        (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()) * direction
-      );
     });
   }
 
@@ -191,6 +224,7 @@ export const customerService = {
     void options;
     const result = await dataLayerCustomerService.create({
       full_name: payload.full_name,
+      date_of_birth: payload.date_of_birth || undefined,
       phone: payload.phone || undefined,
       email: payload.email || undefined,
       address: payload.address || undefined,
@@ -227,6 +261,7 @@ export const customerService = {
     void options;
     const result = await dataLayerCustomerService.update(id, {
       full_name: payload.full_name,
+      date_of_birth: payload.date_of_birth || undefined,
       phone: payload.phone || undefined,
       email: payload.email || undefined,
       address: payload.address || undefined,

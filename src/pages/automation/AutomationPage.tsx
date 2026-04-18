@@ -1,7 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowUpDown,
   CalendarClock,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Lightbulb,
   Mail,
@@ -39,7 +42,6 @@ import { communicationService } from "@/services/communicationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
 import { Sheet } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,6 +59,8 @@ type RuleForm = {
   schedule_enabled: boolean;
   schedule_interval_minutes: number;
 };
+type RuleSortKey = "status" | "rule" | "trigger" | "channel" | "performance" | "last_run";
+type SortDirection = "asc" | "desc";
 
 const VARIABLE_TOKENS = [
   "{ten_khach_hang}",
@@ -142,6 +146,8 @@ export function AutomationPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [channelFilter, setChannelFilter] = useState<"all" | "email" | "sms">("all");
+  const [sortBy, setSortBy] = useState<RuleSortKey>("last_run");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [detailRule, setDetailRule] = useState<AutomationRule | null>(null);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AutomationRule | null>(null);
@@ -203,6 +209,39 @@ export function AutomationPage() {
     [activeFilter, channelFilter, rules, search],
   );
 
+  const sortedRules = useMemo(() => {
+    return [...filteredRules].sort((left, right) => {
+      const leftStats = groupedMessages[left.id] ?? { sent: 0, failed: 0, lastSentAt: null };
+      const rightStats = groupedMessages[right.id] ?? { sent: 0, failed: 0, lastSentAt: null };
+      let compare = 0;
+
+      if (sortBy === "status") {
+        compare = Number(left.is_active) - Number(right.is_active);
+      } else if (sortBy === "rule") {
+        compare = left.name.localeCompare(right.name, "vi");
+      } else if (sortBy === "trigger") {
+        compare = left.trigger.localeCompare(right.trigger, "vi");
+      } else if (sortBy === "channel") {
+        compare = left.channel.localeCompare(right.channel, "vi");
+      } else if (sortBy === "performance") {
+        compare = leftStats.sent - rightStats.sent;
+        if (compare === 0) {
+          compare = rightStats.failed - leftStats.failed;
+        }
+      } else {
+        const leftRun = left.last_run_at ? new Date(left.last_run_at).getTime() : 0;
+        const rightRun = right.last_run_at ? new Date(right.last_run_at).getTime() : 0;
+        compare = leftRun - rightRun;
+      }
+
+      if (compare === 0) {
+        compare = left.name.localeCompare(right.name, "vi");
+      }
+
+      return sortDirection === "asc" ? compare : -compare;
+    });
+  }, [filteredRules, groupedMessages, sortBy, sortDirection]);
+
   const summary = useMemo(() => {
     const active = rules.filter((rule) => rule.is_active).length;
     const sent = rules.reduce((total, rule) => total + rule.sent_count, 0);
@@ -210,6 +249,30 @@ export function AutomationPage() {
     const recentRuns = rules.filter((rule) => rule.last_run_at).length;
     return { active, sent, failed, recentRuns };
   }, [groupedMessages, rules]);
+
+  const toggleSort = (key: RuleSortKey) => {
+    setSortBy((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+
+      setSortDirection("asc");
+      return key;
+    });
+  };
+
+  const renderSortIcon = (key: RuleSortKey) => {
+    if (sortBy !== key) {
+      return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ChevronUp className="size-3.5 text-primary" />
+    ) : (
+      <ChevronDown className="size-3.5 text-primary" />
+    );
+  };
 
   const saveRule = useAppMutation({
     action: editingRule ? "automation.update" : "automation.create",
@@ -431,7 +494,7 @@ export function AutomationPage() {
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Tìm theo rule, mô tả hoặc trigger"
           aria-label="Tìm quy tắc tự động"
-          className="min-w-[260px] flex-1"
+          className="min-w-[300px] flex-1"
         />
         <FilterSelect
           value={activeFilter}
@@ -441,7 +504,7 @@ export function AutomationPage() {
             { value: "active", label: "Đang hoạt động" },
             { value: "inactive", label: "Đã tắt" },
           ]}
-          className="w-[160px]"
+          className="w-[190px]"
         />
         <FilterSelect
           value={channelFilter}
@@ -451,26 +514,56 @@ export function AutomationPage() {
             { value: "email", label: "Email" },
             { value: "sms", label: "SMS" },
           ]}
-          className="w-[140px]"
+          className="w-[180px]"
         />
       </StickyFilterBar>
 
       <DataTableShell stickyHeader>
-        {filteredRules.length ? (
+        {sortedRules.length ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Quy tắc</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Kênh</TableHead>
-                <TableHead>Hiệu suất</TableHead>
-                <TableHead>Lần chạy</TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>
+                    Trạng thái
+                    {renderSortIcon("status")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("rule")}>
+                    Quy tắc
+                    {renderSortIcon("rule")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("trigger")}>
+                    Trigger
+                    {renderSortIcon("trigger")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("channel")}>
+                    Kênh
+                    {renderSortIcon("channel")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("performance")}>
+                    Hiệu suất
+                    {renderSortIcon("performance")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("last_run")}>
+                    Lần chạy
+                    {renderSortIcon("last_run")}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRules.map((rule) => {
+              {sortedRules.map((rule) => {
                 const messageStats = groupedMessages[rule.id] ?? {
                   sent: 0,
                   failed: 0,
@@ -750,12 +843,20 @@ export function AutomationPage() {
                 </FormField>
                 <div className="grid gap-4 md:grid-cols-[1fr,150px]">
                   <FormField label="Điều kiện kích hoạt">
-                    <Select {...form.register("trigger_type")}>
-                      <option value="birthday">Sinh nhật khách hàng</option>
-                      <option value="inactive_days">Không hoạt động X ngày</option>
-                      <option value="after_purchase">Sau khi mua hàng X ngày</option>
-                      <option value="new_customer">Khi có khách hàng mới</option>
-                    </Select>
+                    <FilterSelect
+                      value={triggerType}
+                      onValueChange={(nextValue) =>
+                        form.setValue("trigger_type", nextValue as RuleForm["trigger_type"], {
+                          shouldDirty: true,
+                        })
+                      }
+                      options={[
+                        { value: "birthday", label: "Sinh nhật khách hàng" },
+                        { value: "inactive_days", label: "Không hoạt động X ngày" },
+                        { value: "after_purchase", label: "Sau khi mua hàng X ngày" },
+                        { value: "new_customer", label: "Khi có khách hàng mới" },
+                      ]}
+                    />
                   </FormField>
                   {triggerType === "inactive_days" || triggerType === "after_purchase" ? (
                     <FormField label="Số ngày">
@@ -798,21 +899,22 @@ export function AutomationPage() {
                 </FormField>
                 {scheduleEnabled ? (
                   <FormField label="Chu kỳ chạy">
-                    <Select
+                    <FilterSelect
                       value={String(scheduleIntervalMinutes || 60)}
-                      onChange={(event) =>
-                        form.setValue("schedule_interval_minutes", Number(event.target.value), {
+                      onValueChange={(nextValue) =>
+                        form.setValue("schedule_interval_minutes", Number(nextValue), {
                           shouldDirty: true,
                         })
                       }
-                    >
-                      <option value="15">Mỗi 15 phút</option>
-                      <option value="30">Mỗi 30 phút</option>
-                      <option value="60">Mỗi 1 giờ</option>
-                      <option value="180">Mỗi 3 giờ</option>
-                      <option value="360">Mỗi 6 giờ</option>
-                      <option value="1440">Mỗi 1 ngày</option>
-                    </Select>
+                      options={[
+                        { value: "15", label: "Mỗi 15 phút" },
+                        { value: "30", label: "Mỗi 30 phút" },
+                        { value: "60", label: "Mỗi 1 giờ" },
+                        { value: "180", label: "Mỗi 3 giờ" },
+                        { value: "360", label: "Mỗi 6 giờ" },
+                        { value: "1440", label: "Mỗi 1 ngày" },
+                      ]}
+                    />
                   </FormField>
                 ) : null}
               </div>

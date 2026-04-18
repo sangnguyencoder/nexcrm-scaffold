@@ -1,15 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Download,
   Eye,
   Pencil,
+  RotateCcw,
   Trash2,
+  Upload,
   UserPlus,
   Users,
 } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -19,8 +25,8 @@ import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CustomerAvatar } from "@/components/shared/customer-avatar";
 import { DataTableShell } from "@/components/shared/data-table-shell";
+import { DatePicker } from "@/components/shared/date-picker";
 import { EmptyState } from "@/components/shared/empty-state";
-import { FilterSelect } from "@/components/shared/filter-select";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
 import { Can } from "@/components/shared/Can";
@@ -30,8 +36,10 @@ import { PageLoader } from "@/components/shared/page-loader";
 import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StickyFilterBar } from "@/components/shared/sticky-filter-bar";
+import { UserSelect } from "@/components/shared/user-select";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { usePermission } from "@/hooks/usePermission";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CompactPagination } from "@/components/shared/compact-pagination";
@@ -54,6 +62,8 @@ import {
   formatCurrencyCompact,
   formatCustomerType,
   formatDate,
+  formatDateInputValue,
+  formatRole,
   timeAgo,
   toSlug,
 } from "@/lib/utils";
@@ -80,6 +90,13 @@ const customerSchema = z.object({
     .or(z.literal(""))
     .refine((value) => !value || z.string().email().safeParse(value).success, {
       message: "Email không hợp lệ",
+    }),
+  date_of_birth: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value), {
+      message: "Ngày sinh không hợp lệ",
     }),
   customer_type: z.enum(["new", "potential", "loyal", "vip", "inactive"]),
   source: z.enum(["direct", "marketing", "referral", "pos", "online", "other"]),
@@ -108,6 +125,51 @@ function normalizeSource(source?: Customer["source"]) {
 
 function normalizeImportHeader(value: string) {
   return toSlug(value).replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeImportDate(rawValue: string) {
+  const value = rawValue.trim();
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const slashDateMatch = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (slashDateMatch) {
+    const [, day, month, year] = slashDateMatch;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatDateInputValue(parsed);
+  }
+
+  return "";
+}
+
+const maxBirthday = formatDateInputValue(new Date());
+
+type CustomerSortKey =
+  | "full_name"
+  | "contact"
+  | "customer_type"
+  | "assigned_to"
+  | "total_spent"
+  | "total_orders"
+  | "activity_at";
+
+const customerTypeRank: Record<Customer["customer_type"], number> = {
+  vip: 5,
+  loyal: 4,
+  potential: 3,
+  new: 2,
+  inactive: 1,
+};
+
+function normalizeSortText(value?: string | null) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function mapImportedCustomerType(value: string): Customer["customer_type"] {
@@ -161,6 +223,7 @@ function CustomerFormModal({
       full_name: "",
       phone: "",
       email: "",
+      date_of_birth: "",
       customer_type: "new",
       source: "direct",
       address: "",
@@ -169,6 +232,8 @@ function CustomerFormModal({
       notes: "",
     },
   });
+  const watchedBirthDate = useWatch({ control: form.control, name: "date_of_birth" });
+  const watchedAssignedTo = useWatch({ control: form.control, name: "assigned_to" });
 
   useEffect(() => {
     if (open) {
@@ -176,6 +241,7 @@ function CustomerFormModal({
         full_name: initialCustomer?.full_name ?? "",
         phone: initialCustomer?.phone ?? "",
         email: initialCustomer?.email ?? "",
+        date_of_birth: initialCustomer?.date_of_birth ?? "",
         customer_type: initialCustomer?.customer_type ?? "new",
         source: normalizeSource(initialCustomer?.source),
         address: initialCustomer?.address ?? "",
@@ -221,6 +287,7 @@ function CustomerFormModal({
 
       return customerService.create({
         ...values,
+        date_of_birth: values.date_of_birth || null,
         phone: values.phone || "",
         email: values.email || "",
         address: values.address || "",
@@ -298,6 +365,19 @@ function CustomerFormModal({
               <FormField label="Email" error={form.formState.errors.email?.message}>
                 <Input {...form.register("email")} placeholder="email@domain.vn" />
               </FormField>
+              <FormField label="Ngày sinh nhật" error={form.formState.errors.date_of_birth?.message}>
+                <DatePicker
+                  value={watchedBirthDate}
+                  onChange={(nextValue) =>
+                    form.setValue("date_of_birth", nextValue, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  max={maxBirthday}
+                  placeholder="Chọn ngày sinh"
+                />
+              </FormField>
               <FormField label="Phân loại" error={form.formState.errors.customer_type?.message}>
                 <Select {...form.register("customer_type")}>
                   <option value="new">Mới</option>
@@ -318,13 +398,17 @@ function CustomerFormModal({
                 </Select>
               </FormField>
               <FormField label="Phụ trách">
-                <Select {...form.register("assigned_to")}>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name}
-                    </option>
-                  ))}
-                </Select>
+                <UserSelect
+                  value={watchedAssignedTo}
+                  onValueChange={(nextValue) =>
+                    form.setValue("assigned_to", nextValue, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  users={users}
+                  placeholder="Chọn người phụ trách"
+                />
               </FormField>
             </div>
           </FormSection>
@@ -385,18 +469,12 @@ export function CustomerListPage() {
   const [selectedType, setSelectedType] = useState<Customer["customer_type"] | "all">("all");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showInactive, setShowInactive] = useState(false);
-  const [sortKey, setSortKey] = useState<"full_name" | "total_spent" | "created_at">(
-    "created_at",
-  );
+  const [sortKey, setSortKey] = useState<CustomerSortKey>("activity_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const customersQuery = useCustomersQuery(
-    {
-      search: serverSearch || undefined,
-      includeInactive: showInactive,
-      sortBy: sortKey,
-      sortDirection,
-    },
-  );
+  const customersQuery = useCustomersQuery({
+    search: serverSearch || undefined,
+    includeInactive: showInactive,
+  });
   const usersQuery = useUsersQuery();
   const customers = useMemo(() => customersQuery.data ?? [], [customersQuery.data]);
   const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
@@ -418,10 +496,10 @@ export function CustomerListPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const customerMap = useMemo(
+  const usersById = useMemo(
     () =>
-      users.reduce<Record<string, string>>((acc, user) => {
-        acc[user.id] = user.full_name;
+      users.reduce<Record<string, (typeof users)[number]>>((acc, user) => {
+        acc[user.id] = user;
         return acc;
       }, {}),
     [users],
@@ -440,6 +518,42 @@ export function CustomerListPage() {
       return true;
     });
   }, [assignedFilter, customers, selectedType]);
+
+  const sortedCustomers = useMemo(() => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return [...filteredCustomers].sort((left, right) => {
+      if (sortKey === "total_spent") {
+        return (left.total_spent - right.total_spent) * direction;
+      }
+      if (sortKey === "total_orders") {
+        return (left.total_orders - right.total_orders) * direction;
+      }
+      if (sortKey === "customer_type") {
+        return (customerTypeRank[left.customer_type] - customerTypeRank[right.customer_type]) * direction;
+      }
+      if (sortKey === "assigned_to") {
+        return (
+          normalizeSortText(usersById[left.assigned_to]?.full_name).localeCompare(
+            normalizeSortText(usersById[right.assigned_to]?.full_name),
+          ) * direction
+        );
+      }
+      if (sortKey === "contact") {
+        return (
+          normalizeSortText(`${left.phone} ${left.email}`).localeCompare(
+            normalizeSortText(`${right.phone} ${right.email}`),
+          ) * direction
+        );
+      }
+      if (sortKey === "activity_at") {
+        const leftTime = new Date(left.last_order_at || left.updated_at || left.created_at).getTime();
+        const rightTime = new Date(right.last_order_at || right.updated_at || right.created_at).getTime();
+        return (leftTime - rightTime) * direction;
+      }
+
+      return normalizeSortText(left.full_name).localeCompare(normalizeSortText(right.full_name)) * direction;
+    });
+  }, [filteredCustomers, sortDirection, sortKey, usersById]);
 
   const chipCounts = useMemo(
     () => ({
@@ -462,9 +576,9 @@ export function CustomerListPage() {
     setEditingCustomer(null);
   }, [requestedCreate]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / 10));
+  const totalPages = Math.max(1, Math.ceil(sortedCustomers.length / 10));
   const currentPage = Math.min(page, totalPages);
-  const pagedCustomers = filteredCustomers.slice((currentPage - 1) * 10, currentPage * 10);
+  const pagedCustomers = sortedCustomers.slice((currentPage - 1) * 10, currentPage * 10);
 
   const deleteMutation = useAppMutation({
     action: "customer.soft-delete",
@@ -530,17 +644,30 @@ export function CustomerListPage() {
     setSortDirection("asc");
   };
 
+  const renderSortIcon = (key: CustomerSortKey) => {
+    if (sortKey !== key) {
+      return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ArrowUp className="size-3.5 text-primary" />
+    ) : (
+      <ArrowDown className="size-3.5 text-primary" />
+    );
+  };
+
   const handleExport = async () => {
-    const rows = filteredCustomers.map((customer) => ({
+    const rows = sortedCustomers.map((customer) => ({
       customer_code: customer.customer_code,
       full_name: customer.full_name,
       phone: customer.phone,
       email: customer.email,
+      date_of_birth: customer.date_of_birth || "",
       customer_type: formatCustomerType(customer.customer_type),
       source: customer.source,
       address: customer.address,
       province: customer.province,
-      assigned_to: customerMap[customer.assigned_to] ?? "",
+      assigned_to: usersById[customer.assigned_to]?.full_name ?? "",
       total_spent: customer.total_spent,
       total_orders: customer.total_orders,
       created_at: formatDate(customer.created_at),
@@ -594,6 +721,9 @@ export function CustomerListPage() {
 
         await customerService.create({
           full_name: fullName,
+          date_of_birth: normalizeImportDate(
+            normalizedRow.dateofbirth || normalizedRow.ngaysinh || normalizedRow.birthday || "",
+          ),
           phone,
           email,
           customer_type: mapImportedCustomerType(normalizedRow.customertype || normalizedRow.phanloai),
@@ -648,10 +778,22 @@ export function CustomerListPage() {
         actions={
           <div className="flex items-center gap-2">
             <Badge className="border border-border bg-muted text-muted-foreground">{customers.length} khách hàng</Badge>
-            <Button variant="secondary" size="sm" onClick={() => importInputRef.current?.click()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="border-sky-500/35 bg-sky-500/10 text-sky-700 hover:bg-sky-500/15 dark:text-sky-300"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <Upload className="size-4" />
               Import
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="border-emerald-500/35 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+              onClick={() => void handleExport()}
+            >
+              <Download className="size-4" />
               Export
             </Button>
             <Can roles={["sales", "admin", "super_admin"]}>
@@ -688,22 +830,34 @@ export function CustomerListPage() {
             placeholder="Tìm theo tên, số điện thoại hoặc email"
             wrapperClassName="min-w-[280px] flex-1"
           />
-          <FilterSelect
+          <UserSelect
             value={assignedFilter}
             onValueChange={setAssignedFilter}
-            options={[
-              { value: "all", label: "Tất cả phụ trách" },
-              ...users.map((user) => ({
-                value: user.id,
-                label: user.full_name,
-              })),
-            ]}
-            className="w-[180px]"
+            users={users}
+            includeAllOption
+            allLabel="Tất cả phụ trách"
+            className="w-[250px]"
           />
           <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 px-3 text-sm text-muted-foreground">
             <Checkbox checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
             Hiện inactive
           </label>
+          <Button
+            variant="secondary"
+            className="h-11"
+            onClick={() => {
+              setSearch("");
+              setServerSearch("");
+              setSelectedType("all");
+              setAssignedFilter("all");
+              setShowInactive(false);
+              setSortKey("activity_at");
+              setSortDirection("desc");
+            }}
+          >
+            <RotateCcw className="size-4 text-primary" />
+            Xóa bộ lọc
+          </Button>
         </div>
         <div className="flex basis-full flex-wrap items-center gap-1 border-b border-border pt-1">
           {chipConfig.map((chip) => (
@@ -769,13 +923,13 @@ export function CustomerListPage() {
           <CompactPagination
             page={currentPage}
             totalPages={totalPages}
-            label={`${filteredCustomers.length} kết quả`}
+            label={`${sortedCustomers.length} kết quả`}
             onPrevious={() => setPage(Math.max(1, currentPage - 1))}
             onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
           />
         }
       >
-        {filteredCustomers.length ? (
+        {sortedCustomers.length ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -793,17 +947,46 @@ export function CustomerListPage() {
                   />
                 </TableHead>
                 <TableHead className="cursor-pointer" onClick={() => toggleSort("full_name")}>
-                  Khách Hàng
+                  <span className="inline-flex items-center gap-1.5">
+                    Khách Hàng
+                    {renderSortIcon("full_name")}
+                  </span>
                 </TableHead>
-                <TableHead>Liên Hệ</TableHead>
-                <TableHead>Phân Loại</TableHead>
-                <TableHead>Phụ Trách</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => toggleSort("contact")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    Liên Hệ
+                    {renderSortIcon("contact")}
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => toggleSort("customer_type")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    Phân Loại
+                    {renderSortIcon("customer_type")}
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => toggleSort("assigned_to")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    Phụ Trách
+                    {renderSortIcon("assigned_to")}
+                  </span>
+                </TableHead>
                 <TableHead className="cursor-pointer" onClick={() => toggleSort("total_spent")}>
-                  Tổng Chi Tiêu
+                  <span className="inline-flex items-center gap-1.5">
+                    Tổng Chi Tiêu
+                    {renderSortIcon("total_spent")}
+                  </span>
                 </TableHead>
-                <TableHead>Đơn Hàng</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("created_at")}>
-                  Lần Cuối
+                <TableHead className="cursor-pointer" onClick={() => toggleSort("total_orders")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    Đơn Hàng
+                    {renderSortIcon("total_orders")}
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => toggleSort("activity_at")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    Lần Cuối
+                    {renderSortIcon("activity_at")}
+                  </span>
                 </TableHead>
                 <TableHead className="w-[128px] text-right">Hành động</TableHead>
               </TableRow>
@@ -849,6 +1032,9 @@ export function CustomerListPage() {
                     <div className="space-y-0.5">
                       <div className="text-sm text-foreground">{customer.phone || "--"}</div>
                       <div className="break-all text-xs text-muted-foreground">{customer.email || "--"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Sinh nhật: {customer.date_of_birth ? formatDate(customer.date_of_birth) : "--"}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -858,7 +1044,27 @@ export function CustomerListPage() {
                       dotClassName="bg-primary"
                     />
                   </TableCell>
-                  <TableCell>{customerMap[customer.assigned_to] ?? "--"}</TableCell>
+                  <TableCell>
+                    {usersById[customer.assigned_to] ? (
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          name={usersById[customer.assigned_to]?.full_name ?? "Phụ trách"}
+                          src={usersById[customer.assigned_to]?.avatar_url}
+                          className="size-7"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {usersById[customer.assigned_to]?.full_name}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {formatRole(usersById[customer.assigned_to]?.role ?? "sales")}
+                          </span>
+                        </span>
+                      </div>
+                    ) : (
+                      "--"
+                    )}
+                  </TableCell>
                   <TableCell className={cn("tabular-nums", customer.total_spent > 10_000_000 ? "font-semibold" : "")}>
                     {formatCurrencyCompact(customer.total_spent)}
                   </TableCell>

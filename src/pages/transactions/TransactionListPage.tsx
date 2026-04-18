@@ -1,7 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
-import { ArrowLeftRight, BadgePercent, Banknote, CheckCircle2, CircleDollarSign, CreditCard, ListOrdered, Plus, QrCode } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  BadgePercent,
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  CircleDollarSign,
+  CreditCard,
+  ListOrdered,
+  Plus,
+  QrCode,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -71,6 +84,15 @@ const transactionSchema = z.object({
 });
 
 type TransactionValues = z.infer<typeof transactionSchema>;
+type TransactionSortKey =
+  | "invoice_code"
+  | "customer"
+  | "total_amount"
+  | "payment_method"
+  | "payment_status"
+  | "status"
+  | "created_at";
+type SortDirection = "asc" | "desc";
 
 function paymentIcon(method: string) {
   if (method === "cash") return Banknote;
@@ -407,6 +429,8 @@ export function TransactionListPage() {
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const [createOpenLocal, setCreateOpenLocal] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<TransactionSortKey>("invoice_code");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const requestedCreate = searchParams.get("create") === "1";
   const prefillCustomerId = searchParams.get("customerId") ?? "";
   const createOpen = requestedCreate || createOpenLocal;
@@ -445,14 +469,63 @@ export function TransactionListPage() {
     [customerMap, deferredSearch, transactions],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / 20));
+  const sortedTransactions = useMemo(() => {
+    const paymentStatusRank: Record<Transaction["payment_status"], number> = {
+      pending: 1,
+      partial: 2,
+      paid: 3,
+      refunded: 4,
+      cancelled: 5,
+    };
+    const statusRank: Record<Transaction["status"], number> = {
+      pending: 1,
+      processing: 2,
+      completed: 3,
+      cancelled: 4,
+      refunded: 5,
+    };
+
+    return [...filteredTransactions].sort((left, right) => {
+      let compare = 0;
+
+      if (sortBy === "invoice_code") {
+        compare = left.invoice_code.localeCompare(right.invoice_code, "vi");
+      } else if (sortBy === "customer") {
+        compare = (customerMap[left.customer_id]?.full_name ?? "").localeCompare(
+          customerMap[right.customer_id]?.full_name ?? "",
+          "vi",
+        );
+      } else if (sortBy === "total_amount") {
+        compare = left.total_amount - right.total_amount;
+      } else if (sortBy === "payment_method") {
+        compare = formatPaymentMethod(left.payment_method).localeCompare(
+          formatPaymentMethod(right.payment_method),
+          "vi",
+        );
+      } else if (sortBy === "payment_status") {
+        compare = paymentStatusRank[left.payment_status] - paymentStatusRank[right.payment_status];
+      } else if (sortBy === "status") {
+        compare = statusRank[left.status] - statusRank[right.status];
+      } else {
+        compare = new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+      }
+
+      if (compare === 0) {
+        compare = left.invoice_code.localeCompare(right.invoice_code, "vi");
+      }
+
+      return sortDirection === "asc" ? compare : -compare;
+    });
+  }, [customerMap, filteredTransactions, sortBy, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / 20));
   const currentPage = Math.min(page, totalPages);
   const pagedTransactions = useMemo(
-    () => filteredTransactions.slice((currentPage - 1) * 20, currentPage * 20),
-    [currentPage, filteredTransactions],
+    () => sortedTransactions.slice((currentPage - 1) * 20, currentPage * 20),
+    [currentPage, sortedTransactions],
   );
 
-  const selectedTransaction = filteredTransactions.find((item) => item.id === selectedTransactionId);
+  const selectedTransaction = sortedTransactions.find((item) => item.id === selectedTransactionId);
 
   const summary = useMemo(() => {
     const completedTransactions = filteredTransactions.filter((item) => item.status === "completed");
@@ -465,6 +538,31 @@ export function TransactionListPage() {
       : 0;
     return { revenue, orders, average, completionRate };
   }, [filteredTransactions]);
+
+  const toggleSort = (key: TransactionSortKey) => {
+    setSortBy((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+
+      setSortDirection("asc");
+      return key;
+    });
+    setPage(1);
+  };
+
+  const renderSortIcon = (key: TransactionSortKey) => {
+    if (sortBy !== key) {
+      return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ChevronUp className="size-3.5 text-primary" />
+    ) : (
+      <ChevronDown className="size-3.5 text-primary" />
+    );
+  };
 
   if (transactionsQuery.isLoading) {
     return <PageLoader panels={2} />;
@@ -533,7 +631,7 @@ export function TransactionListPage() {
             setDateFrom(nextValue);
             setPage(1);
           }}
-          className="w-[166px]"
+          className="w-[190px]"
         />
         <DatePicker
           value={dateTo}
@@ -541,7 +639,7 @@ export function TransactionListPage() {
             setDateTo(nextValue);
             setPage(1);
           }}
-          className="w-[166px]"
+          className="w-[190px]"
         />
         <FilterSelect
           value={paymentFilter}
@@ -556,7 +654,7 @@ export function TransactionListPage() {
             { value: "transfer", label: "Chuyển khoản" },
             { value: "qr", label: "QR" },
           ]}
-          className="w-[170px]"
+          className="w-[190px]"
         />
         <FilterSelect
           value={statusFilter}
@@ -569,7 +667,7 @@ export function TransactionListPage() {
             { value: "completed", label: "Hoàn tất" },
             { value: "cancelled", label: "Đã hủy" },
           ]}
-          className="w-[170px]"
+          className="w-[190px]"
         />
         <Input
           value={search}
@@ -578,18 +676,18 @@ export function TransactionListPage() {
             setPage(1);
           }}
           placeholder="Tìm theo hóa đơn hoặc khách hàng"
-          className="min-w-[240px] flex-1"
+          className="min-w-[280px] flex-1"
         />
       </StickyFilterBar>
 
       <DataTableShell
         stickyHeader
         footer={
-          filteredTransactions.length ? (
+          sortedTransactions.length ? (
             <CompactPagination
               page={currentPage}
               totalPages={totalPages}
-              label={`${filteredTransactions.length} giao dịch`}
+              label={`${sortedTransactions.length} giao dịch`}
               onPrevious={() => setPage(Math.max(1, currentPage - 1))}
               onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
             />
@@ -598,16 +696,41 @@ export function TransactionListPage() {
           )
         }
       >
-        {filteredTransactions.length ? (
+        {sortedTransactions.length ? (
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Hóa Đơn</TableHead>
-              <TableHead>Khách Hàng</TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("invoice_code")}>
+                  Hóa Đơn
+                  {renderSortIcon("invoice_code")}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("customer")}>
+                  Khách Hàng
+                  {renderSortIcon("customer")}
+                </button>
+              </TableHead>
               <TableHead>Sản Phẩm</TableHead>
-              <TableHead>Tổng Tiền</TableHead>
-              <TableHead>Thanh Toán</TableHead>
-              <TableHead>Trạng Thái</TableHead>
+              <TableHead className="text-right">
+                <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => toggleSort("total_amount")}>
+                  Tổng Tiền
+                  {renderSortIcon("total_amount")}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("payment_status")}>
+                  Thanh Toán
+                  {renderSortIcon("payment_status")}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>
+                  Trạng Thái
+                  {renderSortIcon("status")}
+                </button>
+              </TableHead>
               <TableHead className="text-right">Chi tiết</TableHead>
             </TableRow>
           </TableHeader>

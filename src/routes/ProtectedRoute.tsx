@@ -46,7 +46,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     );
   }
 
-  if (allowedRoles?.length && (!role || !allowedRoles.includes(role))) {
+  if (allowedRoles?.length && (!role || (role !== "super_admin" && !allowedRoles.includes(role)))) {
     return <Navigate to="/403" replace />;
   }
 
